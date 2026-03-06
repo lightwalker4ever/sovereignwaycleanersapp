@@ -32,7 +32,7 @@ export default function Contact() {
 
         <div className="mt-14 grid grid-cols-1 gap-12 lg:grid-cols-2">
           {/* Contact details */}
-          <div className="space-y-6">
+          <div id="contact-info" className="space-y-6">
             {[
               {
                 icon: Phone,
