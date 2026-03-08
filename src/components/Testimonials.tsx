@@ -1,24 +1,26 @@
 import { Quote } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 
+const GOOGLE_PROFILE_URL = "https://share.google/6G2kXF5KSqg9jWF64";
+
 const testimonials = [
   {
     quote:
-      "Sovereign Way transformed our office. The team was professional, thorough, and arrived exactly on time. Our workspace has never looked better.",
-    name: "Sarah M.",
-    location: "Maidstone, Kent",
+      "I have been using Sovereign Way cleaners for quite a few months now and what a find. I have recommended them to many friends as I am really happy with the top quality service. Thank you.",
+    name: "Suzi Crabb",
+    stars: 5,
   },
   {
     quote:
-      "Used them for an end of tenancy clean and got my full deposit back. Absolutely worth every penny. Would recommend to anyone moving in Kent.",
-    name: "James T.",
-    location: "Canterbury, Kent",
+      "We booked Sovereign Way Cleaners for an end-of-tenancy deep cleaning, and they did an outstanding job. They covered everything, including carpets, windows, fridge, oven, dishwasher, washing machine, kitchen, and bathroom. The cleaning was carried out to a very high standard in a professional manner, and the price was very reasonable.\n\nEven the independent inspection report arranged by the estate agent confirmed that the property was cleaned to a professional standard. I'm very pleased with their service and would highly recommend them.",
+    name: "Iasantha Bandara",
+    stars: 5,
   },
   {
     quote:
-      "Regular domestic cleaning every fortnight and I couldn't be happier. The difference is always noticeable and the team are so friendly.",
-    name: "Claire B.",
-    location: "Tunbridge Wells, Kent",
+      "Forget and the team come to us every three weeks and are absolutely phenomenal, best cleaners we've had. The whole team is extremely thorough, hard-working and professional. I would recommended them to anyone!",
+    name: "Cameron Allan",
+    stars: 5,
   },
 ];
 
@@ -50,12 +52,12 @@ export default function Testimonials() {
                   className="mb-4 shrink-0"
                   style={{ color: "var(--color-brand)" }}
                 />
-                <p className="flex-1 text-sm leading-7 text-gray-700">
+                <p className="flex-1 text-sm leading-7 text-gray-700 whitespace-pre-line">
                   {t.quote}
                 </p>
                 {/* Stars */}
                 <div className="mt-6 flex gap-0.5">
-                  {[...Array(5)].map((_, i) => (
+                  {[...Array(t.stars)].map((_, i) => (
                     <svg
                       key={i}
                       className="h-4 w-4 fill-amber-400"
@@ -68,7 +70,15 @@ export default function Testimonials() {
                 <p className="mt-3 text-sm font-semibold text-gray-900">
                   {t.name}
                 </p>
-                <p className="text-xs text-gray-500">{t.location}</p>
+                <a
+                  href={GOOGLE_PROFILE_URL}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="mt-1 text-xs font-medium"
+                  style={{ color: "var(--color-brand)" }}
+                >
+                  Read on Google
+                </a>
               </CardContent>
             </Card>
           ))}
