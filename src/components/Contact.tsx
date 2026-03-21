@@ -3,6 +3,17 @@
 import { useActionState } from "react";
 import { Phone, Mail, MapPin, Clock } from "lucide-react";
 import { submitContactForm } from "@/actions/contact";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 
 const initialState = { success: false, error: undefined };
 
@@ -17,12 +28,12 @@ export default function Contact() {
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p
-            className="text-sm font-600 uppercase tracking-widest"
+            className="text-sm font-semibold uppercase tracking-widest"
             style={{ color: "var(--color-brand)" }}
           >
             Get In Touch
           </p>
-          <h2 className="mt-2 text-3xl font-800 tracking-tight text-gray-900 sm:text-4xl">
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
             Request a Free Quote
           </h2>
           <p className="mt-4 text-base leading-7 text-gray-600">
@@ -67,13 +78,13 @@ export default function Contact() {
                   <Icon size={18} style={{ color: "var(--color-brand)" }} />
                 </div>
                 <div>
-                  <p className="text-xs font-600 uppercase tracking-wider text-gray-500">
+                  <p className="text-xs font-semibold uppercase tracking-wider text-gray-500">
                     {label}
                   </p>
                   {href ? (
                     <a
                       href={href}
-                      className="text-sm text-gray-800 transition-colors hover:underline"
+                      className="text-sm transition-colors hover:underline"
                       style={{ color: "var(--color-brand)" }}
                     >
                       {value}
@@ -89,74 +100,68 @@ export default function Contact() {
           {/* Form */}
           <form action={formAction} className="space-y-5">
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-500 text-gray-700">
-                  Full Name *
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="name">Full Name *</Label>
+                <Input
+                  id="name"
                   name="name"
                   type="text"
                   required
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2"
-                  style={{ "--tw-ring-color": "var(--color-brand)" } as React.CSSProperties}
                   placeholder="Jane Smith"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-500 text-gray-700">
-                  Email Address *
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="email">Email Address *</Label>
+                <Input
+                  id="email"
                   name="email"
                   type="email"
                   required
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2"
                   placeholder="jane@example.com"
+                  className="h-10"
                 />
               </div>
             </div>
 
             <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-sm font-500 text-gray-700">
-                  Phone Number
-                </label>
-                <input
+              <div className="space-y-1.5">
+                <Label htmlFor="phone">Phone Number</Label>
+                <Input
+                  id="phone"
                   name="phone"
                   type="tel"
-                  className="w-full rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2"
                   placeholder="01234 567 890"
+                  className="h-10"
                 />
               </div>
-              <div>
-                <label className="mb-1 block text-sm font-500 text-gray-700">
-                  Service Required
-                </label>
-                <select
-                  name="service"
-                  className="w-full rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2"
-                >
-                  <option value="">Select a service…</option>
-                  <option>Domestic Cleaning</option>
-                  <option>Commercial Cleaning</option>
-                  <option>End of Tenancy</option>
-                  <option>Deep Cleaning</option>
-                  <option>Carpet Cleaning</option>
-                  <option>After Build Clean</option>
-                </select>
+              <div className="space-y-1.5">
+                <Label htmlFor="service">Service Required</Label>
+                <Select name="service">
+                  <SelectTrigger id="service" className="h-10 w-full">
+                    <SelectValue placeholder="Select a service…" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="domestic">Domestic Cleaning</SelectItem>
+                    <SelectItem value="commercial">Commercial Cleaning</SelectItem>
+                    <SelectItem value="tenancy">End of Tenancy</SelectItem>
+                    <SelectItem value="deep">Deep Cleaning</SelectItem>
+                    <SelectItem value="carpet">Carpet Cleaning</SelectItem>
+                    <SelectItem value="build">After Build Clean</SelectItem>
+                  </SelectContent>
+                </Select>
               </div>
             </div>
 
-            <div>
-              <label className="mb-1 block text-sm font-500 text-gray-700">
-                Message *
-              </label>
-              <textarea
+            <div className="space-y-1.5">
+              <Label htmlFor="message">Message *</Label>
+              <Textarea
+                id="message"
                 name="message"
                 required
                 rows={5}
-                className="w-full resize-none rounded-lg border border-gray-300 px-4 py-2.5 text-sm text-gray-900 outline-none transition focus:border-transparent focus:ring-2"
                 placeholder="Tell us about your cleaning requirements…"
+                className="resize-none"
               />
             </div>
 
@@ -165,29 +170,21 @@ export default function Contact() {
             )}
             {state?.success && (
               <p
-                className="text-sm font-500"
+                className="text-sm font-medium"
                 style={{ color: "var(--color-brand)" }}
               >
                 Thank you! We&apos;ll be in touch within 24 hours.
               </p>
             )}
 
-            <button
+            <Button
               type="submit"
               disabled={pending}
-              className="w-full rounded-full py-3 text-sm font-600 text-white transition-colors disabled:opacity-60"
-              style={{ backgroundColor: "var(--color-brand)" }}
-              onMouseEnter={(e) => {
-                if (!pending)
-                  e.currentTarget.style.backgroundColor =
-                    "var(--color-brand-dark)";
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "var(--color-brand)";
-              }}
+              className="w-full rounded-full"
+              size="lg"
             >
               {pending ? "Sending…" : "Send Message"}
-            </button>
+            </Button>
           </form>
         </div>
       </div>
