@@ -245,12 +245,12 @@ export default function Contact() {
                     <SelectValue placeholder="Select a service…" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="domestic">Domestic Cleaning</SelectItem>
-                    <SelectItem value="commercial">Commercial Cleaning</SelectItem>
-                    <SelectItem value="tenancy">End of Tenancy</SelectItem>
-                    <SelectItem value="deep">Deep Cleaning</SelectItem>
-                    <SelectItem value="carpet">Carpet Cleaning</SelectItem>
-                    <SelectItem value="build">After Build Clean</SelectItem>
+                    <SelectItem value="Domestic Cleaning">Domestic Cleaning</SelectItem>
+                    <SelectItem value="Commercial Cleaning">Commercial Cleaning</SelectItem>
+                    <SelectItem value="End of Tenancy">End of Tenancy</SelectItem>
+                    <SelectItem value="Deep Cleaning">Deep Cleaning</SelectItem>
+                    <SelectItem value="Carpet Cleaning">Carpet Cleaning</SelectItem>
+                    <SelectItem value="After Build Clean">After Build Clean</SelectItem>
                   </SelectContent>
                 </Select>
                 <FieldError message={show("service")} />
