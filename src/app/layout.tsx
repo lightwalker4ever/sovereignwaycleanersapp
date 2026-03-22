@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import SocialSidebar from "@/components/SocialSidebar";
 
 const jakarta = Plus_Jakarta_Sans({
   variable: "--font-jakarta",
@@ -38,7 +39,10 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-GB" className={cn(jakarta.variable)}>
-      <body className="antialiased">{children}</body>
+      <body className="antialiased">
+        <SocialSidebar />
+        {children}
+      </body>
     </html>
   );
 }
