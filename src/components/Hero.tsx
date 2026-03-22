@@ -1,19 +1,48 @@
+"use client";
+
+import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { buttonVariants } from "@/lib/button-variants";
 import { cn } from "@/lib/utils";
 
+const HERO_IMAGES = [
+  { src: "/images/everdrop-gmbh-SqOMDOQb3ws-unsplash.jpg", alt: "Professional cleaning service" },
+  { src: "/images/nastuh-abootalebi-yWwob8kwOCk-unsplash.jpg", alt: "Clean and tidy home" },
+  { src: "/images/toon-lambrechts-0FTI9ceTUOc-unsplash.jpg", alt: "Spotless surfaces" },
+];
+
 export default function Hero() {
+  const [current, setCurrent] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % HERO_IMAGES.length);
+    }, 10000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <section className="relative flex min-h-screen items-center justify-center" id="hero">
-      <Image
-        src="https://picsum.photos/seed/cleaninghero/1920/1080"
-        alt="Professional cleaning service"
-        fill
-        priority
-        className="object-cover"
-      />
+      {HERO_IMAGES.map((img, i) => (
+        <div
+          key={img.src}
+          className={cn(
+            "absolute inset-0 transition-opacity duration-1000",
+            i === current ? "opacity-100" : "opacity-0"
+          )}
+        >
+          <Image
+            src={img.src}
+            alt={img.alt}
+            fill
+            sizes="100vw"
+            priority={i === 0}
+            className="object-cover"
+          />
+        </div>
+      ))}
       <div className="absolute inset-0 bg-black/55" />
 
       <div className="relative z-10 mx-auto max-w-4xl px-6 text-center">
