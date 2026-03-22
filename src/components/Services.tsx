@@ -7,6 +7,13 @@ import {
   HardHat,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from "@/components/ui/card";
 
 interface Service {
   icon: LucideIcon;
@@ -59,12 +66,12 @@ export default function Services() {
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p
-            className="text-sm font-600 uppercase tracking-widest"
+            className="text-sm font-semibold uppercase tracking-widest"
             style={{ color: "var(--color-brand)" }}
           >
             What We Do
           </p>
-          <h2 className="mt-2 text-3xl font-800 tracking-tight text-gray-900 sm:text-4xl">
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
             Our Cleaning Services
           </h2>
           <p className="mt-4 text-base leading-7 text-gray-600">
@@ -77,23 +84,27 @@ export default function Services() {
           {services.map((service) => {
             const Icon = service.icon;
             return (
-              <div
+              <Card
                 key={service.name}
-                className="rounded-2xl bg-white p-8 shadow-sm transition-shadow hover:shadow-md"
+                className="rounded-2xl bg-white shadow-sm transition-shadow hover:shadow-md gap-2"
               >
-                <div
-                  className="inline-flex items-center justify-center rounded-full p-3"
-                  style={{ backgroundColor: "var(--color-brand-light)" }}
-                >
-                  <Icon size={24} style={{ color: "var(--color-brand)" }} />
-                </div>
-                <h3 className="mt-4 text-lg font-700 text-gray-900">
-                  {service.name}
-                </h3>
-                <p className="mt-2 text-sm leading-6 text-gray-600">
-                  {service.description}
-                </p>
-              </div>
+                <CardHeader className="pb-0">
+                  <div
+                    className="mb-3 inline-flex w-fit items-center justify-center rounded-full p-3"
+                    style={{ backgroundColor: "var(--color-brand-light)" }}
+                  >
+                    <Icon size={24} style={{ color: "var(--color-brand)" }} />
+                  </div>
+                  <CardTitle className="text-lg font-bold text-gray-900">
+                    {service.name}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <CardDescription className="text-sm leading-6 text-gray-600">
+                    {service.description}
+                  </CardDescription>
+                </CardContent>
+              </Card>
             );
           })}
         </div>

@@ -20,12 +20,12 @@ export default function Hero() {
         <Badge className="mb-4 rounded-full px-4 py-1.5 text-sm font-semibold">
           Serving Kent &amp; Surrounding Areas
         </Badge>
-        <h1 className="text-4xl font-normal leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
-          Kent's Trusted{" "}
-          <span style={{ color: "#86efac" }}>Cleaners</span>
+        <h1 className="text-4xl font-extrabold leading-tight tracking-tight text-white sm:text-5xl lg:text-6xl">
+          Kent&apos;s Trusted{" "}
+          <span style={{ color: "#86efac" }}>Cleaning Experts</span>
         </h1>
         <p className="mx-auto mt-6 max-w-2xl text-lg leading-8 text-gray-200">
-          Providing professional domestic, commercial, and specialist cleaning services
+          Professional domestic, commercial, and specialist cleaning services
           delivered by fully insured, local experts. Satisfaction guaranteed.
         </p>
 

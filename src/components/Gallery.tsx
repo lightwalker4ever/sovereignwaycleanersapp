@@ -1,15 +1,6 @@
 import Image from "next/image";
 
-const seeds = [
-  "clean1",
-  "clean2",
-  "clean3",
-  "clean4",
-  "clean5",
-  "clean6",
-  "clean7",
-  "clean8",
-];
+const images = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function Gallery() {
   return (
@@ -31,14 +22,14 @@ export default function Gallery() {
         </div>
 
         <div className="mt-14 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
-          {seeds.map((seed) => (
+          {images.map((n) => (
             <div
-              key={seed}
+              key={n}
               className="group relative aspect-square overflow-hidden rounded-xl shadow-sm"
             >
               <Image
-                src={`https://picsum.photos/seed/${seed}/600/600`}
-                alt={`Gallery image ${seed}`}
+                src={`/gallery/Gallery Photo ${n}.webp`}
+                alt={`Gallery photo ${n}`}
                 fill
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
