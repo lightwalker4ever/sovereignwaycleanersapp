@@ -1,8 +1,22 @@
+"use client";
+
 import Image from "next/image";
+import { useEffect, useState } from "react";
 
 const images = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function Gallery() {
+  const [selected, setSelected] = useState<number | null>(null);
+
+  useEffect(() => {
+    if (selected === null) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSelected(null);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [selected]);
+
   return (
     <section id="gallery" style={{ backgroundColor: "var(--color-accent)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
@@ -23,9 +37,12 @@ export default function Gallery() {
 
         <div className="mt-14 grid grid-cols-2 gap-4 md:grid-cols-3 lg:grid-cols-4">
           {images.map((n) => (
-            <div
+            <button
               key={n}
-              className="group relative aspect-square overflow-hidden rounded-xl shadow-sm"
+              onClick={() => setSelected(n)}
+              className="group relative aspect-square overflow-hidden rounded-xl shadow-sm focus:outline-none focus-visible:ring-2 focus-visible:ring-offset-2 cursor-zoom-in"
+              style={{ "--tw-ring-color": "var(--color-brand)" } as React.CSSProperties}
+              aria-label={`View gallery photo ${n}`}
             >
               <Image
                 src={`/gallery/Gallery Photo ${n}.webp`}
@@ -33,10 +50,35 @@ export default function Gallery() {
                 fill
                 className="object-cover transition-transform duration-300 group-hover:scale-105"
               />
-            </div>
+            </button>
           ))}
         </div>
       </div>
+
+      {/* Lightbox */}
+      {selected !== null && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          onClick={() => setSelected(null)}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Image lightbox"
+        >
+          <div
+            className="relative w-full max-w-3xl aspect-square rounded-2xl overflow-hidden shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <Image
+              src={`/gallery/Gallery Photo ${selected}.webp`}
+              alt={`Gallery photo ${selected}`}
+              fill
+              className="object-cover"
+              sizes="(max-width: 768px) 100vw, 768px"
+              priority
+            />
+          </div>
+        </div>
+      )}
     </section>
   );
 }
