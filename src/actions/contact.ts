@@ -48,7 +48,7 @@ export async function submitContactForm(
   try {
     await resend.emails.send({
       from: "Website <onboarding@resend.dev>",
-      to: "info@sovereignwaycleaners.co.uk",
+      to: "nuno.m.s.teixeira@gmail.com",
       subject: `New enquiry from ${name}`,
       html: `
         <h2>New Contact Enquiry</h2>

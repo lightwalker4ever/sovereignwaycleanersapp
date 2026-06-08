@@ -144,7 +144,7 @@ export default function Contact() {
           {/* Contact details */}
           <div id="contact-info" className="space-y-6">
             {[
-              { icon: Phone, label: "Phone", value: "+44 1234 567 890", href: "tel:+441234567890" },
+              { icon: Phone, label: "Phone", value: "+44 7961 242946", href: "tel:+447961242946" },
               { icon: Mail, label: "Email", value: "info@sovereignwaycleaners.co.uk", href: "mailto:info@sovereignwaycleaners.co.uk" },
               { icon: MapPin, label: "Location", value: "Kent, United Kingdom", href: undefined },
               { icon: Clock, label: "Hours", value: "Mon–Fri 8am–6pm · Sat 9am–4pm", href: undefined },
@@ -216,7 +216,7 @@ export default function Contact() {
                   id="phone"
                   name="phone"
                   type="tel"
-                  placeholder="01234 567 890"
+                  placeholder="07123 456789"
                   value={values.phone}
                   onChange={set("phone")}
                   onBlur={touch("phone")}
