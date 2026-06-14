@@ -67,23 +67,46 @@ export default function SocialSidebar() {
   const color = isDark ? "#ffffff" : "var(--color-brand)";
 
   return (
-    <aside
-      className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3"
-      aria-label="Social media links"
-    >
-      {links.map(({ label, href, icon }) => (
-        <a
-          key={label}
-          href={href}
-          target="_blank"
-          rel="noopener noreferrer"
-          aria-label={label}
-          className="flex items-center justify-center w-[50px] h-[50px] rounded-full transition-colors duration-300 hover:bg-white/10"
-          style={{ color }}
-        >
-          {icon}
-        </a>
-      ))}
-    </aside>
+    <>
+      {/* Desktop sidebar */}
+      <aside
+        className="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-50 flex-col gap-3"
+        aria-label="Social media links"
+      >
+        {links.map(({ label, href, icon }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            className="flex items-center justify-center w-[50px] h-[50px] rounded-full transition-colors duration-300 hover:bg-white/10"
+            style={{ color }}
+          >
+            {icon}
+          </a>
+        ))}
+      </aside>
+
+      {/* Mobile bottom bar */}
+      <nav
+        className="fixed bottom-0 left-0 right-0 z-50 md:hidden flex items-center justify-around border-t py-3"
+        style={{ backgroundColor: "var(--color-brand)", borderColor: "var(--color-brand-dark)" }}
+        aria-label="Social media links"
+      >
+        {links.map(({ label, href, icon }) => (
+          <a
+            key={label}
+            href={href}
+            target="_blank"
+            rel="noopener noreferrer"
+            aria-label={label}
+            className="flex items-center justify-center w-10 h-10 text-white/80 hover:text-white transition-colors"
+          >
+            {icon}
+          </a>
+        ))}
+      </nav>
+    </>
   );
 }

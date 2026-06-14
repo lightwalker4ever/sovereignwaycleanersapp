@@ -39,7 +39,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en-GB" className={cn(jakarta.variable)}>
-      <body className="antialiased">
+      <body className="antialiased pb-16 md:pb-0">
         <SocialSidebar />
         {children}
       </body>

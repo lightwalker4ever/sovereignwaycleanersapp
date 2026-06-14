@@ -46,20 +46,36 @@ export async function submitContactForm(
   const { name, email, phone, service, message } = parsed.data;
 
   try {
-    await resend.emails.send({
-      from: "Website <onboarding@resend.dev>",
-      to: "nuno.m.s.teixeira@gmail.com",
-      subject: `New enquiry from ${name}`,
-      html: `
-        <h2>New Contact Enquiry</h2>
-        <p><strong>Name:</strong> ${name}</p>
-        <p><strong>Email:</strong> ${email}</p>
-        ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
-        ${service ? `<p><strong>Service:</strong> ${service}</p>` : ""}
-        <p><strong>Message:</strong></p>
-        <p>${message.replace(/\n/g, "<br>")}</p>
-      `,
-    });
+    await Promise.all([
+      // Notification to Sovereign Way Cleaners
+      resend.emails.send({
+        from: "Website <onboarding@resend.dev>",
+        to: "nuno.m.s.teixeira@gmail.com",
+        subject: `New enquiry from ${name}`,
+        html: `
+          <h2>New Quote Request</h2>
+          <p><strong>Name:</strong> ${name}</p>
+          <p><strong>Email:</strong> ${email}</p>
+          ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
+          <p><strong>Service:</strong> ${service}</p>
+          <p><strong>Message:</strong></p>
+          <p>${message.replace(/\n/g, "<br>")}</p>
+        `,
+      }),
+      // Confirmation to the customer
+      resend.emails.send({
+        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        to: email,
+        subject: "We've received your quote request",
+        html: `
+          <p>Hi ${name},</p>
+          <p>Thank you for getting in touch! We've received your request for <strong>${service}</strong> and will get back to you within 24 hours.</p>
+          <p>If you need to reach us in the meantime, you can call or WhatsApp us on <strong>+44 7961 242946</strong> or reply to this email.</p>
+          <br>
+          <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+        `,
+      }),
+    ]);
     return { success: true };
   } catch {
     return { success: false, error: "Failed to send message. Please try again." };
