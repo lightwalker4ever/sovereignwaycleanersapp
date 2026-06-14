@@ -68,7 +68,7 @@ export default function SocialSidebar() {
 
   return (
     <aside
-      className="fixed left-4 top-1/2 -translate-y-1/2 z-50 flex flex-col gap-3"
+      className="hidden md:flex fixed left-4 top-1/2 -translate-y-1/2 z-50 flex-col gap-3"
       aria-label="Social media links"
     >
       {links.map(({ label, href, icon }) => (
