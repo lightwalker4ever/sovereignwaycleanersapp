@@ -2,16 +2,22 @@
 
 import Image from "next/image";
 import { useEffect, useState } from "react";
+import { X, ChevronLeft, ChevronRight } from "lucide-react";
 
 const images = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function Gallery() {
   const [selected, setSelected] = useState<number | null>(null);
 
+  const prev = () => setSelected((s) => (s === null ? null : s === 1 ? images.length : s - 1));
+  const next = () => setSelected((s) => (s === null ? null : s === images.length ? 1 : s + 1));
+
   useEffect(() => {
     if (selected === null) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSelected(null);
+      if (e.key === "ArrowLeft") prev();
+      if (e.key === "ArrowRight") next();
     };
     window.addEventListener("keydown", onKey);
     return () => window.removeEventListener("keydown", onKey);
@@ -28,7 +34,7 @@ export default function Gallery() {
             Our Work
           </p>
           <h2 className="mt-2 text-3xl font-800 tracking-tight text-gray-900 sm:text-4xl">
-            Before &amp; After Gallery
+            Gallery
           </h2>
           <p className="mt-4 text-base leading-7 text-gray-600">
             See the difference our team makes across a range of properties.
@@ -58,12 +64,36 @@ export default function Gallery() {
       {/* Lightbox */}
       {selected !== null && (
         <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/75 backdrop-blur-sm p-4"
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4"
           onClick={() => setSelected(null)}
           role="dialog"
           aria-modal="true"
           aria-label="Image lightbox"
         >
+          {/* Close */}
+          <button
+            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+            onClick={() => setSelected(null)}
+            aria-label="Close"
+          >
+            <X size={28} />
+          </button>
+
+          {/* Counter */}
+          <span className="absolute top-5 left-1/2 -translate-x-1/2 text-white/70 text-sm tabular-nums">
+            {selected} / {images.length}
+          </span>
+
+          {/* Prev */}
+          <button
+            className="absolute left-3 text-white/80 hover:text-white transition-colors p-2"
+            onClick={(e) => { e.stopPropagation(); prev(); }}
+            aria-label="Previous photo"
+          >
+            <ChevronLeft size={36} />
+          </button>
+
+          {/* Image */}
           <div
             className="relative w-full max-w-3xl aspect-square rounded-2xl overflow-hidden shadow-2xl"
             onClick={(e) => e.stopPropagation()}
@@ -77,6 +107,15 @@ export default function Gallery() {
               priority
             />
           </div>
+
+          {/* Next */}
+          <button
+            className="absolute right-3 text-white/80 hover:text-white transition-colors p-2"
+            onClick={(e) => { e.stopPropagation(); next(); }}
+            aria-label="Next photo"
+          >
+            <ChevronRight size={36} />
+          </button>
         </div>
       )}
     </section>
