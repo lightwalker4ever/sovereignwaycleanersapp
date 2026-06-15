@@ -90,7 +90,7 @@ export default function SocialSidebar() {
 
       {/* Mobile bottom bar */}
       <nav
-        className="fixed bottom-0 left-0 right-0 z-50 md:hidden flex items-center justify-around border-t py-3"
+        className="fixed bottom-0 left-0 right-0 z-50 md:hidden flex items-center justify-around border-t py-2"
         style={{ backgroundColor: "var(--color-brand)", borderColor: "var(--color-brand-dark)" }}
         aria-label="Social media links"
       >
@@ -101,7 +101,7 @@ export default function SocialSidebar() {
             target="_blank"
             rel="noopener noreferrer"
             aria-label={label}
-            className="flex items-center justify-center w-10 h-10 text-white/80 hover:text-white transition-colors"
+            className="flex items-center justify-center w-8 h-8 text-white/80 hover:text-white transition-colors"
           >
             {icon}
           </a>

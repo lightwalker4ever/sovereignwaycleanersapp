@@ -87,6 +87,7 @@
 
 html {
   scroll-behavior: smooth;
+  scroll-padding-top: 6rem; /* offset for fixed header (h-24) */
 }
 
 body {
