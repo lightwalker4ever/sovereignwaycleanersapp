@@ -29,7 +29,7 @@ export default function Gallery() {
         <div className="mx-auto max-w-2xl text-center">
           <p
             className="text-sm font-600 uppercase tracking-widest"
-            style={{ color: "var(--color-brand)" }}
+            style={{ color: "var(--color-sage)" }}
           >
             Our Work
           </p>

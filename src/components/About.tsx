@@ -29,7 +29,7 @@ export default function About() {
           <div className="order-1 lg:order-2">
             <p
               className="text-sm font-600 uppercase tracking-widest"
-              style={{ color: "var(--color-brand)" }}
+              style={{ color: "var(--color-sage)" }}
             >
               About Us
             </p>

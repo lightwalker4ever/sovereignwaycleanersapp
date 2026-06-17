@@ -31,7 +31,7 @@ export default function Testimonials() {
         <div className="mx-auto max-w-2xl text-center">
           <p
             className="text-sm font-semibold uppercase tracking-widest"
-            style={{ color: "var(--color-brand)" }}
+            style={{ color: "var(--color-sage)" }}
           >
             Happy Clients
           </p>
