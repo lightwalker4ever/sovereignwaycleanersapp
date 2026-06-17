@@ -16,7 +16,7 @@ export default function About() {
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
           {/* Image */}
-          <div className="relative h-96 overflow-hidden rounded-2xl shadow-lg lg:h-[480px]">
+          <div className="relative h-96 overflow-hidden rounded-2xl shadow-lg lg:h-[480px] order-2 lg:order-1">
             <Image
               src="https://picsum.photos/seed/cleaningteam/800/600"
               alt="Our cleaning team"
@@ -26,7 +26,7 @@ export default function About() {
           </div>
 
           {/* Content */}
-          <div>
+          <div className="order-1 lg:order-2">
             <p
               className="text-sm font-600 uppercase tracking-widest"
               style={{ color: "var(--color-brand)" }}
