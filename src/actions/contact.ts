@@ -70,7 +70,7 @@ export async function submitContactForm(
         html: `
           <p>Hi ${name},</p>
           <p>Thank you for getting in touch! We've received your request for <strong>${service}</strong> and will get back to you within 24 hours.</p>
-          <p>If you need to reach us in the meantime, you can call or WhatsApp us on <strong>+44 7961 242946</strong> or reply to this email.</p>
+          <p>If you need to reach us in the meantime, you can call us on <strong>01732 711856</strong> or WhatsApp us on <strong>07445 109813</strong> or reply to this email.</p>
           <br>
           <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
         `,
