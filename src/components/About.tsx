@@ -12,7 +12,7 @@ const usps = [
 
 export default function About() {
   return (
-    <section id="about" className="bg-white">
+    <section id="about" style={{ backgroundColor: "var(--color-cream)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
           {/* Image */}
@@ -33,7 +33,7 @@ export default function About() {
             >
               About Us
             </p>
-            <h2 className="mt-2 text-3xl font-800 tracking-tight text-gray-900 sm:text-4xl">
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
               Why Choose Sovereign Way Cleaners?
             </h2>
             <p className="mt-4 text-base leading-7 text-gray-600">
