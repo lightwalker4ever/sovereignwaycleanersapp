@@ -123,7 +123,7 @@ export default function Contact() {
     cn("h-10", isInvalid(f) && "border-red-400 focus-visible:ring-red-300");
 
   return (
-    <section id="contact" style={{ backgroundColor: "var(--color-accent)" }}>
+    <section id="contact" style={{ backgroundColor: "var(--color-sage)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p

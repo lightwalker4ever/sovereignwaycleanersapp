@@ -62,7 +62,7 @@ const services: Service[] = [
 
 export default function Services() {
   return (
-    <section id="services" style={{ backgroundColor: "var(--color-accent)" }}>
+    <section id="services" style={{ backgroundColor: "var(--color-sage)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p
