@@ -24,7 +24,7 @@ export default function Gallery() {
   }, [selected]);
 
   return (
-    <section id="gallery" style={{ backgroundColor: "var(--color-sage)" }}>
+    <section id="gallery" style={{ backgroundColor: "var(--color-accent)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p
