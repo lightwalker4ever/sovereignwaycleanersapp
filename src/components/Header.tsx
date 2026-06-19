@@ -20,7 +20,7 @@ export default function Header() {
   const [open, setOpen] = useState(false);
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/10 bg-white/90 backdrop-blur-sm">
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-black/5 backdrop-blur-sm" style={{ backgroundColor: "rgba(251, 247, 238, 0.93)" }}>
       <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-6 lg:px-8">
         {/* Logo */}
         <Link href="#">

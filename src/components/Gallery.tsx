@@ -33,7 +33,7 @@ export default function Gallery() {
           >
             Our Work
           </p>
-          <h2 className="mt-2 text-3xl font-800 tracking-tight text-gray-900 sm:text-4xl">
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
             Gallery
           </h2>
           <p className="mt-4 text-base leading-7 text-gray-600">
@@ -72,7 +72,7 @@ export default function Gallery() {
         >
           {/* Close */}
           <button
-            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors"
+            className="absolute top-4 right-4 text-white/80 hover:text-white transition-colors z-10"
             onClick={() => setSelected(null)}
             aria-label="Close"
           >
@@ -80,42 +80,39 @@ export default function Gallery() {
           </button>
 
           {/* Counter */}
-          <span className="absolute top-5 left-1/2 -translate-x-1/2 text-white/70 text-sm tabular-nums">
+          <span className="absolute top-5 left-1/2 -translate-x-1/2 text-white/70 text-sm tabular-nums z-10">
             {selected} / {images.length}
           </span>
 
-          {/* Prev */}
-          <button
-            className="absolute left-3 text-white/80 hover:text-white transition-colors p-2"
-            onClick={(e) => { e.stopPropagation(); prev(); }}
-            aria-label="Previous photo"
-          >
-            <ChevronLeft size={36} />
-          </button>
+          {/* Prev + Image + Next in a row so buttons are always visible */}
+          <div className="flex items-center gap-3 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+            <button
+              className="shrink-0 text-white/80 hover:text-white transition-colors p-1"
+              onClick={prev}
+              aria-label="Previous photo"
+            >
+              <ChevronLeft size={36} />
+            </button>
 
-          {/* Image */}
-          <div
-            className="relative w-full max-w-3xl aspect-square rounded-2xl overflow-hidden shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <Image
-              src={`/gallery/Gallery Photo ${selected}.webp`}
-              alt={`Gallery photo ${selected}`}
-              fill
-              className="object-cover"
-              sizes="(max-width: 768px) 100vw, 768px"
-              priority
-            />
+            <div className="relative flex-1 aspect-square rounded-2xl overflow-hidden shadow-2xl">
+              <Image
+                src={`/gallery/Gallery Photo ${selected}.webp`}
+                alt={`Gallery photo ${selected}`}
+                fill
+                className="object-cover"
+                sizes="(max-width: 768px) 100vw, 768px"
+                priority
+              />
+            </div>
+
+            <button
+              className="shrink-0 text-white/80 hover:text-white transition-colors p-1"
+              onClick={next}
+              aria-label="Next photo"
+            >
+              <ChevronRight size={36} />
+            </button>
           </div>
-
-          {/* Next */}
-          <button
-            className="absolute right-3 text-white/80 hover:text-white transition-colors p-2"
-            onClick={(e) => { e.stopPropagation(); next(); }}
-            aria-label="Next photo"
-          >
-            <ChevronRight size={36} />
-          </button>
         </div>
       )}
     </section>
