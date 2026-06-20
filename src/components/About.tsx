@@ -12,7 +12,7 @@ const usps = [
 
 export default function About() {
   return (
-    <section id="about" style={{ backgroundColor: "var(--color-cream)" }}>
+    <section id="about" className="bg-white">
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
           {/* Image */}
