@@ -71,8 +71,11 @@ export default function Footer() {
           </div>
         </div>
 
-        <div className="mt-12 border-t border-gray-700 pt-6 text-center text-xs text-gray-500">
-          &copy; {new Date().getFullYear()} Sovereign Way Cleaners. All rights reserved.
+        <div className="mt-12 border-t border-gray-700 pt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-between text-xs text-gray-500">
+          <p>&copy; {new Date().getFullYear()} Sovereign Way Cleaners. All rights reserved.</p>
+          <Link href="/privacy-policy" className="hover:text-white transition-colors">
+            Privacy Policy
+          </Link>
         </div>
       </div>
     </footer>
