@@ -8,10 +8,7 @@
   --color-brand: #1e6b45;
   --color-brand-dark: #145230;
   --color-brand-light: #d1fae5;
-  --color-accent: #d1fae5;
-  --color-cream: #FBF7EE;
-  --color-sage: #7F9D8D;
-  --color-sage-alt: #829D8F;
+  --color-accent: #f0fdf4;
   --background: oklch(1 0 0);
   --foreground: oklch(0.145 0 0);
   --card: oklch(1 0 0);
