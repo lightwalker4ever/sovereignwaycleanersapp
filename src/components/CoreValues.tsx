@@ -41,7 +41,7 @@ const values: Value[] = [
     icon: Shield,
     title: "Integrity in Action",
     description:
-      "We are committed to delivering the highest standards of cleaning across all environments — from homes to commercial spaces.",
+      "We operate with honesty and transparency in everything we do — from clear, upfront pricing to straightforward communication. Our word is our bond.",
   },
   {
     icon: Heart,
