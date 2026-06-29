@@ -26,6 +26,8 @@ export default function Footer() {
               {[
                 { href: "#services", label: "Services" },
                 { href: "#about", label: "About Us" },
+                { href: "#values", label: "Core Values" },
+                { href: "#affiliations", label: "Affiliations" },
                 { href: "#gallery", label: "Gallery" },
                 { href: "#testimonials", label: "Testimonials" },
                 { href: "#contact", label: "Contact" },
