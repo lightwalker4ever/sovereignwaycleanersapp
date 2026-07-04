@@ -1,64 +1,117 @@
-import { BadgeCheck } from "lucide-react";
+"use client";
 
-const affiliations = [
+import { useState } from "react";
+import { ChevronDown, Users, Star, ShieldCheck, Clock } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+interface Stat {
+  icon: LucideIcon;
+  value: string;
+  label: string;
+}
+
+interface Affiliation {
+  name: string;
+  full: string;
+  description: string;
+}
+
+const stats: Stat[] = [
+  { icon: Users, value: "500+", label: "Happy Clients" },
+  { icon: Star, value: "5-Star", label: "Rated" },
+  { icon: ShieldCheck, value: "100%", label: "Insured" },
+  { icon: Clock, value: "10+", label: "Years Experience" },
+];
+
+const affiliations: Affiliation[] = [
   {
     name: "BICSc",
     full: "British Institute of Cleaning Science",
-    description: "Member of the UK's leading professional body for the cleaning industry.",
+    description:
+      "Member of the UK's leading professional body for the cleaning industry. BICSc sets the standard for professional cleaning and our membership reflects our commitment to excellence.",
   },
   {
     name: "HISCOX",
     full: "Hiscox Insurance",
-    description: "Fully insured with Hiscox, giving clients complete peace of mind.",
+    description:
+      "Fully insured with Hiscox, one of the UK's leading specialist insurers. Our comprehensive coverage gives clients complete peace of mind on every job.",
   },
   {
     name: "DBS Checked",
     full: "Disclosure & Barring Service",
-    description: "All staff hold valid DBS checks — safe and trusted in your home or workplace.",
+    description:
+      "All staff hold valid DBS checks — safe and trusted in your home or workplace. We take safeguarding seriously so you don't have to.",
   },
   {
     name: "CSCS",
     full: "Construction Skills Certification Scheme",
-    description: "CSCS-certified for safe and compliant work on construction sites.",
+    description:
+      "CSCS-certified for safe and compliant work on construction sites. Our after-build cleaning team is trained and certified to work in active construction environments.",
   },
 ];
 
 export default function Affiliations() {
-  return (
-    <section id="affiliations" style={{ backgroundColor: "var(--color-accent)" }}>
-      <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div className="mx-auto max-w-2xl text-center">
-          <p
-            className="text-sm font-semibold uppercase tracking-widest"
-            style={{ color: "var(--color-brand)" }}
-          >
-            Credentials & Certifications
-          </p>
-          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-gray-900 sm:text-4xl">
-            Our Affiliations
-          </h2>
-          <p className="mt-4 text-base leading-7 text-gray-600">
-            We hold recognised industry accreditations so you can hire with confidence.
-          </p>
-        </div>
+  const [openIndex, setOpenIndex] = useState<number>(0);
 
-        <div className="mt-14 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-          {affiliations.map((a) => (
-            <div
-              key={a.name}
-              className="flex flex-col items-center rounded-2xl bg-white px-6 py-8 text-center shadow-sm"
-            >
-              <div
-                className="mb-4 inline-flex items-center justify-center rounded-full p-3"
-                style={{ backgroundColor: "var(--color-brand-light)" }}
-              >
-                <BadgeCheck size={28} style={{ color: "var(--color-brand)" }} />
-              </div>
-              <span className="text-xl font-extrabold text-gray-900">{a.name}</span>
-              <span className="mt-1 text-xs font-medium text-gray-500">{a.full}</span>
-              <p className="mt-3 text-sm leading-6 text-gray-600">{a.description}</p>
+  return (
+    <section id="affiliations" style={{ backgroundColor: "var(--color-brand-dark)" }}>
+      <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
+        <div className="grid grid-cols-1 gap-14 lg:grid-cols-2 lg:items-start">
+
+          {/* Left: Header + Stats grid */}
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-widest text-white/60">
+              Our Credentials
+            </p>
+            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+              Affiliations &amp; Credentials
+            </h2>
+            <p className="mt-4 text-base leading-7 text-white/70">
+              We hold recognised industry accreditations so you can hire with confidence.
+            </p>
+
+            <div className="mt-10 grid grid-cols-2 gap-4">
+              {stats.map(({ icon: Icon, value, label }) => (
+                <div key={label} className="rounded-xl bg-white/10 p-5 text-center">
+                  <Icon size={24} className="mx-auto mb-2 text-white/60" />
+                  <p className="text-2xl font-extrabold text-white">{value}</p>
+                  <p className="mt-1 text-sm text-white/60">{label}</p>
+                </div>
+              ))}
             </div>
-          ))}
+          </div>
+
+          {/* Right: Accordion */}
+          <div className="space-y-3">
+            {affiliations.map((aff, i) => (
+              <div key={aff.name} className="overflow-hidden rounded-xl border border-white/20">
+                <button
+                  className="flex w-full items-center justify-between px-5 py-4 text-left text-white transition-colors hover:bg-white/5"
+                  onClick={() => setOpenIndex(openIndex === i ? -1 : i)}
+                  aria-expanded={openIndex === i}
+                >
+                  <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
+                    <span className="text-base font-bold">{aff.name}</span>
+                    <span className="text-sm text-white/50">{aff.full}</span>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    className={cn(
+                      "ml-4 shrink-0 text-white/50 transition-transform duration-200",
+                      openIndex === i && "rotate-180"
+                    )}
+                  />
+                </button>
+                {openIndex === i && (
+                  <div className="border-t border-white/10 px-5 py-4">
+                    <p className="text-sm leading-6 text-white/70">{aff.description}</p>
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+
         </div>
       </div>
     </section>

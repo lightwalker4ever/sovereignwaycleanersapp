@@ -44,6 +44,9 @@ export async function submitContactForm(
   }
 
   const { name, email, phone, service, message } = parsed.data;
+  const propertyType = (formData.get("propertyType") as string) || undefined;
+  const preferredDate = (formData.get("preferredDate") as string) || undefined;
+  const preferredTime = (formData.get("preferredTime") as string) || undefined;
 
   try {
     await Promise.all([
@@ -58,6 +61,9 @@ export async function submitContactForm(
           <p><strong>Email:</strong> ${email}</p>
           ${phone ? `<p><strong>Phone:</strong> ${phone}</p>` : ""}
           <p><strong>Service:</strong> ${service}</p>
+          ${propertyType ? `<p><strong>Property Type:</strong> ${propertyType}</p>` : ""}
+          ${preferredDate ? `<p><strong>Preferred Date:</strong> ${preferredDate}</p>` : ""}
+          ${preferredTime ? `<p><strong>Preferred Time:</strong> ${preferredTime}</p>` : ""}
           <p><strong>Message:</strong></p>
           <p>${message.replace(/\n/g, "<br>")}</p>
         `,

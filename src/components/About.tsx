@@ -18,7 +18,7 @@ export default function About() {
           {/* Image */}
           <div className="relative h-96 overflow-hidden rounded-2xl shadow-lg lg:h-[480px] order-2 lg:order-1">
             <Image
-              src="https://picsum.photos/seed/cleaningteam/800/600"
+              src="/images/Sovereign%20Way%20Cleaners%20-%20Staff%202.png"
               alt="Our cleaning team"
               fill
               className="object-cover"
