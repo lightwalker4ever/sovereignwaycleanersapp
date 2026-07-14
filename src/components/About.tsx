@@ -15,8 +15,8 @@ export default function About() {
     <section id="about" className="bg-white">
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="grid grid-cols-1 items-center gap-14 lg:grid-cols-2">
-          {/* Image */}
-          <div className="relative h-96 overflow-hidden rounded-2xl shadow-lg lg:h-[480px] order-2 lg:order-1">
+          {/* Image — first in DOM so it's on top on mobile and left on desktop */}
+          <div className="relative h-96 overflow-hidden rounded-2xl shadow-lg lg:h-[480px]">
             <Image
               src="/images/Sovereign%20Way%20Cleaners%20-%20Staff%202.png"
               alt="Our cleaning team"
@@ -26,7 +26,7 @@ export default function About() {
           </div>
 
           {/* Content */}
-          <div className="order-1 lg:order-2">
+          <div>
             <p
               className="text-sm font-600 uppercase tracking-widest"
               style={{ color: "var(--color-brand)" }}

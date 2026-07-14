@@ -15,6 +15,7 @@ interface Affiliation {
   name: string;
   full: string;
   description: string;
+  verifyUrl?: string;
 }
 
 const stats: Stat[] = [
@@ -30,6 +31,8 @@ const affiliations: Affiliation[] = [
     full: "British Institute of Cleaning Science",
     description:
       "Member of the UK's leading professional body for the cleaning industry. BICSc sets the standard for professional cleaning and our membership reflects our commitment to excellence.",
+    verifyUrl:
+      "https://yoshki.com/bics-validation/?098105099115+118097108105100097116105111110+0860971081051000971161010871041051161010461aN;NaNM12110103+104116116112115058047047119119119046115111118101114101105103110119097121099108101097110101114115046099111046117107047&UGxEQk3X8u%2bCEV1Vr%2by1zA2GTsaVDgTzJc%2fnPWWL2MHcweXY5QJZmA%3d%3d",
   },
   {
     name: "HISCOX",
@@ -106,6 +109,16 @@ export default function Affiliations() {
                 {openIndex === i && (
                   <div className="border-t border-white/10 px-5 py-4">
                     <p className="text-sm leading-6 text-white/70">{aff.description}</p>
+                    {aff.verifyUrl && (
+                      <a
+                        href={aff.verifyUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 inline-flex items-center gap-1 text-xs font-medium text-white/50 transition-colors hover:text-white/90"
+                      >
+                        Verify our membership ↗
+                      </a>
+                    )}
                   </div>
                 )}
               </div>

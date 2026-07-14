@@ -8,9 +8,18 @@ const images = [1, 2, 3, 4, 5, 6, 7, 8];
 
 export default function Gallery() {
   const [selected, setSelected] = useState<number | null>(null);
+  const [touchStartX, setTouchStartX] = useState<number | null>(null);
 
   const prev = () => setSelected((s) => (s === null ? null : s === 1 ? images.length : s - 1));
   const next = () => setSelected((s) => (s === null ? null : s === images.length ? 1 : s + 1));
+
+  const handleTouchStart = (e: React.TouchEvent) => setTouchStartX(e.touches[0].clientX);
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (touchStartX === null) return;
+    const delta = touchStartX - e.changedTouches[0].clientX;
+    if (Math.abs(delta) > 50) delta > 0 ? next() : prev();
+    setTouchStartX(null);
+  };
 
   useEffect(() => {
     if (selected === null) return;
@@ -85,7 +94,12 @@ export default function Gallery() {
           </span>
 
           {/* Prev + Image + Next in a row so buttons are always visible */}
-          <div className="flex items-center gap-3 w-full max-w-3xl" onClick={(e) => e.stopPropagation()}>
+          <div
+            className="flex items-center gap-3 w-full max-w-3xl"
+            onClick={(e) => e.stopPropagation()}
+            onTouchStart={handleTouchStart}
+            onTouchEnd={handleTouchEnd}
+          >
             <button
               className="shrink-0 text-white/80 hover:text-white transition-colors p-1"
               onClick={prev}
