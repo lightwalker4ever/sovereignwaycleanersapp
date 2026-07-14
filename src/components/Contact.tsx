@@ -101,7 +101,7 @@ const STATS = [
   { icon: Users, value: "500+", label: "Happy Clients" },
   { icon: ShieldCheck, value: "100%", label: "Fully Insured" },
   { icon: Star, value: "5-Star", label: "Rated" },
-  { icon: Leaf, value: "Eco", label: "Friendly Products" },
+  { icon: Leaf, value: "Eco-Friendly", label: "Products" },
 ];
 
 const FORM_TRUST = [
@@ -181,13 +181,13 @@ export default function Contact() {
         <div className="mt-14 grid grid-cols-1 gap-8 lg:grid-cols-[1fr_2fr] lg:items-start">
 
           {/* Left card: contact info */}
-          <div className="rounded-2xl bg-white p-8 shadow-sm">
+          <div className="rounded-2xl bg-white p-6 shadow-sm">
             <h3 className="text-xl font-bold text-gray-900">Let&apos;s Talk</h3>
             <p className="mt-2 text-sm leading-6 text-gray-500">
               Prefer to speak to someone? Reach us directly below.
             </p>
 
-            <div id="contact-info" className="mt-8 space-y-6">
+            <div id="contact-info" className="mt-6 space-y-5">
               {[
                 { icon: Phone, label: "Phone", value: "01732 711856 / 07445 109813", href: "tel:+447445109813" },
                 { icon: Mail, label: "Email", value: "info@sovereignwaycleaners.co.uk", href: "mailto:info@sovereignwaycleaners.co.uk" },
@@ -217,7 +217,7 @@ export default function Contact() {
 
             {/* Trust badge */}
             <div
-              className="mt-8 flex items-center gap-3 rounded-xl p-4"
+              className="mt-6 flex items-center gap-3 rounded-xl p-4"
               style={{ backgroundColor: "var(--color-accent)" }}
             >
               <ShieldCheck size={22} style={{ color: "var(--color-brand)" }} className="shrink-0" />
@@ -234,7 +234,7 @@ export default function Contact() {
 
               {/* Row 1: Name + Email */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div className="space-y-0">
+                <div className="space-y-1.5">
                   <Label htmlFor="name">Full Name *</Label>
                   <Input
                     id="name" name="name" type="text" placeholder="Jane Smith"
@@ -243,7 +243,7 @@ export default function Contact() {
                   />
                   <FieldError message={show("name")} />
                 </div>
-                <div className="space-y-0">
+                <div className="space-y-1.5">
                   <Label htmlFor="email">Email Address *</Label>
                   <Input
                     id="email" name="email" type="email" placeholder="jane@example.com"
@@ -256,7 +256,7 @@ export default function Contact() {
 
               {/* Row 2: Phone + Service */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
-                <div className="space-y-0">
+                <div className="space-y-1.5">
                   <Label htmlFor="phone">Phone Number</Label>
                   <Input
                     id="phone" name="phone" type="tel" placeholder="07123 456789"
@@ -265,7 +265,7 @@ export default function Contact() {
                   />
                   <FieldError message={show("phone")} />
                 </div>
-                <div className="space-y-0">
+                <div className="space-y-1.5">
                   <Label htmlFor="service">Service Required *</Label>
                   <Select
                     name="service" value={values.service}
@@ -293,7 +293,7 @@ export default function Contact() {
 
               {/* Row 3: Property Type + Preferred Date + Preferred Time */}
               <div className="grid grid-cols-1 gap-5 sm:grid-cols-3">
-                <div className="space-y-0">
+                <div className="space-y-1.5">
                   <Label htmlFor="propertyType">Property Type <span className="text-gray-400 font-normal">(optional)</span></Label>
                   <Select name="propertyType" value={values.propertyType} onValueChange={setSelect("propertyType")}>
                     <SelectTrigger id="propertyType" className="h-10 w-full">
@@ -309,7 +309,7 @@ export default function Contact() {
                     </SelectContent>
                   </Select>
                 </div>
-                <div className="space-y-0">
+                <div className="space-y-1.5">
                   <Label htmlFor="preferredDate">Preferred Date <span className="text-gray-400 font-normal">(optional)</span></Label>
                   <Input
                     id="preferredDate" name="preferredDate" type="date"
@@ -317,7 +317,7 @@ export default function Contact() {
                     className="h-10"
                   />
                 </div>
-                <div className="space-y-0">
+                <div className="space-y-1.5">
                   <Label htmlFor="preferredTime">Preferred Time <span className="text-gray-400 font-normal">(optional)</span></Label>
                   <Select name="preferredTime" value={values.preferredTime} onValueChange={setSelect("preferredTime")}>
                     <SelectTrigger id="preferredTime" className="h-10 w-full">
@@ -334,7 +334,7 @@ export default function Contact() {
               </div>
 
               {/* Row 4: Message */}
-              <div className="space-y-0">
+              <div className="space-y-1.5">
                 <div className="flex items-baseline justify-between">
                   <Label htmlFor="message">Message *</Label>
                   <span className={cn("text-xs tabular-nums", values.message.trim().length >= 50 ? "text-green-600" : "text-gray-400")}>

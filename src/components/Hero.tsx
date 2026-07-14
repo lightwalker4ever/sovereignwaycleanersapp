@@ -55,7 +55,7 @@ export default function Hero() {
       ))}
       <div className="absolute inset-0 bg-black/55" />
 
-      <div className="relative z-10 mx-auto flex flex-1 flex-col items-center justify-center px-6 text-center max-w-4xl">
+      <div className="relative z-10 mx-auto flex flex-1 flex-col items-center justify-center px-6 text-center max-w-4xl pt-20 lg:pt-0">
         <Badge className="mb-4 rounded-full px-4 py-1.5 text-sm font-semibold">
           Serving Kent &amp; Surrounding Areas
         </Badge>
