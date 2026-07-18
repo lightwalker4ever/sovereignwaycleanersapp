@@ -102,8 +102,8 @@ export default function Affiliations() {
                       <Image
                         src={aff.logoSrc}
                         alt={aff.name}
-                        width={90}
-                        height={28}
+                        width={60}
+                        height={24}
                         className="object-contain brightness-0 invert"
                       />
                     ) : (
