@@ -18,6 +18,9 @@ interface Affiliation {
   description: string;
   verifyUrl?: string;
   logoSrc?: string;
+  logoWidth?: number;
+  logoHeight?: number;
+  logoInvert?: boolean;
 }
 
 const stats: Stat[] = [
@@ -36,12 +39,18 @@ const affiliations: Affiliation[] = [
     verifyUrl:
       "https://yoshki.com/bics-validation/?098105099115+118097108105100097116105111110+086097108105100097116101087104105116101046112110103+104116116112115058047047119119119046115111118101114101105103110119097121099108101097110101114115046099111046117107047&UGxEQk3X8u%2bCEV1Vr%2by1zA2GTsaVDgTzJc%2fnPWWL2MHcweXY5QJZmA%3d%3d",
     logoSrc: "/images/BICSc.png",
+    logoWidth: 48,
+    logoHeight: 32,
   },
   {
     name: "HISCOX",
     full: "Hiscox Insurance",
     description:
       "Fully insured with Hiscox, one of the UK's leading specialist insurers. Our comprehensive coverage gives clients complete peace of mind on every job.",
+    logoSrc: "/images/Hiscox%20black%20no%20background.png",
+    logoWidth: 60,
+    logoHeight: 24,
+    logoInvert: true,
   },
   {
     name: "DBS Checked",
@@ -102,9 +111,12 @@ export default function Affiliations() {
                       <Image
                         src={aff.logoSrc}
                         alt={aff.name}
-                        width={48}
-                        height={32}
-                        className="object-contain"
+                        width={aff.logoWidth ?? 48}
+                        height={aff.logoHeight ?? 32}
+                        className={cn(
+                          "object-contain",
+                          aff.logoInvert && "brightness-0 invert"
+                        )}
                       />
                     ) : (
                       <span className="text-base font-bold">{aff.name}</span>
