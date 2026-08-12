@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ChevronDown, Users, Star, ShieldCheck, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface Affiliation {
   full: string;
   description: string;
   verifyUrl?: string;
+  logoSrc?: string;
 }
 
 const stats: Stat[] = [
@@ -33,6 +35,7 @@ const affiliations: Affiliation[] = [
       "Member of the UK's leading professional body for the cleaning industry. BICSc sets the standard for professional cleaning and our membership reflects our commitment to excellence.",
     verifyUrl:
       "https://yoshki.com/bics-validation/?098105099115+118097108105100097116105111110+086097108105100097116101087104105116101046112110103+104116116112115058047047119119119046115111118101114101105103110119097121099108101097110101114115046099111046117107047&UGxEQk3X8u%2bCEV1Vr%2by1zA2GTsaVDgTzJc%2fnPWWL2MHcweXY5QJZmA%3d%3d",
+    logoSrc: "/images/BICSc.png",
   },
   {
     name: "HISCOX",
@@ -95,7 +98,17 @@ export default function Affiliations() {
                   aria-expanded={openIndex === i}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
-                    <span className="text-base font-bold">{aff.name}</span>
+                    {aff.logoSrc ? (
+                      <Image
+                        src={aff.logoSrc}
+                        alt={aff.name}
+                        width={48}
+                        height={32}
+                        className="object-contain"
+                      />
+                    ) : (
+                      <span className="text-base font-bold">{aff.name}</span>
+                    )}
                     <span className="text-sm text-white/50">{aff.full}</span>
                   </div>
                   <ChevronDown
