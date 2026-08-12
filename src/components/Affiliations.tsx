@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Image from "next/image";
 import { ChevronDown, Users, Star, ShieldCheck, Clock } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface Affiliation {
   full: string;
   description: string;
   verifyUrl?: string;
+  logoSrc?: string;
 }
 
 const stats: Stat[] = [
@@ -39,6 +41,7 @@ const affiliations: Affiliation[] = [
     full: "Hiscox Insurance",
     description:
       "Fully insured with Hiscox, one of the UK's leading specialist insurers. Our comprehensive coverage gives clients complete peace of mind on every job.",
+    logoSrc: "/images/Hiscox%20black%20no%20background.png",
   },
   {
     name: "DBS Checked",
@@ -95,7 +98,17 @@ export default function Affiliations() {
                   aria-expanded={openIndex === i}
                 >
                   <div className="flex flex-col sm:flex-row sm:items-center sm:gap-3">
-                    <span className="text-base font-bold">{aff.name}</span>
+                    {aff.logoSrc ? (
+                      <Image
+                        src={aff.logoSrc}
+                        alt={aff.name}
+                        width={60}
+                        height={24}
+                        className="object-contain brightness-0 invert"
+                      />
+                    ) : (
+                      <span className="text-base font-bold">{aff.name}</span>
+                    )}
                     <span className="text-sm text-white/50">{aff.full}</span>
                   </div>
                   <ChevronDown
