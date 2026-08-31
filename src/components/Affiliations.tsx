@@ -38,9 +38,10 @@ const affiliations: Affiliation[] = [
       "Member of the UK's leading professional body for the cleaning industry. BICSc sets the standard for professional cleaning and our membership reflects our commitment to excellence.",
     verifyUrl:
       "https://yoshki.com/bics-validation/?098105099115+118097108105100097116105111110+086097108105100097116101087104105116101046112110103+104116116112115058047047119119119046115111118101114101105103110119097121099108101097110101114115046099111046117107047&UGxEQk3X8u%2bCEV1Vr%2by1zA2GTsaVDgTzJc%2fnPWWL2MHcweXY5QJZmA%3d%3d",
-    logoSrc: "/images/BICSc.png",
-    logoWidth: 48,
-    logoHeight: 32,
+    logoSrc: "/images/BICSc-logo.png",
+    logoWidth: 86,
+    logoHeight: 28,
+    logoInvert: true,
   },
   {
     name: "HISCOX",
@@ -111,8 +112,8 @@ export default function Affiliations() {
                       <Image
                         src={aff.logoSrc}
                         alt={aff.name}
-                        width={aff.logoWidth ?? 48}
-                        height={aff.logoHeight ?? 32}
+                        width={aff.logoWidth ?? 60}
+                        height={aff.logoHeight ?? 24}
                         className={cn(
                           "object-contain",
                           aff.logoInvert && "brightness-0 invert"
