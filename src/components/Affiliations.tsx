@@ -8,8 +8,7 @@ import {
   Star,
   ShieldCheck,
   Clock,
-  UserCheck,
-  HardHat,
+  IdCard,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -67,14 +66,14 @@ const affiliations: Affiliation[] = [
     full: "Disclosure & Barring Service",
     description:
       "All staff hold valid DBS checks — safe and trusted in your home or workplace. We take safeguarding seriously so you don't have to.",
-    badgeIcon: UserCheck,
+    badgeIcon: ShieldCheck,
   },
   {
     name: "CSCS",
     full: "Construction Skills Certification Scheme",
     description:
       "CSCS-certified for safe and compliant work on construction sites. Our after-build cleaning team is trained and certified to work in active construction environments.",
-    badgeIcon: HardHat,
+    badgeIcon: IdCard,
   },
 ];
 
@@ -84,9 +83,9 @@ export default function Affiliations() {
   return (
     <section id="affiliations" style={{ backgroundColor: "var(--color-brand-dark)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div className="grid grid-cols-1 gap-14 lg:grid-cols-2 lg:items-start">
+        <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-2 lg:items-start">
 
-          {/* Left: Header + Stats grid */}
+          {/* Left header */}
           <div>
             <p className="text-sm font-semibold uppercase tracking-widest text-white/60">
               Our Credentials
@@ -97,16 +96,27 @@ export default function Affiliations() {
             <p className="mt-4 text-base leading-7 text-white/70">
               We hold recognised industry accreditations so you can hire with confidence.
             </p>
+          </div>
 
-            <div className="mt-10 grid grid-cols-2 gap-4">
-              {stats.map(({ icon: Icon, value, label }) => (
-                <div key={label} className="rounded-xl bg-white/10 p-5 text-center">
-                  <Icon size={24} className="mx-auto mb-2 text-white/60" />
-                  <p className="text-2xl font-extrabold text-white">{value}</p>
-                  <p className="mt-1 text-sm text-white/60">{label}</p>
-                </div>
-              ))}
-            </div>
+          {/* Right header */}
+          <div className="hidden lg:block lg:self-end">
+            <p className="text-sm font-semibold uppercase tracking-widest text-white/60">
+              Verified By
+            </p>
+            <h3 className="mt-2 text-xl font-bold text-white">
+              Our Trusted Partners &amp; Checks
+            </h3>
+          </div>
+
+          {/* Left: Stats grid */}
+          <div className="grid grid-cols-2 gap-4">
+            {stats.map(({ icon: Icon, value, label }) => (
+              <div key={label} className="rounded-xl bg-white/10 p-5 text-center">
+                <Icon size={24} className="mx-auto mb-2 text-white/60" />
+                <p className="text-2xl font-extrabold text-white">{value}</p>
+                <p className="mt-1 text-sm text-white/60">{label}</p>
+              </div>
+            ))}
           </div>
 
           {/* Right: Accordion */}
