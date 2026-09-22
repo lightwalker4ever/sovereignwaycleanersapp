@@ -83,30 +83,19 @@ export default function Affiliations() {
   return (
     <section id="affiliations" style={{ backgroundColor: "var(--color-brand-dark)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div className="grid grid-cols-1 gap-x-14 gap-y-10 lg:grid-cols-2 lg:items-start">
+        <div className="max-w-2xl">
+          <p className="text-sm font-semibold uppercase tracking-widest text-white/60">
+            Our Credentials
+          </p>
+          <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+            Affiliations &amp; Credentials
+          </h2>
+          <p className="mt-4 text-base leading-7 text-white/70">
+            We hold recognised industry accreditations so you can hire with confidence.
+          </p>
+        </div>
 
-          {/* Left header */}
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-widest text-white/60">
-              Our Credentials
-            </p>
-            <h2 className="mt-2 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
-              Affiliations &amp; Credentials
-            </h2>
-            <p className="mt-4 text-base leading-7 text-white/70">
-              We hold recognised industry accreditations so you can hire with confidence.
-            </p>
-          </div>
-
-          {/* Right header */}
-          <div className="hidden lg:block lg:self-end">
-            <p className="text-sm font-semibold uppercase tracking-widest text-white/60">
-              Verified By
-            </p>
-            <h3 className="mt-2 text-xl font-bold text-white">
-              Our Trusted Partners &amp; Checks
-            </h3>
-          </div>
+        <div className="mt-10 grid grid-cols-1 gap-8 lg:grid-cols-2 lg:items-start">
 
           {/* Left: Stats grid */}
           <div className="grid grid-cols-2 gap-4">
