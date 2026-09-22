@@ -102,7 +102,7 @@ export default function Services() {
             return (
               <div
                 key={service.name}
-                className="group overflow-hidden rounded-2xl bg-white shadow-sm transition-shadow hover:shadow-md"
+                className="group flex h-full flex-col overflow-hidden rounded-2xl bg-white shadow-sm transition-shadow hover:shadow-md"
               >
                 <div className="relative h-52 w-full overflow-hidden">
                   <Image
@@ -113,7 +113,7 @@ export default function Services() {
                     className="object-cover transition-transform duration-500 group-hover:scale-105"
                   />
                 </div>
-                <div className="p-6">
+                <div className="flex flex-1 flex-col p-6">
                   <div
                     className="mb-3 inline-flex items-center justify-center rounded-full p-2.5"
                     style={{ backgroundColor: "var(--color-brand-light)" }}
@@ -126,7 +126,7 @@ export default function Services() {
                   </p>
                   <Link
                     href="#contact"
-                    className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold transition-colors hover:gap-2.5"
+                    className="mt-auto inline-flex w-fit items-center gap-1.5 pt-4 text-sm font-semibold transition-colors hover:gap-2.5"
                     style={{ color: "var(--color-brand)" }}
                   >
                     Book a Clean
