@@ -60,7 +60,7 @@ export default function SocialSidebar() {
       { rootMargin: "-45% 0px -45% 0px" }
     );
 
-    document.querySelectorAll("#hero, footer").forEach((el) => observer.observe(el));
+    document.querySelectorAll("#hero, #affiliations, footer").forEach((el) => observer.observe(el));
     return () => observer.disconnect();
   }, []);
 

@@ -2,7 +2,15 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { ChevronDown, Users, Star, ShieldCheck, Clock } from "lucide-react";
+import {
+  ChevronDown,
+  Users,
+  Star,
+  ShieldCheck,
+  Clock,
+  UserCheck,
+  HardHat,
+} from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -21,6 +29,7 @@ interface Affiliation {
   logoWidth?: number;
   logoHeight?: number;
   logoInvert?: boolean;
+  badgeIcon?: LucideIcon;
 }
 
 const stats: Stat[] = [
@@ -58,12 +67,14 @@ const affiliations: Affiliation[] = [
     full: "Disclosure & Barring Service",
     description:
       "All staff hold valid DBS checks — safe and trusted in your home or workplace. We take safeguarding seriously so you don't have to.",
+    badgeIcon: UserCheck,
   },
   {
     name: "CSCS",
     full: "Construction Skills Certification Scheme",
     description:
       "CSCS-certified for safe and compliant work on construction sites. Our after-build cleaning team is trained and certified to work in active construction environments.",
+    badgeIcon: HardHat,
   },
 ];
 
@@ -119,6 +130,13 @@ export default function Affiliations() {
                           aff.logoInvert && "brightness-0 invert"
                         )}
                       />
+                    ) : aff.badgeIcon ? (
+                      <span className="flex items-center gap-2">
+                        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-white">
+                          <aff.badgeIcon size={16} style={{ color: "var(--color-brand)" }} />
+                        </span>
+                        <span className="text-base font-bold">{aff.name}</span>
+                      </span>
                     ) : (
                       <span className="text-base font-bold">{aff.name}</span>
                     )}
