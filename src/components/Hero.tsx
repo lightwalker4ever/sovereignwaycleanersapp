@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, ShieldCheck, ThumbsUp, Leaf } from "lucide-react";
 import { buttonVariants } from "@/lib/button-variants";
@@ -69,7 +68,7 @@ export default function Hero() {
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <Link
+          <a
             href="#contact"
             className={cn(
               buttonVariants({ variant: "default", size: "lg" }),
@@ -77,8 +76,8 @@ export default function Hero() {
             )}
           >
             Get a Free Quote
-          </Link>
-          <Link
+          </a>
+          <a
             href="#services"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
@@ -86,7 +85,7 @@ export default function Hero() {
             )}
           >
             Our Services
-          </Link>
+          </a>
         </div>
       </div>
 

@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
-import Link from "next/link";
 import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/lib/button-variants";
 import { cn } from "@/lib/utils";
@@ -23,7 +22,7 @@ export default function Header() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white/90 backdrop-blur-sm">
       <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-6 lg:px-8">
         {/* Logo */}
-        <Link href="#">
+        <a href="#">
           <Image
             src="/image.png"
             alt="Sovereign Way Cleaners"
@@ -32,20 +31,20 @@ export default function Header() {
             className="object-contain max-h-20 w-auto"
             priority
           />
-        </Link>
+        </a>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-6 md:flex">
           {navLinks.map((link) => (
-            <Link
+            <a
               key={link.href}
               href={link.href}
               className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
               {link.label}
-            </Link>
+            </a>
           ))}
-          <Link
+          <a
             href="#contact"
             className={cn(
               buttonVariants({ variant: "default" }),
@@ -53,7 +52,7 @@ export default function Header() {
             )}
           >
             Get a Quote
-          </Link>
+          </a>
         </nav>
 
         {/* Mobile hamburger */}
@@ -72,16 +71,16 @@ export default function Header() {
       {open && (
         <div className="border-t border-gray-100 bg-white px-6 pb-4 md:hidden">
           {navLinks.map((link) => (
-            <Link
+            <a
               key={link.href}
               href={link.href}
               className="block py-3 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900"
               onClick={() => setOpen(false)}
             >
               {link.label}
-            </Link>
+            </a>
           ))}
-          <Link
+          <a
             href="#contact"
             onClick={() => setOpen(false)}
             className={cn(
@@ -90,7 +89,7 @@ export default function Header() {
             )}
           >
             Get a Quote
-          </Link>
+          </a>
         </div>
       )}
     </header>

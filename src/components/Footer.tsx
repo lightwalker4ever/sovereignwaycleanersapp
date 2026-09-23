@@ -33,12 +33,12 @@ export default function Footer() {
                 { href: "#contact", label: "Contact" },
               ].map((link) => (
                 <li key={link.href}>
-                  <Link
+                  <a
                     href={link.href}
                     className="transition-colors hover:text-white"
                   >
                     {link.label}
-                  </Link>
+                  </a>
                 </li>
               ))}
             </ul>

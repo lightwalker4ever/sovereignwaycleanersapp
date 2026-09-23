@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import { Award, Users, Heart, Leaf } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { buttonVariants } from "@/lib/button-variants";
@@ -70,7 +69,7 @@ export default function Vision() {
               engagement and local initiatives.
             </p>
             <div className="mt-8">
-              <Link
+              <a
                 href="#contact"
                 className={cn(
                   buttonVariants({ variant: "default", size: "lg" }),
@@ -78,7 +77,7 @@ export default function Vision() {
                 )}
               >
                 Book a Clean Today
-              </Link>
+              </a>
             </div>
           </div>
 

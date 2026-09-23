@@ -1,5 +1,4 @@
 import Image from "next/image";
-import Link from "next/link";
 import {
   Home,
   Building2,
@@ -124,14 +123,14 @@ export default function Services() {
                   <p className="mt-2 text-sm leading-6 text-gray-600">
                     {service.description}
                   </p>
-                  <Link
+                  <a
                     href="#contact"
                     className="mt-auto inline-flex w-fit items-center gap-1.5 pt-4 text-sm font-semibold transition-colors hover:gap-2.5"
                     style={{ color: "var(--color-brand)" }}
                   >
                     Book a Clean
                     <ArrowRight size={16} className="transition-transform" />
-                  </Link>
+                  </a>
                 </div>
               </div>
             );
