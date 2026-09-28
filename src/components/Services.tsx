@@ -6,6 +6,8 @@ import {
   Sparkles,
   Layers,
   HardHat,
+  PaintRoller,
+  Boxes,
   ShieldCheck,
   Users,
   Calendar,
@@ -42,7 +44,7 @@ const services: Service[] = [
     name: "End of Tenancy",
     description:
       "Thorough move-out cleans to meet landlord and letting agency standards. Helping you secure your deposit.",
-    image: "/images/End%20of%20Tenancy.png",
+    image: "/images/end%20of%20tenancy.jpg",
   },
   {
     icon: Sparkles,
@@ -64,6 +66,20 @@ const services: Service[] = [
     description:
       "Post-construction cleaning removing dust, debris, and residue — leaving new spaces ready to use.",
     image: "/images/After%20Build%20Clean.png",
+  },
+  {
+    icon: PaintRoller,
+    name: "Builders and Sparkle Clean",
+    description:
+      "The finishing touch after renovations or a new build — we clear dust and debris, then detail every surface until it sparkles, ready to hand over.",
+    image: "/images/Builders%20and%20sparkle%20clean.png",
+  },
+  {
+    icon: Boxes,
+    name: "Move In/Out Cleaning",
+    description:
+      "Starting fresh or leaving spotless — a thorough clean of every room so the property is ready for its next chapter.",
+    image: "/images/move_in_out_1.png",
   },
 ];
 
