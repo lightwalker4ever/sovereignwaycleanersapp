@@ -23,7 +23,7 @@ const partners: Partner[] = [
 
 export default function TrustedBy() {
   return (
-    <section id="testimonials" style={{ backgroundColor: "var(--color-accent)" }}>
+    <section id="testimonials" className="bg-white">
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
         <div className="mx-auto max-w-2xl text-center">
           <p
@@ -44,7 +44,7 @@ export default function TrustedBy() {
           {partners.map((partner) => (
             <div
               key={partner.name}
-              className="flex h-28 items-center justify-center rounded-2xl bg-white p-6 shadow-sm"
+              className="flex h-28 items-center justify-center rounded-2xl bg-gray-50 p-6 shadow-sm"
             >
               <Image
                 src={partner.logoSrc}
