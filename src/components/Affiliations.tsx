@@ -83,7 +83,7 @@ export default function Affiliations() {
   return (
     <section id="affiliations" style={{ backgroundColor: "var(--color-brand-dark)" }}>
       <div className="mx-auto max-w-7xl px-6 py-20 lg:px-8">
-        <div className="max-w-2xl">
+        <div className="mx-auto max-w-2xl text-center">
           <p className="text-sm font-semibold uppercase tracking-widest text-white/60">
             Our Credentials
           </p>
