@@ -29,7 +29,7 @@ export default function Footer() {
                 { href: "#values", label: "Core Values" },
                 { href: "#affiliations", label: "Affiliations" },
                 { href: "#gallery", label: "Gallery" },
-                { href: "#testimonials", label: "Testimonials" },
+                { href: "#testimonials", label: "Trusted By" },
                 { href: "#contact", label: "Contact" },
               ].map((link) => (
                 <li key={link.href}>
