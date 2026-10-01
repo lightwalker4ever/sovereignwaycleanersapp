@@ -14,11 +14,11 @@ interface Partner {
 // Logos share a common display height; width is derived from each
 // source image's own aspect ratio so nothing looks stretched.
 const partners: Partner[] = [
-  { name: "Leaders", logoSrc: "/images/Leaders_Branch_070aa1f01e.png", logoWidth: 96, logoHeight: 64 },
+  { name: "Leaders", logoSrc: "/images/leaders-logo-transparent.png", logoWidth: 96, logoHeight: 64 },
   { name: "The Salvation Army", logoSrc: "/images/The_Salvation_Army.svg.webp", logoWidth: 54, logoHeight: 64 },
   { name: "Methodist Church", logoSrc: "/images/methodist.jpg", logoWidth: 64, logoHeight: 61 },
   { name: "Waghorn & Company", logoSrc: "/images/waghorn.png", logoWidth: 102, logoHeight: 64 },
-  { name: "Chelvaa Homes", logoSrc: "/images/chelvaa_small.jpeg", logoWidth: 64, logoHeight: 64 },
+  { name: "Chelvaa Homes", logoSrc: "/images/chelvaa-logo-transparent.png", logoWidth: 64, logoHeight: 64 },
 ];
 
 export default function TrustedBy() {
