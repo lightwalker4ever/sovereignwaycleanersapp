@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
+import Link from "next/link";
 import { Button } from "@/components/ui/button"
 import { buttonVariants } from "@/lib/button-variants";
 import { cn } from "@/lib/utils";
@@ -44,6 +45,12 @@ export default function Header() {
               {link.label}
             </a>
           ))}
+          <Link
+            href="/login"
+            className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
+          >
+            Sign In
+          </Link>
           <a
             href="#contact"
             className={cn(
@@ -80,6 +87,13 @@ export default function Header() {
               {link.label}
             </a>
           ))}
+          <Link
+            href="/login"
+            onClick={() => setOpen(false)}
+            className="block py-3 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900"
+          >
+            Sign In
+          </Link>
           <a
             href="#contact"
             onClick={() => setOpen(false)}
