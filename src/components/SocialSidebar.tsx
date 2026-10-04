@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { usePathname } from "next/navigation";
 
 const links = [
   {
@@ -42,6 +43,7 @@ const links = [
 ];
 
 export default function SocialSidebar() {
+  const pathname = usePathname();
   // Start as true — page loads at the Hero (dark section)
   const [isDark, setIsDark] = useState(true);
 
@@ -65,6 +67,13 @@ export default function SocialSidebar() {
   }, []);
 
   const color = isDark ? "#ffffff" : "var(--color-brand)";
+
+  // Not rendered on auth/dashboard pages — the dark/light logic above
+  // watches marketing-page landmarks (#hero, #affiliations, footer)
+  // that don't exist there.
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/login")) {
+    return null;
+  }
 
   return (
     <>
