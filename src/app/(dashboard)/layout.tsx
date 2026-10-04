@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { capitalize } from "@/lib/utils";
 import { signOut } from "./actions";
 
 export default async function DashboardLayout({
@@ -42,8 +43,8 @@ export default async function DashboardLayout({
             <span className="text-sm text-gray-600">
               {profile?.full_name ?? user.email}
               {profile?.role && (
-                <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium capitalize text-gray-700">
-                  {profile.role}
+                <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
+                  {capitalize(profile.role)}
                 </span>
               )}
             </span>

@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { capitalize } from "@/lib/utils";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
@@ -26,7 +27,7 @@ export default async function DashboardPage() {
         </h1>
         <p className="mt-1 text-sm text-gray-600">
           Signed in as <span className="font-medium">{user.email}</span>,
-          role <span className="font-medium capitalize">{profile?.role ?? "client"}</span>.
+          role <span className="font-medium">{capitalize(profile?.role ?? "client")}</span>.
         </p>
       </div>
 
