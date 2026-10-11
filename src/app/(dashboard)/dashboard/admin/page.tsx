@@ -1,7 +1,9 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { InviteUserForm } from "@/components/admin/InviteUserForm";
 import { UserRoleSelect } from "@/components/admin/UserRoleSelect";
-import { listUsers } from "./actions";
+import { EditableTextCell } from "@/components/admin/EditableTextCell";
+import { UserActions } from "@/components/admin/UserActions";
+import { listUsers, updateUserName, updateUserEmail } from "./actions";
 
 export default async function AdminPage() {
   const users = await listUsers();
@@ -9,21 +11,20 @@ export default async function AdminPage() {
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-2xl font-bold text-gray-900">Manage users</h1>
+        <h1 className="text-2xl font-bold text-gray-900">Manage staff</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Invite staff (cleaners, supervisors, managers, admins) and manage
-          everyone&apos;s role. Clients sign themselves up and always start
-          here as Client.
+          Create accounts for cleaners, supervisors, managers and admins,
+          and manage their details and access. Clients aren&apos;t shown
+          here — they sign themselves up.
         </p>
       </div>
 
       <Card className="p-5">
         <CardHeader>
-          <CardTitle>Invite a staff member</CardTitle>
+          <CardTitle>Create a staff account</CardTitle>
           <CardDescription>
             Creates their account with a temporary password you share with
-            them directly (email invites are coming later). No public
-            signup page produces anything but a Client account.
+            them directly (email invites are coming later).
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -32,25 +33,53 @@ export default async function AdminPage() {
       </Card>
 
       <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
-        <table className="w-full min-w-150 text-left text-sm">
+        <table className="w-full min-w-225 text-left text-sm">
           <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
             <tr>
               <th className="px-4 py-3 font-medium">Name</th>
               <th className="px-4 py-3 font-medium">Email</th>
               <th className="px-4 py-3 font-medium">Role</th>
+              <th className="px-4 py-3 font-medium">Status</th>
               <th className="px-4 py-3 font-medium">Joined</th>
+              <th className="px-4 py-3 font-medium">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-gray-100">
             {users.map((u) => (
               <tr key={u.id}>
-                <td className="px-4 py-3 text-gray-900">{u.fullName ?? "—"}</td>
-                <td className="px-4 py-3 text-gray-600">{u.email}</td>
-                <td className="px-4 py-3">
+                <td className="px-4 py-3 align-top">
+                  <EditableTextCell
+                    value={u.fullName}
+                    placeholder="Add a name"
+                    onSave={(next) => updateUserName(u.id, next)}
+                  />
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <EditableTextCell
+                    value={u.email}
+                    type="email"
+                    onSave={(next) => updateUserEmail(u.id, next)}
+                  />
+                </td>
+                <td className="px-4 py-3 align-top">
                   <UserRoleSelect userId={u.id} initialRole={u.role} />
                 </td>
-                <td className="px-4 py-3 text-gray-600">
+                <td className="px-4 py-3 align-top">
+                  <span
+                    className={
+                      u.active
+                        ? "rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800"
+                        : "rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600"
+                    }
+                  >
+                    {u.active ? "Active" : "Deactivated"}
+                  </span>
+                </td>
+                <td className="px-4 py-3 align-top text-gray-600">
                   {new Date(u.createdAt).toLocaleDateString("en-GB")}
+                </td>
+                <td className="px-4 py-3 align-top">
+                  <UserActions userId={u.id} email={u.email} initialActive={u.active} />
                 </td>
               </tr>
             ))}

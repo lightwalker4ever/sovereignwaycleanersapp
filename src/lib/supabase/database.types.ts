@@ -1,5 +1,5 @@
 /**
- * Hand-authored to match supabase/migrations/20250101000000_init_profiles_and_roles.sql
+ * Hand-authored to match the SQL migrations in supabase/migrations/
  * exactly, since the Supabase CLI isn't linked to the project yet.
  *
  * Once `npx supabase link --project-ref <ref>` has been run, regenerate
@@ -15,6 +15,7 @@ export type Database = {
       profiles: {
         Row: {
           id: string;
+          email: string | null;
           role: Database["public"]["Enums"]["app_role"];
           full_name: string | null;
           phone: string | null;
@@ -24,6 +25,7 @@ export type Database = {
         };
         Insert: {
           id: string;
+          email?: string | null;
           role?: Database["public"]["Enums"]["app_role"];
           full_name?: string | null;
           phone?: string | null;
@@ -33,6 +35,7 @@ export type Database = {
         };
         Update: {
           id?: string;
+          email?: string | null;
           role?: Database["public"]["Enums"]["app_role"];
           full_name?: string | null;
           phone?: string | null;
@@ -47,6 +50,10 @@ export type Database = {
     Functions: {
       is_admin: {
         Args: Record<string, never>;
+        Returns: boolean;
+      };
+      email_exists: {
+        Args: { check_email: string };
         Returns: boolean;
       };
     };

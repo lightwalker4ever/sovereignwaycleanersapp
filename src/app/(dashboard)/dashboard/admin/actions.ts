@@ -1,28 +1,24 @@
 "use server";
 
 import { z } from "zod";
+import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
+import { nameSchema, emailSchema, passwordSchema } from "@/lib/validation";
+import { staffRoleSchema, type StaffRole } from "@/lib/roles";
 
-// Roles an admin can hand out via invite. "client" is excluded here --
-// clients self-register via Google, there's no reason to invite one.
-//
-// No email-invite flow yet (that's a planned follow-up): this creates
-// the account with a password the admin sets directly, so they can
+// No email-invite flow yet (that's a planned follow-up): account
+// creation sets a password the admin chooses directly, so they can
 // hand the credentials to the new staff member themselves. Swapping
 // this for a real "click a link to set your password" email invite
 // later only touches this one function.
 const inviteSchema = z.object({
-  email: z.string().email("Invalid email provided"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
-  role: z.enum(["cleaner", "supervisor", "manager", "admin"]),
+  email: emailSchema,
+  password: passwordSchema,
+  fullName: z.string().min(1, "Name is required"),
+  role: staffRoleSchema,
 });
-
-// Full role set, used when changing an existing user's role -- unlike
-// invites, demoting someone back to "client" is a legitimate action
-// (e.g. an ex-contractor).
-const roleSchema = z.enum(["client", "cleaner", "supervisor", "manager", "admin"]);
 
 async function assertIsAdmin() {
   const supabase = await createClient();
@@ -51,12 +47,13 @@ export async function inviteUser(
   const parsed = inviteSchema.safeParse({
     email: formData.get("email"),
     password: formData.get("password"),
+    fullName: formData.get("fullName"),
     role: formData.get("role"),
   });
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
-  const { email, password, role } = parsed.data;
+  const { email, password, fullName, role } = parsed.data;
 
   const admin = createAdminClient();
 
@@ -67,6 +64,7 @@ export async function inviteUser(
     email,
     password,
     email_confirm: true,
+    user_metadata: { full_name: fullName },
   });
   if (error) {
     return { success: false, error: error.message };
@@ -76,10 +74,11 @@ export async function inviteUser(
   }
 
   // The new auth user already got a 'client' profile via the
-  // handle_new_user trigger -- now set the role the admin actually
-  // chose. This update runs through the service-role client, which
-  // bypasses RLS and the profiles_guard_role_change trigger allows it
-  // since auth.uid() is null in this context (see the migration).
+  // handle_new_user trigger (full_name/email populated from the
+  // values above) -- now set the role the admin actually chose. This
+  // update runs through the service-role client, which bypasses RLS
+  // and the profiles_guard_role_change trigger allows it since
+  // auth.uid() is null in this context (see the migration).
   const { error: roleError } = await admin
     .from("profiles")
     .update({ role })
@@ -95,10 +94,10 @@ export async function inviteUser(
   return { success: true };
 }
 
-export async function updateUserRole(userId: string, role: string) {
+export async function updateUserRole(userId: string, role: StaffRole) {
   await assertIsAdmin();
 
-  const parsedRole = roleSchema.safeParse(role);
+  const parsedRole = staffRoleSchema.safeParse(role);
   if (!parsedRole.success) {
     throw new Error("Invalid role");
   }
@@ -113,12 +112,106 @@ export async function updateUserRole(userId: string, role: string) {
   revalidatePath("/dashboard/admin");
 }
 
+export async function updateUserName(userId: string, fullName: string) {
+  await assertIsAdmin();
+
+  const parsed = nameSchema.safeParse(fullName);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("profiles")
+    .update({ full_name: parsed.data })
+    .eq("id", userId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard/admin");
+}
+
+export async function updateUserEmail(userId: string, email: string) {
+  await assertIsAdmin();
+
+  const parsed = emailSchema.safeParse(email);
+  if (!parsed.success) throw new Error(parsed.error.issues[0].message);
+
+  const admin = createAdminClient();
+
+  // Update the real login email first; only touch our denormalized
+  // profiles.email copy once that succeeds, so the two never disagree.
+  const { error: authError } = await admin.auth.admin.updateUserById(userId, {
+    email: parsed.data,
+    email_confirm: true,
+  });
+  if (authError) throw new Error(authError.message);
+
+  const { error: profileError } = await admin
+    .from("profiles")
+    .update({ email: parsed.data })
+    .eq("id", userId);
+  if (profileError) throw new Error(profileError.message);
+
+  revalidatePath("/dashboard/admin");
+}
+
+export async function setUserActive(userId: string, active: boolean) {
+  await assertIsAdmin();
+
+  const admin = createAdminClient();
+  // Supabase's built-in ban mechanism: enforced at the auth level, so
+  // a deactivated user can't sign in or refresh a session at all --
+  // no need for our own "is_active" checks scattered through the app.
+  // "none" un-bans; a very long duration stands in for "indefinitely"
+  // (there's no literal permanent-ban value).
+  const { error } = await admin.auth.admin.updateUserById(userId, {
+    ban_duration: active ? "none" : "876000h",
+  });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard/admin");
+}
+
+export async function regeneratePassword(userId: string): Promise<string> {
+  await assertIsAdmin();
+
+  const chars = "ABCDEFGHJKMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789";
+  const password = Array.from({ length: 12 }, () => chars[Math.floor(Math.random() * chars.length)]).join("");
+
+  const admin = createAdminClient();
+  const { error } = await admin.auth.admin.updateUserById(userId, { password });
+  if (error) throw new Error(error.message);
+
+  return password;
+}
+
+export async function sendPasswordResetEmail(email: string) {
+  await assertIsAdmin();
+
+  const headersList = await headers();
+  const host = headersList.get("host");
+  const protocol = host?.startsWith("localhost") ? "http" : "https";
+  const origin = `${protocol}://${host}`;
+
+  // This only needs the anon-level capability (resetPasswordForEmail
+  // is a public GoTrue endpoint), but reusing the admin client here is
+  // harmless since it can do everything the anon client can, and it
+  // keeps this file's Supabase usage in one place. Routes through the
+  // existing /auth/callback code-exchange handler, same as every
+  // other sign-in link, landing on /update-password once a session is
+  // established from the recovery code.
+  const admin = createAdminClient();
+  const { error } = await admin.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/auth/callback?next=/update-password`,
+  });
+  if (error) throw new Error(error.message);
+}
+
 export interface AdminUserRow {
   id: string;
   email: string;
   fullName: string | null;
-  role: string;
+  role: StaffRole;
   createdAt: string;
+  active: boolean;
 }
 
 export async function listUsers(): Promise<AdminUserRow[]> {
@@ -126,9 +219,9 @@ export async function listUsers(): Promise<AdminUserRow[]> {
 
   const admin = createAdminClient();
 
-  // auth.admin.listUsers() has email/created_at; profiles has role --
-  // merge the two by id. Paginated at 50/page by default, which is
-  // plenty at this business's scale for now.
+  // auth.admin.listUsers() has email/created_at/banned_until; profiles
+  // has role/full_name -- merge the two by id. Paginated at 50/page by
+  // default, which is plenty at this business's scale for now.
   const [{ data: authData, error: authError }, { data: profiles, error: profilesError }] =
     await Promise.all([
       admin.auth.admin.listUsers(),
@@ -143,13 +236,20 @@ export async function listUsers(): Promise<AdminUserRow[]> {
   return authData.users
     .map((u) => {
       const profile = profileById.get(u.id);
+      const role = profile?.role ?? "client";
+      const bannedUntil = (u as { banned_until?: string | null }).banned_until;
       return {
         id: u.id,
         email: u.email ?? "(no email)",
         fullName: profile?.full_name ?? null,
-        role: profile?.role ?? "client",
+        role,
         createdAt: u.created_at,
+        active: !bannedUntil || new Date(bannedUntil) <= new Date(),
       };
     })
+    // Clients always self-register and always start as 'client' --
+    // this page is for managing staff, so they're excluded entirely
+    // rather than shown with a role that can't be reassigned here.
+    .filter((u): u is AdminUserRow => u.role !== "client")
     .sort((a, b) => a.email.localeCompare(b.email));
 }

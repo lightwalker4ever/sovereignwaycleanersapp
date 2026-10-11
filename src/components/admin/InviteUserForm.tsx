@@ -13,9 +13,8 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { capitalize } from "@/lib/utils";
+import { STAFF_ROLES, type StaffRole } from "@/lib/roles";
 import { inviteUser, type InviteState } from "@/app/(dashboard)/dashboard/admin/actions";
-
-const INVITABLE_ROLES = ["cleaner", "supervisor", "manager", "admin"] as const;
 
 const initialState: InviteState = null;
 
@@ -28,8 +27,9 @@ function generatePassword() {
 
 export function InviteUserForm() {
   const [state, formAction, pending] = useActionState(inviteUser, initialState);
-  const [role, setRole] = useState<string>("cleaner");
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
+  const [role, setRole] = useState<StaffRole>("cleaner");
   const [password, setPassword] = useState(generatePassword);
 
   // Keep a copy of the credentials that were submitted so the success
@@ -48,6 +48,7 @@ export function InviteUserForm() {
   if (state !== handledState) {
     setHandledState(state);
     if (state?.success) {
+      setFullName("");
       setEmail("");
       setPassword(generatePassword());
       setRole("cleaner");
@@ -60,8 +61,20 @@ export function InviteUserForm() {
       onSubmit={() => setLastSubmitted({ email, password })}
       className="flex flex-col gap-4"
     >
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-end">
-        <div className="flex-1 space-y-1.5">
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="space-y-1.5">
+          <Label htmlFor="invite-name">Name</Label>
+          <Input
+            id="invite-name"
+            name="fullName"
+            placeholder="Jane Smith"
+            value={fullName}
+            onChange={(e) => setFullName(e.target.value)}
+            required
+          />
+        </div>
+
+        <div className="space-y-1.5">
           <Label htmlFor="invite-email">Email</Label>
           <Input
             id="invite-email"
@@ -74,7 +87,7 @@ export function InviteUserForm() {
           />
         </div>
 
-        <div className="flex-1 space-y-1.5">
+        <div className="space-y-1.5">
           <Label htmlFor="invite-password">Temporary password</Label>
           <div className="flex gap-1.5">
             <Input
@@ -100,12 +113,12 @@ export function InviteUserForm() {
 
         <div className="space-y-1.5">
           <Label htmlFor="invite-role">Role</Label>
-          <Select value={role} onValueChange={(v) => v && setRole(v)}>
-            <SelectTrigger id="invite-role" className="h-8 w-full sm:w-40">
+          <Select value={role} onValueChange={(v) => v && setRole(v as StaffRole)}>
+            <SelectTrigger id="invite-role" className="h-8 w-full">
               <SelectValue>{(value: string | null) => (value ? capitalize(value) : null)}</SelectValue>
             </SelectTrigger>
             <SelectContent>
-              {INVITABLE_ROLES.map((r) => (
+              {STAFF_ROLES.map((r) => (
                 <SelectItem key={r} value={r}>
                   {capitalize(r)}
                 </SelectItem>
@@ -116,7 +129,9 @@ export function InviteUserForm() {
               across base-ui versions, so mirror it into a hidden input. */}
           <input type="hidden" name="role" value={role} />
         </div>
+      </div>
 
+      <div>
         <Button type="submit" disabled={pending} className="gap-2">
           {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <UserPlus className="h-4 w-4" />}
           Create account
