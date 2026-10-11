@@ -2,24 +2,12 @@
 
 import { z } from "zod";
 import { Resend } from "resend";
+import { nameSchema, emailSchema, phoneSchema } from "@/lib/validation";
 
 const schema = z.object({
-  name: z.string().regex(/^[A-Za-z]+(?:[ '][A-Za-z]+)*$/, "Invalid name provided"),
-  email: z.string().email("Invalid email provided"),
-  phone: z
-    .string()
-    .optional()
-    .refine((v) => {
-      if (!v) return true;
-      const n = v.replace(/[\s\-().]/g, "");
-      return (
-        /^0\d{10}$/.test(n) &&
-        /^0[123789]/.test(n) &&
-        !/^0770[0-9]/.test(n) &&
-        !/(\d)\1{4,}/.test(n) &&
-        !/01234567/.test(n)
-      );
-    }, "Invalid phone number"),
+  name: nameSchema,
+  email: emailSchema,
+  phone: phoneSchema,
   service: z.string().min(1, "Please select one service"),
   message: z.string().min(50, "Please provide a description of at least 50 characters"),
 });
