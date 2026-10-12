@@ -10,29 +10,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { capitalize } from "@/lib/utils";
+import { STAFF_ROLES, type StaffRole } from "@/lib/roles";
 import { updateUserRole } from "@/app/(dashboard)/dashboard/admin/actions";
-
-const ALL_ROLES = ["client", "cleaner", "supervisor", "manager", "admin"] as const;
 
 export function UserRoleSelect({
   userId,
   initialRole,
 }: {
   userId: string;
-  initialRole: string;
+  initialRole: StaffRole;
 }) {
-  const [role, setRole] = useState(initialRole);
+  const [role, setRole] = useState<StaffRole>(initialRole);
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
 
   function handleChange(next: string | null) {
     if (!next || next === role) return;
     const previous = role;
-    setRole(next);
+    const nextRole = next as StaffRole;
+    setRole(nextRole);
     setError(null);
     startTransition(async () => {
       try {
-        await updateUserRole(userId, next);
+        await updateUserRole(userId, nextRole);
       } catch (e) {
         setRole(previous);
         setError(e instanceof Error ? e.message : "Failed to update role");
@@ -48,7 +48,7 @@ export function UserRoleSelect({
             <SelectValue>{(value: string | null) => (value ? capitalize(value) : null)}</SelectValue>
           </SelectTrigger>
           <SelectContent>
-            {ALL_ROLES.map((r) => (
+            {STAFF_ROLES.map((r) => (
               <SelectItem key={r} value={r}>
                 {capitalize(r)}
               </SelectItem>
