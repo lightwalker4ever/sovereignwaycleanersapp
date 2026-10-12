@@ -51,14 +51,14 @@ export default async function AdminPage() {
                   <EditableTextCell
                     value={u.fullName}
                     placeholder="Add a name"
-                    onSave={(next) => updateUserName(u.id, next)}
+                    onSave={updateUserName.bind(null, u.id)}
                   />
                 </td>
                 <td className="px-4 py-3 align-top">
                   <EditableTextCell
                     value={u.email}
                     type="email"
-                    onSave={(next) => updateUserEmail(u.id, next)}
+                    onSave={updateUserEmail.bind(null, u.id)}
                   />
                 </td>
                 <td className="px-4 py-3 align-top">
