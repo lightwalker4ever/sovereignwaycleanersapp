@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { createClient } from "@/lib/supabase/client";
@@ -31,6 +31,25 @@ function GoogleIcon() {
 export function GoogleSignInButton({ redirectTo }: { redirectTo?: string }) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  // If the user navigates away to Google and then hits "back" before
+  // finishing sign-in, the browser can restore this page from the
+  // back/forward cache (bfcache) with its JS state frozen exactly as
+  // it was -- including `loading: true` -- rather than re-running the
+  // component from scratch. The in-flight signInWithOAuth() call is
+  // abandoned at that point and never resolves, so without this the
+  // spinner just spins forever. `pageshow` with `persisted: true`
+  // fires specifically on a bfcache restore, which is the hook to
+  // reset state here.
+  useEffect(() => {
+    function handlePageShow(event: PageTransitionEvent) {
+      if (event.persisted) {
+        setLoading(false);
+      }
+    }
+    window.addEventListener("pageshow", handlePageShow);
+    return () => window.removeEventListener("pageshow", handlePageShow);
+  }, []);
 
   async function handleClick() {
     setError(null);
