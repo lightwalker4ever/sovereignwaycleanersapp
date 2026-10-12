@@ -6,8 +6,7 @@ import {
   CardDescription,
   CardContent,
 } from "@/components/ui/card";
-import { GoogleSignInButton } from "@/components/auth/GoogleSignInButton";
-import { EmailPasswordSignInForm } from "@/components/auth/EmailPasswordSignInForm";
+import { AuthForm } from "@/components/auth/AuthForm";
 
 export default async function LoginPage({
   searchParams,
@@ -27,16 +26,8 @@ export default async function LoginPage({
           Sign in to book, manage, and track your cleans.
         </CardDescription>
       </CardHeader>
-      <CardContent className="space-y-5">
-        <GoogleSignInButton redirectTo={redirectTo} />
-
-        <div className="flex items-center gap-3 text-xs text-gray-400">
-          <div className="h-px flex-1 bg-gray-200" />
-          Staff sign-in
-          <div className="h-px flex-1 bg-gray-200" />
-        </div>
-
-        <EmailPasswordSignInForm redirectTo={redirectTo} />
+      <CardContent>
+        <AuthForm redirectTo={redirectTo} />
       </CardContent>
     </Card>
   );
