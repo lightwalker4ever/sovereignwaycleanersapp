@@ -45,6 +45,132 @@ export type Database = {
         };
         Relationships: [];
       };
+      clients: {
+        Row: {
+          id: string;
+          profile_id: string | null;
+          full_name: string | null;
+          email: string | null;
+          phone: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          profile_id?: string | null;
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          profile_id?: string | null;
+          full_name?: string | null;
+          email?: string | null;
+          phone?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      standard_lists: {
+        Row: {
+          id: string;
+          name: string;
+          description: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          description?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      standards: {
+        Row: {
+          id: string;
+          standard_list_id: string;
+          title: string;
+          description: string | null;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          standard_list_id: string;
+          title: string;
+          description?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          standard_list_id?: string;
+          title?: string;
+          description?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      client_standard_assignments: {
+        Row: {
+          id: string;
+          client_id: string;
+          standard_list_id: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          standard_list_id: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          standard_list_id?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      client_standard_overrides: {
+        Row: {
+          id: string;
+          client_standard_assignment_id: string;
+          standard_id: string;
+          enabled: boolean;
+        };
+        Insert: {
+          id?: string;
+          client_standard_assignment_id: string;
+          standard_id: string;
+          enabled?: boolean;
+        };
+        Update: {
+          id?: string;
+          client_standard_assignment_id?: string;
+          standard_id?: string;
+          enabled?: boolean;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

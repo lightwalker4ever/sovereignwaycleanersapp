@@ -1,0 +1,231 @@
+"use server";
+
+import { z } from "zod";
+import { revalidatePath } from "next/cache";
+import { assertIsRole } from "@/lib/supabase/auth-helpers";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { nameSchema, phoneSchema } from "@/lib/validation";
+
+const ghostClientSchema = z.object({
+  fullName: nameSchema,
+  email: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || z.string().email().safeParse(v).success, "Invalid email provided"),
+  phone: phoneSchema,
+});
+
+export type GhostClientFormState = { success: boolean; error?: string } | null;
+
+export async function createGhostClient(
+  prevState: GhostClientFormState,
+  formData: FormData
+): Promise<GhostClientFormState> {
+  await assertIsRole(["admin"]);
+
+  const parsed = ghostClientSchema.safeParse({
+    fullName: formData.get("fullName"),
+    email: (formData.get("email") as string) || undefined,
+    phone: (formData.get("phone") as string) || undefined,
+  });
+  if (!parsed.success) {
+    return { success: false, error: parsed.error.issues[0].message };
+  }
+  const { fullName, email, phone } = parsed.data;
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("clients").insert({
+    full_name: fullName,
+    email: email || null,
+    phone: phone || null,
+  });
+  if (error) return { success: false, error: error.message };
+
+  revalidatePath("/dashboard/admin/clients");
+  return { success: true };
+}
+
+export async function assignStandardList(clientId: string, standardListId: string) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const { data: assignment, error } = await admin
+    .from("client_standard_assignments")
+    .upsert(
+      { client_id: clientId, standard_list_id: standardListId },
+      { onConflict: "client_id" }
+    )
+    .select("id")
+    .single();
+  if (error || !assignment) throw new Error(error?.message ?? "Failed to assign standards");
+
+  // Re-assigning starts fresh -- clear any disables that applied to
+  // the previous list so they don't silently carry over.
+  const { error: clearError } = await admin
+    .from("client_standard_overrides")
+    .delete()
+    .eq("client_standard_assignment_id", assignment.id);
+  if (clearError) throw new Error(clearError.message);
+
+  revalidatePath(`/dashboard/admin/clients/${clientId}`);
+}
+
+export async function setStandardOverride(
+  clientId: string,
+  assignmentId: string,
+  standardId: string,
+  enabled: boolean
+) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+
+  if (enabled) {
+    // Enabled is the default (absence of a row) -- just remove any
+    // override that previously disabled it.
+    const { error } = await admin
+      .from("client_standard_overrides")
+      .delete()
+      .eq("client_standard_assignment_id", assignmentId)
+      .eq("standard_id", standardId);
+    if (error) throw new Error(error.message);
+  } else {
+    const { error } = await admin.from("client_standard_overrides").upsert(
+      { client_standard_assignment_id: assignmentId, standard_id: standardId, enabled: false },
+      { onConflict: "client_standard_assignment_id,standard_id" }
+    );
+    if (error) throw new Error(error.message);
+  }
+
+  revalidatePath(`/dashboard/admin/clients/${clientId}`);
+}
+
+export interface ClientSummary {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  isGhost: boolean;
+  standardListName: string | null;
+}
+
+export async function listClients(): Promise<ClientSummary[]> {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const [
+    { data: clients, error },
+    { data: assignments, error: assignError },
+    { data: lists, error: listsError },
+  ] = await Promise.all([
+    admin.from("clients").select("id, profile_id, full_name, email, phone").order("full_name"),
+    admin.from("client_standard_assignments").select("client_id, standard_list_id"),
+    admin.from("standard_lists").select("id, name"),
+  ]);
+  if (error) throw new Error(error.message);
+  if (assignError) throw new Error(assignError.message);
+  if (listsError) throw new Error(listsError.message);
+
+  const listNameById = new Map((lists ?? []).map((l) => [l.id, l.name]));
+  const listIdByClient = new Map((assignments ?? []).map((a) => [a.client_id, a.standard_list_id]));
+
+  return (clients ?? []).map((c) => ({
+    id: c.id,
+    fullName: c.full_name,
+    email: c.email,
+    phone: c.phone,
+    isGhost: c.profile_id === null,
+    standardListName: listNameById.get(listIdByClient.get(c.id) ?? "") ?? null,
+  }));
+}
+
+export interface ClientStandardItem {
+  standardId: string;
+  title: string;
+  description: string | null;
+  enabled: boolean;
+}
+
+export interface ClientDetail {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+  phone: string | null;
+  isGhost: boolean;
+  allStandardLists: { id: string; name: string }[];
+  assignment: { id: string; standardListId: string; standardListName: string } | null;
+  standards: ClientStandardItem[];
+}
+
+export async function getClientDetail(clientId: string): Promise<ClientDetail | null> {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const { data: client, error } = await admin
+    .from("clients")
+    .select("id, profile_id, full_name, email, phone")
+    .eq("id", clientId)
+    .single();
+  if (error || !client) return null;
+
+  const { data: allLists, error: listsError } = await admin
+    .from("standard_lists")
+    .select("id, name")
+    .order("name");
+  if (listsError) throw new Error(listsError.message);
+
+  const { data: assignment, error: assignError } = await admin
+    .from("client_standard_assignments")
+    .select("id, standard_list_id")
+    .eq("client_id", clientId)
+    .maybeSingle();
+  if (assignError) throw new Error(assignError.message);
+
+  let standards: ClientStandardItem[] = [];
+  let assignmentInfo: ClientDetail["assignment"] = null;
+
+  if (assignment) {
+    const listName = allLists?.find((l) => l.id === assignment.standard_list_id)?.name ?? "";
+    assignmentInfo = {
+      id: assignment.id,
+      standardListId: assignment.standard_list_id,
+      standardListName: listName,
+    };
+
+    const [{ data: listStandards, error: stdError }, { data: overrides, error: overrideError }] =
+      await Promise.all([
+        admin
+          .from("standards")
+          .select("id, title, description")
+          .eq("standard_list_id", assignment.standard_list_id)
+          .order("sort_order", { ascending: true }),
+        admin
+          .from("client_standard_overrides")
+          .select("standard_id, enabled")
+          .eq("client_standard_assignment_id", assignment.id),
+      ]);
+    if (stdError) throw new Error(stdError.message);
+    if (overrideError) throw new Error(overrideError.message);
+
+    const disabled = new Set((overrides ?? []).filter((o) => !o.enabled).map((o) => o.standard_id));
+
+    standards = (listStandards ?? []).map((s) => ({
+      standardId: s.id,
+      title: s.title,
+      description: s.description,
+      enabled: !disabled.has(s.id),
+    }));
+  }
+
+  return {
+    id: client.id,
+    fullName: client.full_name,
+    email: client.email,
+    phone: client.phone,
+    isGhost: client.profile_id === null,
+    allStandardLists: allLists ?? [],
+    assignment: assignmentInfo,
+    standards,
+  };
+}

@@ -3,6 +3,7 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
+import { ensureClientRow } from "@/lib/clients";
 import {
   nameSchema,
   emailSchema,
@@ -102,6 +103,11 @@ export async function signUp(
   if (error) {
     return { error: error.message };
   }
+  if (!data.user) {
+    return { error: "Account created, but something went wrong. Please try signing in." };
+  }
+
+  await ensureClientRow(data.user.id, fullName, email, phone);
 
   if (!data.session) {
     // This project currently requires confirming your email before a
