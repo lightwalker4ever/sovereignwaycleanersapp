@@ -5,6 +5,7 @@ import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, phoneSchema } from "@/lib/validation";
+import { resolveClientStandardState, type ClientStandardItem } from "@/lib/standards";
 
 const ghostClientSchema = z.object({
   fullName: nameSchema,
@@ -140,13 +141,6 @@ export async function listClients(): Promise<ClientSummary[]> {
   }));
 }
 
-export interface ClientStandardItem {
-  standardId: string;
-  title: string;
-  description: string | null;
-  enabled: boolean;
-}
-
 export interface ClientDetail {
   id: string;
   fullName: string | null;
@@ -175,47 +169,19 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     .order("name");
   if (listsError) throw new Error(listsError.message);
 
-  const { data: assignment, error: assignError } = await admin
-    .from("client_standard_assignments")
-    .select("id, standard_list_id")
-    .eq("client_id", clientId)
-    .maybeSingle();
-  if (assignError) throw new Error(assignError.message);
+  const state = await resolveClientStandardState(clientId);
 
   let standards: ClientStandardItem[] = [];
   let assignmentInfo: ClientDetail["assignment"] = null;
 
-  if (assignment) {
-    const listName = allLists?.find((l) => l.id === assignment.standard_list_id)?.name ?? "";
+  if (state) {
+    const listName = allLists?.find((l) => l.id === state.standardListId)?.name ?? "";
     assignmentInfo = {
-      id: assignment.id,
-      standardListId: assignment.standard_list_id,
+      id: state.assignmentId,
+      standardListId: state.standardListId,
       standardListName: listName,
     };
-
-    const [{ data: listStandards, error: stdError }, { data: overrides, error: overrideError }] =
-      await Promise.all([
-        admin
-          .from("standards")
-          .select("id, title, description")
-          .eq("standard_list_id", assignment.standard_list_id)
-          .order("sort_order", { ascending: true }),
-        admin
-          .from("client_standard_overrides")
-          .select("standard_id, enabled")
-          .eq("client_standard_assignment_id", assignment.id),
-      ]);
-    if (stdError) throw new Error(stdError.message);
-    if (overrideError) throw new Error(overrideError.message);
-
-    const disabled = new Set((overrides ?? []).filter((o) => !o.enabled).map((o) => o.standard_id));
-
-    standards = (listStandards ?? []).map((s) => ({
-      standardId: s.id,
-      title: s.title,
-      description: s.description,
-      enabled: !disabled.has(s.id),
-    }));
+    standards = state.items;
   }
 
   return {

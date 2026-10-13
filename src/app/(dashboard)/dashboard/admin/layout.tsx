@@ -6,6 +6,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin", label: "Staff" },
   { href: "/dashboard/admin/clients", label: "Clients" },
   { href: "/dashboard/admin/standards", label: "Standards" },
+  { href: "/dashboard/admin/cleanings", label: "Cleanings" },
 ] as const;
 
 /**
