@@ -252,6 +252,36 @@ export type Database = {
         };
         Relationships: [];
       };
+      cleaning_photos: {
+        Row: {
+          id: string;
+          cleaning_standard_id: string;
+          uploaded_by: string;
+          author_role: string;
+          storage_path: string;
+          comment: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          cleaning_standard_id: string;
+          uploaded_by: string;
+          author_role: string;
+          storage_path: string;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          cleaning_standard_id?: string;
+          uploaded_by?: string;
+          author_role?: string;
+          storage_path?: string;
+          comment?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
