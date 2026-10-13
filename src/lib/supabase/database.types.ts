@@ -171,6 +171,87 @@ export type Database = {
         };
         Relationships: [];
       };
+      cleanings: {
+        Row: {
+          id: string;
+          client_id: string;
+          cleaner_id: string;
+          supervisor_id: string;
+          status: Database["public"]["Enums"]["cleaning_status"];
+          notes: string | null;
+          started_at: string | null;
+          submitted_at: string | null;
+          completed_at: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          cleaner_id: string;
+          supervisor_id: string;
+          status?: Database["public"]["Enums"]["cleaning_status"];
+          notes?: string | null;
+          started_at?: string | null;
+          submitted_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          cleaner_id?: string;
+          supervisor_id?: string;
+          status?: Database["public"]["Enums"]["cleaning_status"];
+          notes?: string | null;
+          started_at?: string | null;
+          submitted_at?: string | null;
+          completed_at?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      cleaning_standards: {
+        Row: {
+          id: string;
+          cleaning_id: string;
+          standard_id: string | null;
+          title: string;
+          description: string | null;
+          sort_order: number;
+          review_status: string;
+          supervisor_comment: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          cleaning_id: string;
+          standard_id?: string | null;
+          title: string;
+          description?: string | null;
+          sort_order?: number;
+          review_status?: string;
+          supervisor_comment?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          cleaning_id?: string;
+          standard_id?: string | null;
+          title?: string;
+          description?: string | null;
+          sort_order?: number;
+          review_status?: string;
+          supervisor_comment?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -185,6 +266,7 @@ export type Database = {
     };
     Enums: {
       app_role: "client" | "cleaner" | "supervisor" | "manager" | "admin";
+      cleaning_status: "assigned" | "in_progress" | "in_review" | "completed";
     };
     CompositeTypes: Record<string, never>;
   };
