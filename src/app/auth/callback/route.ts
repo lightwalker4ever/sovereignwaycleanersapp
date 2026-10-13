@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
+import { ensureClientRow } from "@/lib/clients";
 
 /**
  * Supabase redirects here after Google sign-in with a `code` query
@@ -14,8 +15,22 @@ export async function GET(request: Request) {
 
   if (code) {
     const supabase = await createClient();
-    const { error } = await supabase.auth.exchangeCodeForSession(code);
+    const { data, error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) {
+      // Google sign-up never goes through login/actions.ts's signUp(),
+      // so this is the only place to ensure a self-signup client gets
+      // their clients row (password signup does this in signUp()
+      // itself). Harmless/idempotent to run on every Google login, not
+      // just the first.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("role, full_name, email, phone")
+        .eq("id", data.user.id)
+        .single();
+      if (profile?.role === "client") {
+        await ensureClientRow(data.user.id, profile.full_name, profile.email, profile.phone);
+      }
+
       return NextResponse.redirect(`${origin}${next}`);
     }
   }

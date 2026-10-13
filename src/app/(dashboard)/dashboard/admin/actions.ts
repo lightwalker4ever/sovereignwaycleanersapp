@@ -4,7 +4,7 @@ import { z } from "zod";
 import { headers } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { createClient } from "@/lib/supabase/server";
+import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { nameSchema, emailSchema, passwordSchema } from "@/lib/validation";
 import { staffRoleSchema, type StaffRole } from "@/lib/roles";
 
@@ -21,19 +21,7 @@ const inviteSchema = z.object({
 });
 
 async function assertIsAdmin() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) throw new Error("Not signed in");
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin") throw new Error("Admins only");
+  await assertIsRole(["admin"]);
 }
 
 export type InviteState = { success: boolean; error?: string } | null;

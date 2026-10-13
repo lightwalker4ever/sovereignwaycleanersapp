@@ -1,5 +1,12 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+
+const ADMIN_NAV = [
+  { href: "/dashboard/admin", label: "Staff" },
+  { href: "/dashboard/admin/clients", label: "Clients" },
+  { href: "/dashboard/admin/standards", label: "Standards" },
+] as const;
 
 /**
  * Role gate for everything under /dashboard/admin. Co-located with the
@@ -29,5 +36,20 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
-  return <>{children}</>;
+  return (
+    <div className="space-y-6">
+      <nav className="flex gap-4 border-b border-gray-200 text-sm font-medium text-gray-600">
+        {ADMIN_NAV.map((item) => (
+          <Link
+            key={item.href}
+            href={item.href}
+            className="border-b-2 border-transparent pb-2 hover:border-gray-300 hover:text-gray-900"
+          >
+            {item.label}
+          </Link>
+        ))}
+      </nav>
+      {children}
+    </div>
+  );
 }
