@@ -9,15 +9,14 @@ import {
   uploadCleaningPhoto,
   deleteCleaningPhoto,
   type UploadPhotoState,
-  type MyChecklistItem,
-  type CleaningPhoto,
 } from "@/app/(dashboard)/dashboard/cleaner/actions";
+import type { CleaningChecklistItem, CleaningPhoto } from "@/lib/cleanings";
 
 export function CleanerChecklistItem({
   item,
   editable,
 }: {
-  item: MyChecklistItem;
+  item: CleaningChecklistItem;
   editable: boolean;
 }) {
   const [state, formAction, isPending] = useActionState<UploadPhotoState, FormData>(
