@@ -6,6 +6,7 @@ import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, phoneSchema } from "@/lib/validation";
 import { resolveClientStandardState } from "@/lib/standards";
+import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
 
 export interface AssignableStaff {
   id: string;
@@ -202,65 +203,9 @@ export async function listCleanings(): Promise<CleaningSummary[]> {
   }));
 }
 
-export interface CleaningChecklistItem {
-  id: string;
-  title: string;
-  description: string | null;
-  reviewStatus: string;
-}
-
-export interface CleaningDetail {
-  id: string;
-  clientName: string | null;
-  cleanerName: string | null;
-  supervisorName: string | null;
-  status: string;
-  notes: string | null;
-  createdAt: string;
-  checklist: CleaningChecklistItem[];
-}
-
-export async function getCleaningDetail(cleaningId: string): Promise<CleaningDetail | null> {
+export async function getCleaningDetail(cleaningId: string): Promise<CleaningDetailForParty | null> {
   await assertIsRole(["admin"]);
-
-  const admin = createAdminClient();
-  const { data: cleaning, error } = await admin
-    .from("cleanings")
-    .select("id, client_id, cleaner_id, supervisor_id, status, notes, created_at")
-    .eq("id", cleaningId)
-    .single();
-  if (error || !cleaning) return null;
-
-  const [
-    { data: client },
-    { data: cleaner },
-    { data: supervisor },
-    { data: checklist, error: checklistError },
-  ] = await Promise.all([
-    admin.from("clients").select("full_name").eq("id", cleaning.client_id).single(),
-    admin.from("profiles").select("full_name").eq("id", cleaning.cleaner_id).single(),
-    admin.from("profiles").select("full_name").eq("id", cleaning.supervisor_id).single(),
-    admin
-      .from("cleaning_standards")
-      .select("id, title, description, review_status")
-      .eq("cleaning_id", cleaningId)
-      .order("sort_order", { ascending: true }),
-  ]);
-  if (checklistError) throw new Error(checklistError.message);
-
-  return {
-    id: cleaning.id,
-    clientName: client?.full_name ?? null,
-    cleanerName: cleaner?.full_name ?? null,
-    supervisorName: supervisor?.full_name ?? null,
-    status: cleaning.status,
-    notes: cleaning.notes,
-    createdAt: cleaning.created_at,
-    checklist: (checklist ?? []).map((c) => ({
-      id: c.id,
-      title: c.title,
-      description: c.description,
-      reviewStatus: c.review_status,
-    })),
-  };
+  // No one specific user -- admin isn't the cleaner or supervisor --
+  // so ownerColumn null skips the ownership check entirely.
+  return getCleaningDetailForParty(cleaningId, "", null);
 }

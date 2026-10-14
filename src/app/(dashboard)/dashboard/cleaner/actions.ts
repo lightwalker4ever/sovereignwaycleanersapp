@@ -4,7 +4,7 @@ import { randomUUID } from "crypto";
 import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { getSignedPhotoUrls } from "@/lib/photos";
+import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
 
 export interface CleaningSummary {
   id: string;
@@ -47,95 +47,9 @@ export async function listMyCleanings(): Promise<CleaningSummary[]> {
     .sort((a, b) => (STATUS_SORT_RANK[a.status] ?? 9) - (STATUS_SORT_RANK[b.status] ?? 9));
 }
 
-export interface CleaningPhoto {
-  id: string;
-  storagePath: string;
-  signedUrl: string | null;
-  comment: string | null;
-  authorRole: string;
-  createdAt: string;
-}
-
-export interface MyChecklistItem {
-  id: string;
-  title: string;
-  description: string | null;
-  reviewStatus: string;
-  photos: CleaningPhoto[];
-}
-
-export interface MyCleaningDetail {
-  id: string;
-  clientName: string | null;
-  status: string;
-  notes: string | null;
-  checklist: MyChecklistItem[];
-}
-
-export async function getMyCleaningDetail(cleaningId: string): Promise<MyCleaningDetail | null> {
+export async function getMyCleaningDetail(cleaningId: string): Promise<CleaningDetailForParty | null> {
   const { user } = await assertIsRole(["cleaner"]);
-
-  const admin = createAdminClient();
-  const { data: cleaning, error } = await admin
-    .from("cleanings")
-    .select("id, client_id, cleaner_id, status, notes")
-    .eq("id", cleaningId)
-    .single();
-  if (error || !cleaning) return null;
-  if (cleaning.cleaner_id !== user.id) return null;
-
-  const { data: client } = await admin
-    .from("clients")
-    .select("full_name")
-    .eq("id", cleaning.client_id)
-    .single();
-
-  const { data: checklist, error: checklistError } = await admin
-    .from("cleaning_standards")
-    .select("id, title, description, review_status")
-    .eq("cleaning_id", cleaningId)
-    .order("sort_order", { ascending: true });
-  if (checklistError) throw new Error(checklistError.message);
-
-  const checklistIds = (checklist ?? []).map((c) => c.id);
-  const { data: photos, error: photosError } = checklistIds.length
-    ? await admin
-        .from("cleaning_photos")
-        .select("id, cleaning_standard_id, storage_path, comment, author_role, created_at")
-        .in("cleaning_standard_id", checklistIds)
-        .order("created_at", { ascending: true })
-    : { data: [], error: null };
-  if (photosError) throw new Error(photosError.message);
-
-  const signedUrls = await getSignedPhotoUrls((photos ?? []).map((p) => p.storage_path));
-
-  const photosByStandard = new Map<string, CleaningPhoto[]>();
-  for (const p of photos ?? []) {
-    const list = photosByStandard.get(p.cleaning_standard_id) ?? [];
-    list.push({
-      id: p.id,
-      storagePath: p.storage_path,
-      signedUrl: signedUrls.get(p.storage_path) ?? null,
-      comment: p.comment,
-      authorRole: p.author_role,
-      createdAt: p.created_at,
-    });
-    photosByStandard.set(p.cleaning_standard_id, list);
-  }
-
-  return {
-    id: cleaning.id,
-    clientName: client?.full_name ?? null,
-    status: cleaning.status,
-    notes: cleaning.notes,
-    checklist: (checklist ?? []).map((c) => ({
-      id: c.id,
-      title: c.title,
-      description: c.description,
-      reviewStatus: c.review_status,
-      photos: photosByStandard.get(c.id) ?? [],
-    })),
-  };
+  return getCleaningDetailForParty(cleaningId, user.id, "cleaner_id");
 }
 
 export async function startCleaning(cleaningId: string) {
