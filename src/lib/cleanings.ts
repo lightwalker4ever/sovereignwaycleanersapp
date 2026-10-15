@@ -21,6 +21,13 @@ export interface CleaningChecklistItem {
   photos: CleaningPhoto[];
 }
 
+export interface CleaningCommentEntry {
+  id: string;
+  authorName: string | null;
+  body: string;
+  createdAt: string;
+}
+
 export interface CleaningDetailForParty {
   id: string;
   clientName: string | null;
@@ -29,41 +36,47 @@ export interface CleaningDetailForParty {
   status: string;
   notes: string | null;
   createdAt: string;
+  completedAt: string | null;
   checklist: CleaningChecklistItem[];
+  comments: CleaningCommentEntry[];
 }
 
 /**
  * Fetches a cleaning's full detail (names, checklist, photos split by
- * author_role with signed URLs) for whichever party is looking at it.
- * `ownerColumn` scopes the read to that party's own assignment
- * (`"cleaner_id"` / `"supervisor_id"`, returning null if they don't
- * own it); pass `null` for admin's unrestricted read. Shared by the
- * cleaner, supervisor and admin cleaning-detail pages -- previously
- * duplicated between the cleaner and admin versions, now one place.
+ * author_role with signed URLs, comments) for whichever party is
+ * looking at it. `ownerColumn` scopes the read to that party's own
+ * assignment: `"cleaner_id"` / `"supervisor_id"` compare directly
+ * against `ownerValue` (their own auth.uid()); `"client_id"` compares
+ * against the caller's already-resolved `clients.id` (a client's
+ * auth.uid() isn't a column on cleanings directly -- see the client
+ * actions for that resolution step). `null` is admin's unrestricted
+ * read. Shared by the cleaner, supervisor, admin and client
+ * cleaning-detail pages.
  *
  * Does not check the caller's role -- only ever called from Server
  * Actions that have already run assertIsRole().
  */
 export async function getCleaningDetailForParty(
   cleaningId: string,
-  viewerUserId: string,
-  ownerColumn: "cleaner_id" | "supervisor_id" | null
+  ownerValue: string,
+  ownerColumn: "cleaner_id" | "supervisor_id" | "client_id" | null
 ): Promise<CleaningDetailForParty | null> {
   const admin = createAdminClient();
 
   const { data: cleaning, error } = await admin
     .from("cleanings")
-    .select("id, client_id, cleaner_id, supervisor_id, status, notes, created_at")
+    .select("id, client_id, cleaner_id, supervisor_id, status, notes, created_at, completed_at")
     .eq("id", cleaningId)
     .single();
   if (error || !cleaning) return null;
-  if (ownerColumn && cleaning[ownerColumn] !== viewerUserId) return null;
+  if (ownerColumn && cleaning[ownerColumn] !== ownerValue) return null;
 
   const [
     { data: client },
     { data: cleaner },
     { data: supervisor },
     { data: checklist, error: checklistError },
+    { data: comments, error: commentsError },
   ] = await Promise.all([
     admin.from("clients").select("full_name").eq("id", cleaning.client_id).single(),
     admin.from("profiles").select("full_name").eq("id", cleaning.cleaner_id).single(),
@@ -73,8 +86,14 @@ export async function getCleaningDetailForParty(
       .select("id, title, description, review_status, supervisor_comment")
       .eq("cleaning_id", cleaningId)
       .order("sort_order", { ascending: true }),
+    admin
+      .from("cleaning_comments")
+      .select("id, author_profile_id, body, created_at")
+      .eq("cleaning_id", cleaningId)
+      .order("created_at", { ascending: true }),
   ]);
   if (checklistError) throw new Error(checklistError.message);
+  if (commentsError) throw new Error(commentsError.message);
 
   const checklistIds = (checklist ?? []).map((c) => c.id);
   const { data: photos, error: photosError } = checklistIds.length
@@ -102,6 +121,13 @@ export async function getCleaningDetailForParty(
     photosByStandard.set(p.cleaning_standard_id, list);
   }
 
+  const authorIds = [...new Set((comments ?? []).map((c) => c.author_profile_id))];
+  const { data: authors, error: authorsError } = authorIds.length
+    ? await admin.from("profiles").select("id, full_name").in("id", authorIds)
+    : { data: [], error: null };
+  if (authorsError) throw new Error(authorsError.message);
+  const authorNameById = new Map((authors ?? []).map((a) => [a.id, a.full_name]));
+
   return {
     id: cleaning.id,
     clientName: client?.full_name ?? null,
@@ -110,6 +136,7 @@ export async function getCleaningDetailForParty(
     status: cleaning.status,
     notes: cleaning.notes,
     createdAt: cleaning.created_at,
+    completedAt: cleaning.completed_at,
     checklist: (checklist ?? []).map((c) => ({
       id: c.id,
       title: c.title,
@@ -117,6 +144,12 @@ export async function getCleaningDetailForParty(
       reviewStatus: c.review_status,
       supervisorComment: c.supervisor_comment,
       photos: photosByStandard.get(c.id) ?? [],
+    })),
+    comments: (comments ?? []).map((c) => ({
+      id: c.id,
+      authorName: authorNameById.get(c.author_profile_id) ?? null,
+      body: c.body,
+      createdAt: c.created_at,
     })),
   };
 }
