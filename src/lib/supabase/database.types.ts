@@ -282,6 +282,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      cleaning_comments: {
+        Row: {
+          id: string;
+          cleaning_id: string;
+          author_profile_id: string;
+          body: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          cleaning_id: string;
+          author_profile_id: string;
+          body: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          cleaning_id?: string;
+          author_profile_id?: string;
+          body?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {

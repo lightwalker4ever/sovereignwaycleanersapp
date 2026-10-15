@@ -57,6 +57,29 @@ export default async function SupervisorReviewDetailPage({
           </div>
         </CardContent>
       </Card>
+
+      {cleaning.comments.length > 0 && (
+        <Card className="p-5">
+          <CardHeader>
+            <CardTitle>Client feedback</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-3">
+              {cleaning.comments.map((c) => (
+                <div key={c.id} className="rounded-lg bg-gray-50 p-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-medium text-gray-900">{c.authorName || "Client"}</p>
+                    <p className="text-xs text-gray-400">
+                      {new Date(c.createdAt).toLocaleDateString("en-GB")}
+                    </p>
+                  </div>
+                  <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{c.body}</p>
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   );
 }

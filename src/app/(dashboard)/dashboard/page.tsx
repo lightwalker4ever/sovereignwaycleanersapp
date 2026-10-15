@@ -63,6 +63,17 @@ export default async function DashboardPage() {
           <ArrowRight size={16} />
         </Link>
       )}
+
+      {profile?.role === "client" && (
+        <Link
+          href="/dashboard/client"
+          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-colors"
+          style={{ backgroundColor: "var(--color-brand)" }}
+        >
+          View your cleanings
+          <ArrowRight size={16} />
+        </Link>
+      )}
     </div>
   );
 }
