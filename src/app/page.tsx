@@ -9,8 +9,11 @@ import TrustedBy from "@/components/TrustedBy";
 import Affiliations from "@/components/Affiliations";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
+import { getContactFormEnabled } from "@/lib/app-settings";
 
-export default function Home() {
+export default async function Home() {
+  const contactFormEnabled = await getContactFormEnabled();
+
   return (
     <>
       <Header />
@@ -23,7 +26,7 @@ export default function Home() {
         <Gallery />
         <TrustedBy />
         <Affiliations />
-        <Contact />
+        <Contact contactFormEnabled={contactFormEnabled} />
       </main>
       <Footer />
     </>

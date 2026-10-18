@@ -113,7 +113,7 @@ const FORM_TRUST = [
 
 // ── Component ─────────────────────────────────────────────────────────────────
 
-export default function Contact() {
+export default function Contact({ contactFormEnabled }: { contactFormEnabled: boolean }) {
   const [state, formAction, pending] = useActionState(submitContactForm, initialState);
   const [values, setValues] = useState<Fields>(emptyValues);
   const [touched, setTouched] = useState<Touched>(noTouched);
@@ -230,6 +230,14 @@ export default function Contact() {
           </div>
 
           {/* Right card: form */}
+          {!contactFormEnabled ? (
+            <div className="flex items-center rounded-2xl bg-white p-8 shadow-sm">
+              <p className="text-sm leading-6 text-gray-600">
+                Our online quote form is temporarily unavailable. Please call, WhatsApp, or
+                email us using the details to the left and we&apos;ll be happy to help.
+              </p>
+            </div>
+          ) : (
           <div className="rounded-2xl bg-white p-8 shadow-sm">
             <form action={formAction} onSubmit={handleSubmit} className="space-y-5" noValidate>
 
@@ -380,6 +388,7 @@ export default function Contact() {
 
             </form>
           </div>
+          )}
         </div>
 
         {/* Stats bar */}

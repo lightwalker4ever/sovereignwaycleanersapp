@@ -396,6 +396,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      contact_requests: {
+        Row: {
+          id: string;
+          name: string;
+          email: string;
+          phone: string | null;
+          service: string;
+          property_type: string | null;
+          preferred_date: string | null;
+          preferred_time: string | null;
+          message: string;
+          status: "new" | "contacted" | "closed";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          name: string;
+          email: string;
+          phone?: string | null;
+          service: string;
+          property_type?: string | null;
+          preferred_date?: string | null;
+          preferred_time?: string | null;
+          message: string;
+          status?: "new" | "contacted" | "closed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          name?: string;
+          email?: string;
+          phone?: string | null;
+          service?: string;
+          property_type?: string | null;
+          preferred_date?: string | null;
+          preferred_time?: string | null;
+          message?: string;
+          status?: "new" | "contacted" | "closed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
