@@ -13,8 +13,13 @@ export default async function LocationPricingPage() {
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Location Pricing</h1>
         <p className="mt-1 text-sm text-gray-600">
-          Price multipliers applied by the area a quote&apos;s postcode resolves to. The lowest
-          priority number is checked first; the fallback rate always applies last.
+          Price multipliers applied by the area a quote&apos;s postcode resolves to. A district
+          match is checked before a region match, before a postcode-area match, before the
+          fallback rate — the priority number only breaks ties between two rows of the same
+          match type. Enter District/Region values exactly as they appear on postcodes.io (e.g.
+          &quot;Tonbridge and Malling&quot;, &quot;South East&quot;); Postcode area values should
+          be the bare area letters only (e.g. &quot;TN&quot;, &quot;SE&quot;), not a full postcode
+          or outcode.
         </p>
       </div>
 

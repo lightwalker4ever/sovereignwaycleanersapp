@@ -1,4 +1,5 @@
 import Image from "next/image";
+import Link from "next/link";
 import {
   Home,
   Building2,
@@ -23,6 +24,8 @@ interface Service {
   name: string;
   description: string;
   image: string;
+  /** Set only for the 3 services with rate-card data -- links "Book a Clean" into the instant-quote wizard instead of the contact form. */
+  quoteService?: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
 }
 
 export const services: Service[] = [
@@ -46,6 +49,7 @@ export const services: Service[] = [
     description:
       "Thorough move-out cleans to meet landlord and letting agency standards. Helping you secure your deposit.",
     image: "/images/end%20of%20tenancy.jpg",
+    quoteService: "end_of_tenancy",
   },
   {
     icon: Sparkles,
@@ -53,6 +57,7 @@ export const services: Service[] = [
     description:
       "Top-to-bottom intensive cleans for kitchens, bathrooms, and entire properties that need extra attention.",
     image: "/images/Deep%20Cleaning.png",
+    quoteService: "deep_cleaning",
   },
   {
     icon: Layers,
@@ -90,6 +95,7 @@ export const services: Service[] = [
     // Placeholder until a real photo is supplied -- swap for a local
     // asset under /public/images/ the same way every other service does.
     image: "https://picsum.photos/seed/office-cleaning/800/600",
+    quoteService: "office_cleaning",
   },
 ];
 
@@ -149,14 +155,15 @@ export default function Services() {
                   <p className="mt-2 text-sm leading-6 text-gray-600">
                     {service.description}
                   </p>
-                  <a
-                    href="#contact"
+                  <Link
+                    href={service.quoteService ? `?quote=${service.quoteService}` : "#contact"}
+                    scroll={!service.quoteService}
                     className="mt-auto inline-flex w-fit items-center gap-1.5 pt-4 text-sm font-semibold transition-colors hover:gap-2.5"
                     style={{ color: "var(--color-brand)" }}
                   >
-                    Book a Clean
+                    {service.quoteService ? "Get Instant Quote" : "Book a Clean"}
                     <ArrowRight size={16} className="transition-transform" />
-                  </a>
+                  </Link>
                 </div>
               </div>
             );
