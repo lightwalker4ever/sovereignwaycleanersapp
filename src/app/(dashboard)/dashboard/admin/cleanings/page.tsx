@@ -7,13 +7,19 @@ import { listStandardLists } from "../standards/actions";
 import { CreateCleaningForm } from "@/components/admin/CreateCleaningForm";
 import { capitalize } from "@/lib/utils";
 
-export default async function CleaningsPage() {
-  const [cleanings, { cleaners, supervisors }, clients, standardLists] = await Promise.all([
-    listCleanings(),
-    listAssignableStaff(),
-    listClients(),
-    listStandardLists(),
-  ]);
+export default async function CleaningsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ clientId?: string; bookingId?: string }>;
+}) {
+  const [{ clientId, bookingId }, cleanings, { cleaners, supervisors }, clients, standardLists] =
+    await Promise.all([
+      searchParams,
+      listCleanings(),
+      listAssignableStaff(),
+      listClients(),
+      listStandardLists(),
+    ]);
 
   return (
     <div className="space-y-8">
@@ -39,6 +45,8 @@ export default async function CleaningsPage() {
             cleaners={cleaners}
             supervisors={supervisors}
             standardLists={standardLists}
+            initialClientId={clientId}
+            initialBookingId={bookingId}
           />
         </CardContent>
       </Card>

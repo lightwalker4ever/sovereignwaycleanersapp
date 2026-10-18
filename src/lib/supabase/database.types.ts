@@ -9,6 +9,8 @@
  *   npx supabase gen types typescript --project-id <ref> --schema public \
  *     > src/lib/supabase/database.types.ts
  */
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
+
 export type Database = {
   public: {
     Tables: {
@@ -436,6 +438,42 @@ export type Database = {
           preferred_time?: string | null;
           message?: string;
           status?: "new" | "contacted" | "closed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      quote_bookings: {
+        Row: {
+          id: string;
+          service: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
+          client_id: string;
+          postcode: string;
+          selected_inputs: Json;
+          price_breakdown: Json;
+          status: "pending" | "converted" | "declined";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          service: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
+          client_id: string;
+          postcode: string;
+          selected_inputs: Json;
+          price_breakdown: Json;
+          status?: "pending" | "converted" | "declined";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          service?: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
+          client_id?: string;
+          postcode?: string;
+          selected_inputs?: Json;
+          price_breakdown?: Json;
+          status?: "pending" | "converted" | "declined";
           created_at?: string;
           updated_at?: string;
         };

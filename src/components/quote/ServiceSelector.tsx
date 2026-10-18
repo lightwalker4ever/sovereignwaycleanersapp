@@ -1,7 +1,7 @@
 "use client";
 
 import { KeyRound, Sparkles, Briefcase } from "lucide-react";
-import type { QuoteServiceKey } from "@/components/quote/QuoteWizard";
+import type { QuoteServiceKey } from "@/lib/quote-calculations";
 
 const SERVICES: { key: QuoteServiceKey; icon: typeof KeyRound; name: string; description: string }[] = [
   {

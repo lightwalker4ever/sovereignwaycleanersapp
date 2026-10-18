@@ -36,17 +36,23 @@ export function CreateCleaningForm({
   cleaners,
   supervisors,
   standardLists,
+  initialClientId,
+  initialBookingId,
 }: {
   clients: ClientSummary[];
   cleaners: AssignableStaff[];
   supervisors: AssignableStaff[];
   standardLists: { id: string; name: string }[];
+  initialClientId?: string;
+  initialBookingId?: string;
 }) {
   const [state, formAction, isPending] = useActionState<CreateCleaningState, FormData>(
     createCleaning,
     null
   );
-  const [values, setValues] = useState(emptyValues);
+  const [values, setValues] = useState(
+    initialClientId ? { ...emptyValues, clientMode: "existing" as const, clientId: initialClientId } : emptyValues
+  );
 
   const [handledState, setHandledState] = useState(state);
   if (state !== handledState) {
@@ -62,6 +68,7 @@ export function CreateCleaningForm({
 
   return (
     <form action={formAction} className="flex flex-col gap-4">
+      {initialBookingId && <input type="hidden" name="bookingId" value={initialBookingId} />}
       <div className="flex items-center gap-4 text-sm">
         <label className="flex items-center gap-1.5">
           <input
