@@ -1,5 +1,7 @@
 import type { RateCard, OfficeFrequency } from "@/lib/rate-card";
 
+export type QuoteServiceKey = "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
+
 export interface QuoteLineItem {
   label: string;
   amount: number;

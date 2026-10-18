@@ -18,7 +18,7 @@ import { EndOfTenancyForm } from "@/components/quote/EndOfTenancyForm";
 import { DeepCleaningForm } from "@/components/quote/DeepCleaningForm";
 import { OfficeCleaningForm } from "@/components/quote/OfficeCleaningForm";
 import { PriceBreakdown } from "@/components/quote/PriceBreakdown";
-import { getQuoteRateCard, resolveLocationMultiplier, type ResolvedLocation } from "@/actions/quote";
+import { getQuoteRateCard, resolveLocationMultiplier, submitBooking, type ResolvedLocation } from "@/actions/quote";
 import {
   calculateEndOfTenancy,
   calculateDeepCleaning,
@@ -26,10 +26,9 @@ import {
   type EndOfTenancyInput,
   type DeepCleaningInput,
   type OfficeCleaningInput,
+  type QuoteServiceKey,
 } from "@/lib/quote-calculations";
 import type { RateCard } from "@/lib/rate-card";
-
-export type QuoteServiceKey = "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
 
 const SERVICE_TITLE: Record<QuoteServiceKey, string> = {
   end_of_tenancy: "End of Tenancy — Instant Quote",
@@ -69,6 +68,30 @@ export function QuoteWizard({
   if (initialService !== handledInitialService) {
     setHandledInitialService(initialService);
     setService(initialService);
+  }
+
+  const [step, setStep] = useState<"form" | "booking" | "success">("form");
+  const [bookingName, setBookingName] = useState("");
+  const [bookingEmail, setBookingEmail] = useState("");
+  const [bookingPhone, setBookingPhone] = useState("");
+  const [bookingHoneypot, setBookingHoneypot] = useState("");
+  const [bookingError, setBookingError] = useState<string | null>(null);
+  const [submittingBooking, startSubmittingBooking] = useTransition();
+
+  // Reset the booking step (and its fields) whenever the dialog closes --
+  // compares the tracked previous value of `open` itself, same "adjust
+  // state during render" pattern as `initialService` above.
+  const [handledOpen, setHandledOpen] = useState(open);
+  if (open !== handledOpen) {
+    setHandledOpen(open);
+    if (!open) {
+      setStep("form");
+      setBookingName("");
+      setBookingEmail("");
+      setBookingPhone("");
+      setBookingHoneypot("");
+      setBookingError(null);
+    }
   }
 
   const [rateCard, setRateCard] = useState<RateCard | null>(null);
@@ -126,9 +149,30 @@ export function QuoteWizard({
   }, [rateCard, service, eotInput, deepInput, officeInput, location]);
 
   function handleBookNow() {
-    onClose();
-    requestAnimationFrame(() => {
-      document.getElementById("contact")?.scrollIntoView({ behavior: "smooth" });
+    setBookingError(null);
+    setStep("booking");
+  }
+
+  function handleConfirmBooking() {
+    if (!service) return;
+    setBookingError(null);
+    const selectedInputs =
+      service === "end_of_tenancy" ? eotInput : service === "deep_cleaning" ? deepInput : officeInput;
+    startSubmittingBooking(async () => {
+      const result = await submitBooking({
+        service,
+        selectedInputs,
+        postcode,
+        name: bookingName,
+        email: bookingEmail,
+        phone: bookingPhone || undefined,
+        honeypot: bookingHoneypot || undefined,
+      });
+      if (result.success) {
+        setStep("success");
+      } else {
+        setBookingError(result.error);
+      }
     });
   }
 
@@ -137,7 +181,7 @@ export function QuoteWizard({
       <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-2">
-            {service && !initialService && (
+            {step === "form" && service && !initialService && (
               <Button
                 type="button"
                 variant="ghost"
@@ -148,60 +192,163 @@ export function QuoteWizard({
                 <ArrowLeft className="size-4" />
               </Button>
             )}
-            <DialogTitle>{service ? SERVICE_TITLE[service] : "Get an Instant Quote"}</DialogTitle>
+            <DialogTitle>
+              {step === "booking"
+                ? "Confirm Your Booking"
+                : step === "success"
+                  ? "Booking Received"
+                  : service
+                    ? SERVICE_TITLE[service]
+                    : "Get an Instant Quote"}
+            </DialogTitle>
           </div>
           <DialogClose />
         </DialogHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-          {rateCardError && <p className="text-sm text-red-600">{rateCardError}</p>}
+          {step === "form" && (
+            <>
+              {rateCardError && <p className="text-sm text-red-600">{rateCardError}</p>}
 
-          {!rateCardError && loadingRateCard && !rateCard && (
-            <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-500">
-              <Loader2 className="size-4 animate-spin" />
-              Loading rates…
+              {!rateCardError && loadingRateCard && !rateCard && (
+                <div className="flex items-center justify-center gap-2 py-10 text-sm text-gray-500">
+                  <Loader2 className="size-4 animate-spin" />
+                  Loading rates…
+                </div>
+              )}
+
+              {!rateCardError && rateCard && !service && <ServiceSelector onSelect={setService} />}
+
+              {!rateCardError && rateCard && service && (
+                <div className="space-y-4">
+                  {service === "end_of_tenancy" && (
+                    <EndOfTenancyForm value={eotInput} onChange={setEotInput} />
+                  )}
+                  {service === "deep_cleaning" && (
+                    <DeepCleaningForm value={deepInput} onChange={setDeepInput} />
+                  )}
+                  {service === "office_cleaning" && (
+                    <OfficeCleaningForm value={officeInput} onChange={setOfficeInput} />
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="quote-postcode">Postcode</Label>
+                    <Input
+                      id="quote-postcode"
+                      placeholder="e.g. TN9 1AB"
+                      value={postcode}
+                      onChange={(e) => setPostcode(e.target.value)}
+                      onBlur={handlePostcodeBlur}
+                    />
+                    {resolvingLocation && (
+                      <p className="flex items-center gap-1 text-xs text-gray-400">
+                        <Loader2 className="size-3 animate-spin" />
+                        Checking your area…
+                      </p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
+
+          {step === "booking" && (
+            <div className="space-y-4">
+              <p className="text-sm text-gray-600">
+                A few details so we can confirm your booking and get in touch.
+              </p>
+              <div className="space-y-1.5">
+                <Label htmlFor="booking-name">Full name</Label>
+                <Input
+                  id="booking-name"
+                  value={bookingName}
+                  onChange={(e) => setBookingName(e.target.value)}
+                  placeholder="Jane Smith"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="booking-email">Email</Label>
+                <Input
+                  id="booking-email"
+                  type="email"
+                  value={bookingEmail}
+                  onChange={(e) => setBookingEmail(e.target.value)}
+                  placeholder="jane@example.com"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="booking-phone">Phone</Label>
+                <Input
+                  id="booking-phone"
+                  type="tel"
+                  value={bookingPhone}
+                  onChange={(e) => setBookingPhone(e.target.value)}
+                  placeholder="Optional"
+                />
+              </div>
+              <div className="absolute left-[-9999px]" aria-hidden="true">
+                <label htmlFor="booking-company">Company</label>
+                <input
+                  id="booking-company"
+                  name="company"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={bookingHoneypot}
+                  onChange={(e) => setBookingHoneypot(e.target.value)}
+                />
+              </div>
+              {bookingError && <p className="text-sm text-red-600">{bookingError}</p>}
             </div>
           )}
 
-          {!rateCardError && rateCard && !service && <ServiceSelector onSelect={setService} />}
-
-          {!rateCardError && rateCard && service && (
-            <div className="space-y-4">
-              {service === "end_of_tenancy" && (
-                <EndOfTenancyForm value={eotInput} onChange={setEotInput} />
-              )}
-              {service === "deep_cleaning" && (
-                <DeepCleaningForm value={deepInput} onChange={setDeepInput} />
-              )}
-              {service === "office_cleaning" && (
-                <OfficeCleaningForm value={officeInput} onChange={setOfficeInput} />
-              )}
-
-              <div className="space-y-1.5">
-                <Label htmlFor="quote-postcode">Postcode</Label>
-                <Input
-                  id="quote-postcode"
-                  placeholder="e.g. TN9 1AB"
-                  value={postcode}
-                  onChange={(e) => setPostcode(e.target.value)}
-                  onBlur={handlePostcodeBlur}
-                />
-                {resolvingLocation && (
-                  <p className="flex items-center gap-1 text-xs text-gray-400">
-                    <Loader2 className="size-3 animate-spin" />
-                    Checking your area…
-                  </p>
-                )}
-              </div>
+          {step === "success" && (
+            <div className="space-y-2 py-6 text-center">
+              <p className="text-lg font-semibold text-gray-900">Thank you, {bookingName.split(" ")[0] || "there"}!</p>
+              <p className="text-sm text-gray-600">
+                We&apos;ve received your booking request and will be in touch shortly to confirm the details.
+              </p>
             </div>
           )}
         </div>
 
-        {breakdown && (
+        {step === "form" && breakdown && (
           <DialogFooter className="space-y-3">
             <PriceBreakdown breakdown={breakdown} />
             <Button type="button" className="w-full rounded-full" size="lg" onClick={handleBookNow}>
-              Looks good — get in touch to book
+              Book Now
+            </Button>
+          </DialogFooter>
+        )}
+
+        {step === "booking" && (
+          <DialogFooter className="flex gap-3">
+            <Button
+              type="button"
+              variant="outline"
+              className="flex-1 rounded-full"
+              size="lg"
+              onClick={() => setStep("form")}
+              disabled={submittingBooking}
+            >
+              Back
+            </Button>
+            <Button
+              type="button"
+              className="flex-1 gap-2 rounded-full"
+              size="lg"
+              onClick={handleConfirmBooking}
+              disabled={submittingBooking}
+            >
+              {submittingBooking && <Loader2 className="size-4 animate-spin" />}
+              Confirm Booking
+            </Button>
+          </DialogFooter>
+        )}
+
+        {step === "success" && (
+          <DialogFooter>
+            <Button type="button" className="w-full rounded-full" size="lg" onClick={onClose}>
+              Close
             </Button>
           </DialogFooter>
         )}

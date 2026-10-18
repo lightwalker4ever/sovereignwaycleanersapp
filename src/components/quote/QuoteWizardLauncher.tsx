@@ -1,7 +1,8 @@
 "use client";
 
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
-import { QuoteWizard, type QuoteServiceKey } from "@/components/quote/QuoteWizard";
+import { QuoteWizard } from "@/components/quote/QuoteWizard";
+import type { QuoteServiceKey } from "@/lib/quote-calculations";
 
 const SERVICE_KEYS: QuoteServiceKey[] = ["end_of_tenancy", "deep_cleaning", "office_cleaning"];
 
