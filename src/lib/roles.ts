@@ -7,7 +7,7 @@ import { z } from "zod";
  * there's never a reason for an admin to hand it out or see it in the
  * staff-management UI.
  */
-export const STAFF_ROLES = ["cleaner", "supervisor", "manager", "admin"] as const;
+export const STAFF_ROLES = ["cleaner", "supervisor", "manager", "admin", "sales"] as const;
 export type StaffRole = (typeof STAFF_ROLES)[number];
 
 export const staffRoleSchema = z.enum(STAFF_ROLES);

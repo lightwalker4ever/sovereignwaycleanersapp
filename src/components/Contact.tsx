@@ -3,6 +3,7 @@
 import { useActionState, useEffect, useState } from "react";
 import { Phone, Mail, MapPin, Clock, AlertCircle, ShieldCheck, CheckCircle, Users, Star, Leaf } from "lucide-react";
 import { submitContactForm } from "@/actions/contact";
+import { services } from "@/components/Services";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -279,12 +280,11 @@ export default function Contact() {
                       <SelectValue placeholder="Select a service…" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="Domestic Cleaning">Domestic Cleaning</SelectItem>
-                      <SelectItem value="Commercial Cleaning">Commercial Cleaning</SelectItem>
-                      <SelectItem value="End of Tenancy">End of Tenancy</SelectItem>
-                      <SelectItem value="Deep Cleaning">Deep Cleaning</SelectItem>
-                      <SelectItem value="Carpet Cleaning">Carpet Cleaning</SelectItem>
-                      <SelectItem value="After Build Clean">After Build Clean</SelectItem>
+                      {services.map((service) => (
+                        <SelectItem key={service.name} value={service.name}>
+                          {service.name}
+                        </SelectItem>
+                      ))}
                     </SelectContent>
                   </Select>
                   <FieldError message={show("service")} />

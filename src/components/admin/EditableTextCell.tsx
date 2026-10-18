@@ -13,7 +13,7 @@ export function EditableTextCell({
 }: {
   value: string | null;
   placeholder?: string;
-  type?: "text" | "email";
+  type?: "text" | "email" | "number";
   onSave: (next: string) => Promise<void>;
 }) {
   const [editing, setEditing] = useState(false);
@@ -36,6 +36,10 @@ export function EditableTextCell({
     const next = draft.trim();
     if (next === (value ?? "")) {
       setEditing(false);
+      return;
+    }
+    if (type === "number" && (next === "" || !Number.isFinite(Number(next)) || Number(next) < 0)) {
+      setError("Enter a non-negative number");
       return;
     }
     setError(null);

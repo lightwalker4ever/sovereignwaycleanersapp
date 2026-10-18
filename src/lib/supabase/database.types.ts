@@ -306,6 +306,96 @@ export type Database = {
         };
         Relationships: [];
       };
+      rate_card_items: {
+        Row: {
+          id: string;
+          service: "general" | "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
+          group_label: string;
+          key: string;
+          label: string;
+          sublabel: string | null;
+          value: number;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          service: "general" | "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
+          group_label: string;
+          key: string;
+          label: string;
+          sublabel?: string | null;
+          value: number;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          service?: "general" | "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
+          group_label?: string;
+          key?: string;
+          label?: string;
+          sublabel?: string | null;
+          value?: number;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      app_settings: {
+        Row: {
+          key: string;
+          value: unknown;
+          updated_at: string;
+        };
+        Insert: {
+          key: string;
+          value: unknown;
+          updated_at?: string;
+        };
+        Update: {
+          key?: string;
+          value?: unknown;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      location_multipliers: {
+        Row: {
+          id: string;
+          match_type: "admin_district" | "region" | "postcode_area" | "default";
+          match_value: string | null;
+          multiplier: number;
+          label: string;
+          priority: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          match_type: "admin_district" | "region" | "postcode_area" | "default";
+          match_value?: string | null;
+          multiplier?: number;
+          label: string;
+          priority?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          match_type?: "admin_district" | "region" | "postcode_area" | "default";
+          match_value?: string | null;
+          multiplier?: number;
+          label?: string;
+          priority?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -319,7 +409,7 @@ export type Database = {
       };
     };
     Enums: {
-      app_role: "client" | "cleaner" | "supervisor" | "manager" | "admin";
+      app_role: "client" | "cleaner" | "supervisor" | "manager" | "admin" | "sales";
       cleaning_status: "assigned" | "in_progress" | "in_review" | "completed";
     };
     CompositeTypes: Record<string, never>;
