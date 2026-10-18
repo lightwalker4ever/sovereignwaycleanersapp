@@ -1,9 +1,14 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ContactFormToggle } from "@/components/admin/ContactFormToggle";
-import { getContactFormEnabled } from "./actions";
+import { EditableTextCell } from "@/components/admin/EditableTextCell";
+import { getContactFormEnabled, getSalesNotificationEmail } from "@/lib/app-settings";
+import { setSalesNotificationEmail } from "./actions";
 
 export default async function AdminSettingsPage() {
-  const contactFormEnabled = await getContactFormEnabled();
+  const [contactFormEnabled, salesNotificationEmail] = await Promise.all([
+    getContactFormEnabled(),
+    getSalesNotificationEmail(),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -22,6 +27,22 @@ export default async function AdminSettingsPage() {
         </CardHeader>
         <CardContent>
           <ContactFormToggle initialEnabled={contactFormEnabled} />
+        </CardContent>
+      </Card>
+
+      <Card className="p-5">
+        <CardHeader>
+          <CardTitle>Enquiry notifications</CardTitle>
+          <CardDescription>
+            New contact-form enquiries are emailed to this address.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EditableTextCell
+            value={salesNotificationEmail}
+            type="email"
+            onSave={setSalesNotificationEmail}
+          />
         </CardContent>
       </Card>
     </div>

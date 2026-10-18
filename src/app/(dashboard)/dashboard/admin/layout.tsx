@@ -8,6 +8,7 @@ const ADMIN_NAV = [
   { href: "/dashboard/admin/standards", label: "Standards" },
   { href: "/dashboard/admin/cleanings", label: "Cleanings" },
   { href: "/dashboard/admin/feedback", label: "Feedback" },
+  { href: "/dashboard/admin/enquiries", label: "Enquiries" },
   { href: "/dashboard/admin/rate-card", label: "Rate Card" },
   { href: "/dashboard/admin/location-pricing", label: "Location Pricing" },
   { href: "/dashboard/admin/settings", label: "Settings" },
