@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { CheckCircle, ShieldCheck, ThumbsUp, Leaf } from "lucide-react";
 import { buttonVariants } from "@/lib/button-variants";
@@ -68,15 +69,16 @@ export default function Hero() {
         </p>
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
-          <a
-            href="#contact"
+          <Link
+            href="?quote=open"
+            scroll={false}
             className={cn(
               buttonVariants({ variant: "default", size: "lg" }),
               "rounded-full px-8 py-3.5 text-base font-semibold"
             )}
           >
             Get a Free Quote
-          </a>
+          </Link>
           <a
             href="#services"
             className={cn(

@@ -10,6 +10,8 @@ import Affiliations from "@/components/Affiliations";
 import Contact from "@/components/Contact";
 import Footer from "@/components/Footer";
 import { getContactFormEnabled } from "@/lib/app-settings";
+import { Suspense } from "react";
+import { QuoteWizardLauncher } from "@/components/quote/QuoteWizardLauncher";
 
 export default async function Home() {
   const contactFormEnabled = await getContactFormEnabled();
@@ -29,6 +31,9 @@ export default async function Home() {
         <Contact contactFormEnabled={contactFormEnabled} />
       </main>
       <Footer />
+      <Suspense fallback={null}>
+        <QuoteWizardLauncher />
+      </Suspense>
     </>
   );
 }
