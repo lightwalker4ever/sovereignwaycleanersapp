@@ -32,5 +32,5 @@ export async function assertIsRole(allowed: Role[]) {
   return { user, profile };
 }
 
-/** Any non-client (staff) role -- cleaner, supervisor, manager, admin. */
-export const STAFF_ROLES_FOR_ASSERT: Role[] = ["cleaner", "supervisor", "manager", "admin"];
+/** Any non-client (staff) role -- cleaner, supervisor, manager, admin, sales. */
+export const STAFF_ROLES_FOR_ASSERT: Role[] = ["cleaner", "supervisor", "manager", "admin", "sales"];

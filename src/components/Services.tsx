@@ -8,6 +8,7 @@ import {
   HardHat,
   PaintRoller,
   Boxes,
+  Briefcase,
   ShieldCheck,
   Users,
   Calendar,
@@ -24,7 +25,7 @@ interface Service {
   image: string;
 }
 
-const services: Service[] = [
+export const services: Service[] = [
   {
     icon: Home,
     name: "Domestic Cleaning",
@@ -80,6 +81,15 @@ const services: Service[] = [
     description:
       "Starting fresh or leaving spotless — a thorough clean of every room so the property is ready for its next chapter.",
     image: "/images/move_in_out_1.png",
+  },
+  {
+    icon: Briefcase,
+    name: "Office Cleaning",
+    description:
+      "Regular or one-off cleaning for offices and commercial workspaces, priced by hours or floor area to suit your business.",
+    // Placeholder until a real photo is supplied -- swap for a local
+    // asset under /public/images/ the same way every other service does.
+    image: "https://picsum.photos/seed/office-cleaning/800/600",
   },
 ];
 
