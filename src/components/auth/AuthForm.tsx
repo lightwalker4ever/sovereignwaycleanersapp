@@ -72,7 +72,7 @@ export function AuthForm({ redirectTo }: { redirectTo?: string }) {
             />
           </div>
           {emailError && <p className="text-sm text-red-600">{emailError}</p>}
-          <Button type="submit" disabled={checking} className="gap-2">
+          <Button type="submit" disabled={checking} className="gap-2 bg-dash-brand-700 hover:bg-dash-brand-900">
             {checking ? <Loader2 className="h-4 w-4 animate-spin" /> : <ArrowRight className="h-4 w-4" />}
             Continue
           </Button>
@@ -152,7 +152,7 @@ function SignInOrSignUpStep({
           />
         </div>
         {signInState?.error && <p className="text-sm text-red-600">{signInState.error}</p>}
-        <Button type="submit" disabled={signInPending} className="gap-2">
+        <Button type="submit" disabled={signInPending} className="gap-2 bg-dash-brand-700 hover:bg-dash-brand-900">
           {signInPending && <Loader2 className="h-4 w-4 animate-spin" />}
           Sign in
         </Button>
@@ -206,7 +206,7 @@ function SignInOrSignUpStep({
         />
       </div>
       {signUpState?.error && <p className="text-sm text-red-600">{signUpState.error}</p>}
-      <Button type="submit" disabled={signUpPending} className="gap-2">
+      <Button type="submit" disabled={signUpPending} className="gap-2 bg-dash-brand-700 hover:bg-dash-brand-900">
         {signUpPending && <Loader2 className="h-4 w-4 animate-spin" />}
         Sign up
       </Button>

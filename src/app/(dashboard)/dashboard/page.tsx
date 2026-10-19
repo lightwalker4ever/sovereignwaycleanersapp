@@ -1,9 +1,20 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { ArrowRight } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
-import { capitalize } from "@/lib/utils";
 
+const ROLE_HOME: Record<string, string> = {
+  admin: "/dashboard/admin",
+  manager: "/dashboard/admin",
+  supervisor: "/dashboard/supervisor",
+  cleaner: "/dashboard/cleaner",
+  client: "/dashboard/client",
+  sales: "/dashboard/sales",
+};
+
+/**
+ * No role lands on a "Welcome + one button" page (design-handoff
+ * DESIGN_HANDOFF.md principle 1) -- this route only ever exists to
+ * send a just-signed-in user straight to their role's real home.
+ */
 export default async function DashboardPage() {
   const supabase = await createClient();
   const {
@@ -13,78 +24,7 @@ export default async function DashboardPage() {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .single();
+  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
 
-  return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">
-          Welcome{profile?.full_name ? `, ${profile.full_name}` : ""}
-        </h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Signed in as <span className="font-medium">{user.email}</span>,
-          role <span className="font-medium">{capitalize(profile?.role ?? "client")}</span>.
-        </p>
-      </div>
-
-      {profile?.role === "admin" && (
-        <Link
-          href="/dashboard/admin"
-          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{ backgroundColor: "var(--color-brand)" }}
-        >
-          Manage users
-          <ArrowRight size={16} />
-        </Link>
-      )}
-
-      {profile?.role === "cleaner" && (
-        <Link
-          href="/dashboard/cleaner"
-          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{ backgroundColor: "var(--color-brand)" }}
-        >
-          View your cleanings
-          <ArrowRight size={16} />
-        </Link>
-      )}
-
-      {profile?.role === "supervisor" && (
-        <Link
-          href="/dashboard/supervisor"
-          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{ backgroundColor: "var(--color-brand)" }}
-        >
-          View your reviews
-          <ArrowRight size={16} />
-        </Link>
-      )}
-
-      {profile?.role === "client" && (
-        <Link
-          href="/dashboard/client"
-          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{ backgroundColor: "var(--color-brand)" }}
-        >
-          View your cleanings
-          <ArrowRight size={16} />
-        </Link>
-      )}
-
-      {profile?.role === "sales" && (
-        <Link
-          href="/dashboard/sales"
-          className="inline-flex items-center gap-2 rounded-full px-5 py-2.5 text-sm font-semibold text-white transition-colors"
-          style={{ backgroundColor: "var(--color-brand)" }}
-        >
-          View enquiries
-          <ArrowRight size={16} />
-        </Link>
-      )}
-    </div>
-  );
+  redirect(ROLE_HOME[profile?.role ?? ""] ?? "/login");
 }

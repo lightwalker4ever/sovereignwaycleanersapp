@@ -16,6 +16,7 @@ export interface CleaningChecklistItem {
   id: string;
   title: string;
   description: string | null;
+  area: string | null;
   reviewStatus: string;
   supervisorComment: string | null;
   photos: CleaningPhoto[];
@@ -25,16 +26,22 @@ export interface CleaningCommentEntry {
   id: string;
   authorName: string | null;
   body: string;
+  rating: number | null;
   createdAt: string;
 }
 
 export interface CleaningDetailForParty {
   id: string;
   clientName: string | null;
+  clientAddress: string | null;
   cleanerName: string | null;
   supervisorName: string | null;
   status: string;
   notes: string | null;
+  scheduledAt: string;
+  endsAt: string | null;
+  startedAt: string | null;
+  submittedAt: string | null;
   createdAt: string;
   completedAt: string | null;
   checklist: CleaningChecklistItem[];
@@ -65,7 +72,9 @@ export async function getCleaningDetailForParty(
 
   const { data: cleaning, error } = await admin
     .from("cleanings")
-    .select("id, client_id, cleaner_id, supervisor_id, status, notes, created_at, completed_at")
+    .select(
+      "id, client_id, cleaner_id, supervisor_id, status, notes, scheduled_at, ends_at, started_at, submitted_at, created_at, completed_at"
+    )
     .eq("id", cleaningId)
     .single();
   if (error || !cleaning) return null;
@@ -78,17 +87,17 @@ export async function getCleaningDetailForParty(
     { data: checklist, error: checklistError },
     { data: comments, error: commentsError },
   ] = await Promise.all([
-    admin.from("clients").select("full_name").eq("id", cleaning.client_id).single(),
+    admin.from("clients").select("full_name, address").eq("id", cleaning.client_id).single(),
     admin.from("profiles").select("full_name").eq("id", cleaning.cleaner_id).single(),
     admin.from("profiles").select("full_name").eq("id", cleaning.supervisor_id).single(),
     admin
       .from("cleaning_standards")
-      .select("id, title, description, review_status, supervisor_comment")
+      .select("id, title, description, area, review_status, supervisor_comment")
       .eq("cleaning_id", cleaningId)
       .order("sort_order", { ascending: true }),
     admin
       .from("cleaning_comments")
-      .select("id, author_profile_id, body, created_at")
+      .select("id, author_profile_id, body, rating, created_at")
       .eq("cleaning_id", cleaningId)
       .order("created_at", { ascending: true }),
   ]);
@@ -131,16 +140,22 @@ export async function getCleaningDetailForParty(
   return {
     id: cleaning.id,
     clientName: client?.full_name ?? null,
+    clientAddress: client?.address ?? null,
     cleanerName: cleaner?.full_name ?? null,
     supervisorName: supervisor?.full_name ?? null,
     status: cleaning.status,
     notes: cleaning.notes,
+    scheduledAt: cleaning.scheduled_at,
+    endsAt: cleaning.ends_at,
+    startedAt: cleaning.started_at,
+    submittedAt: cleaning.submitted_at,
     createdAt: cleaning.created_at,
     completedAt: cleaning.completed_at,
     checklist: (checklist ?? []).map((c) => ({
       id: c.id,
       title: c.title,
       description: c.description,
+      area: c.area,
       reviewStatus: c.review_status,
       supervisorComment: c.supervisor_comment,
       photos: photosByStandard.get(c.id) ?? [],
@@ -149,6 +164,7 @@ export async function getCleaningDetailForParty(
       id: c.id,
       authorName: authorNameById.get(c.author_profile_id) ?? null,
       body: c.body,
+      rating: c.rating,
       createdAt: c.created_at,
     })),
   };

@@ -1,11 +1,12 @@
 import { ContactRequestList } from "@/components/sales/ContactRequestList";
 import { listContactRequests } from "../../sales/actions";
+import { PageContainer } from "@/components/shell/PageContainer";
 
 export default async function AdminEnquiriesPage() {
   const requests = await listContactRequests();
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Enquiries</h1>
         <p className="mt-1 text-sm text-gray-600">
@@ -14,6 +15,6 @@ export default async function AdminEnquiriesPage() {
       </div>
 
       <ContactRequestList requests={requests} />
-    </div>
+    </PageContainer>
   );
 }

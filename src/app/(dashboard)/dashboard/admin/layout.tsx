@@ -1,24 +1,38 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
+import {
+  LayoutDashboard,
+  CalendarDays,
+  Home,
+  Users,
+  ListChecks,
+  MessageSquare,
+  ClipboardList,
+  Inbox,
+  Tag,
+  MapPin,
+  Settings as SettingsIcon,
+  type LucideIcon,
+} from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+import { getAdminNavBadges } from "@/lib/admin-dashboard";
+import { AppShell } from "@/components/shell/AppShell";
+import { capitalize } from "@/lib/utils";
+import type { ShellNavItem } from "@/components/shell/types";
 
-const ADMIN_NAV = [
-  { href: "/dashboard/admin", label: "Staff" },
-  { href: "/dashboard/admin/clients", label: "Clients" },
-  { href: "/dashboard/admin/standards", label: "Standards" },
-  { href: "/dashboard/admin/cleanings", label: "Cleanings" },
-  { href: "/dashboard/admin/bookings", label: "Bookings" },
-  { href: "/dashboard/admin/feedback", label: "Feedback" },
-  { href: "/dashboard/admin/enquiries", label: "Enquiries" },
-  { href: "/dashboard/admin/rate-card", label: "Rate Card" },
-  { href: "/dashboard/admin/location-pricing", label: "Location Pricing" },
-  { href: "/dashboard/admin/settings", label: "Settings" },
-] as const;
+// Renders the icon element here on the server -- ShellNavItem.icon is a
+// ReactNode, not a component reference, since a bare component/function
+// can't be passed as a prop into Sidebar's "use client" boundary.
+function navIcon(Icon: LucideIcon) {
+  return <Icon size={20} strokeWidth={1.8} aria-hidden="true" />;
+}
 
 /**
  * Role gate for everything under /dashboard/admin. Co-located with the
  * routes it protects rather than encoded in proxy.ts -- see
- * src/proxy.ts for why.
+ * src/proxy.ts for why. Accepts both "admin" and "manager" -- the
+ * redesign pairs them onto one shell/home (design-handoff
+ * DESIGN_HANDOFF.md's "Admin / Manager" row), and manager previously
+ * had no dashboard of its own at all.
  */
 export default async function AdminLayout({
   children,
@@ -35,28 +49,64 @@ export default async function AdminLayout({
 
   const { data: profile } = await supabase
     .from("profiles")
-    .select("role")
+    .select("full_name, role")
     .eq("id", user.id)
     .single();
 
-  if (profile?.role !== "admin") {
+  if (profile?.role !== "admin" && profile?.role !== "manager") {
     redirect("/dashboard");
   }
 
+  const { cleaningsInReview, bookingsPending, enquiriesNew } = await getAdminNavBadges();
+
+  // The handoff's own nav list (Dashboard/Cleanings/Clients/Staff/
+  // Standards/Feedback) plus the pre-existing Quote-and-Book admin
+  // pages it doesn't mention -- those still need to be reachable in
+  // one click, per the acceptance checklist.
+  const navItems: ShellNavItem[] = [
+    { href: "/dashboard/admin", label: "Dashboard", icon: navIcon(LayoutDashboard) },
+    {
+      href: "/dashboard/admin/cleanings",
+      label: "Cleanings",
+      icon: navIcon(CalendarDays),
+      badge: cleaningsInReview || undefined,
+    },
+    { href: "/dashboard/admin/clients", label: "Clients", icon: navIcon(Home) },
+    { href: "/dashboard/admin/staff", label: "Staff", icon: navIcon(Users) },
+    { href: "/dashboard/admin/standards", label: "Standards", icon: navIcon(ListChecks) },
+    { href: "/dashboard/admin/feedback", label: "Feedback", icon: navIcon(MessageSquare) },
+    {
+      href: "/dashboard/admin/bookings",
+      label: "Bookings",
+      icon: navIcon(ClipboardList),
+      badge: bookingsPending || undefined,
+    },
+    {
+      href: "/dashboard/admin/enquiries",
+      label: "Enquiries",
+      icon: navIcon(Inbox),
+      badge: enquiriesNew || undefined,
+    },
+    { href: "/dashboard/admin/rate-card", label: "Rate Card", icon: navIcon(Tag) },
+    { href: "/dashboard/admin/location-pricing", label: "Location Pricing", icon: navIcon(MapPin) },
+    { href: "/dashboard/admin/settings", label: "Settings", icon: navIcon(SettingsIcon) },
+  ];
+
+  const fullName = profile?.full_name ?? user.email ?? "";
+  const initials = fullName
+    .split(" ")
+    .map((w) => w[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("")
+    .toUpperCase();
+
   return (
-    <div className="space-y-6">
-      <nav className="flex gap-4 border-b border-gray-200 text-sm font-medium text-gray-600">
-        {ADMIN_NAV.map((item) => (
-          <Link
-            key={item.href}
-            href={item.href}
-            className="border-b-2 border-transparent pb-2 hover:border-gray-300 hover:text-gray-900"
-          >
-            {item.label}
-          </Link>
-        ))}
-      </nav>
+    <AppShell
+      navItems={navItems}
+      user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(profile.role) }}
+    >
       {children}
-    </div>
+    </AppShell>
   );
 }

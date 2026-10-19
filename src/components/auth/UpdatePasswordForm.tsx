@@ -66,7 +66,7 @@ export function UpdatePasswordForm() {
         />
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <Button type="submit" disabled={loading} className="mt-1 gap-2">
+      <Button type="submit" disabled={loading} className="mt-1 gap-2 bg-dash-brand-700 hover:bg-dash-brand-900">
         {loading && <Loader2 className="h-4 w-4 animate-spin" />}
         Update password
       </Button>

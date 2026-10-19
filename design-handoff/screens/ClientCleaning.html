@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Client cleaning results</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; box-sizing: border-box; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 14px 16px 14px 8px; display: flex; align-items: center; gap: 6px">
+<a href="ClientHome.html" aria-label="Back to Home" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #15211B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5 M12 19l-7-7 7-7"></path></svg></a>
+<div style="flex: 1; display: flex; flex-direction: column"><h1 style="margin: 0; font-size: 18px; font-weight: 800">Cleaning on Tue 6 Oct</h1><span style="font-size: 13px; color: #55615A">09:00–11:10 · Cliff Cleaner</span></div>
+<span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #DFF1E5; color: #155B33">Completed</span>
+</header>
+
+<div style="flex: 1; overflow: hidden; padding: 14px 16px; display: flex; flex-direction: column; gap: 14px">
+
+<section style="background: #DFF1E5; border-radius: 16px; padding: 14px 16px; display: flex; align-items: center; gap: 12px">
+<span style="width: 44px; height: 44px; border-radius: 999px; background: #1B5E3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; flex: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 800; font-size: 16px; color: #0F3B26">All 3 standards met</span><span style="font-size: 13px; color: #155B33">Checked and signed off by Jane Supervisor at 11:35</span></span>
+</section>
+
+<section aria-label="Checklist results" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow: hidden">
+<sc-for list="{{results}}" as="r" hint-placeholder-count="3">
+<div style="display: flex; gap: 12px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #EEF1EF">
+<span style="width: 64px; height: 64px; border-radius: 10px; background: #DCE5DF; display: flex; align-items: center; justify-content: center; color: #55615A; flex: none"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg></span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700; font-size: 14px">{{r.title}}</span><span style="font-size: 12px; color: #55615A">{{r.sub}}</span></span>
+<span style="font-size: 12px; font-weight: 700; color: #155B33">✓ Met</span>
+</div>
+</sc-for>
+<a href="#" style="display: block; padding: 12px 14px; font-size: 14px; font-weight: 700">View all 6 photos</a>
+</section>
+
+<section aria-label="Rate this cleaning" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 800">How did we do?</h2>
+<div role="radiogroup" aria-label="Rating" style="display: flex; gap: 6px">
+<sc-for list="{{stars}}" as="s" hint-placeholder-count="5">
+<button role="radio" aria-checked="{{s.checked}}" aria-label="{{s.aria}}" onClick="{{s.pick}}" style="{{s.style}}">★</button>
+</sc-for>
+</div>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Anything we should know? <span style="font-weight: 400; color: #55615A; font-size: 13px">Optional</span>
+<textarea rows="2" style="border: 1px solid #C9D1CC; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; resize: none"></textarea></label>
+<button disabled="{{noRating}}" style="{{sendStyle}}">Send feedback</button>
+</section>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { rating: 0 };
+  }
+  renderVals() {
+    var self = this;
+    var r = this.state.rating;
+    var stars = [1, 2, 3, 4, 5].map(function (n) {
+      var on = n <= r;
+      return { checked: n === r ? 'true' : 'false', aria: n + (n === 1 ? ' star' : ' stars'),
+        pick: function () { self.setState({ rating: n }); },
+        style: 'width:52px;height:52px;border-radius:12px;font-size:28px;line-height:1;cursor:pointer;font-family:inherit;' + (on ? 'background:#FFF1D1;border:1px solid #E9C46A;color:#B07800' : 'background:#FFFFFF;border:1px solid #E2E7E3;color:#B8C1BB') };
+    });
+    return {
+      stars: stars,
+      noRating: r === 0,
+      sendStyle: 'height:50px;border:0;border-radius:12px;font:inherit;font-size:15px;font-weight:800;' + (r ? 'background:#1B5E3B;color:#FFFFFF;cursor:pointer' : 'background:#E8ECE9;color:#6B7670'),
+      results: [
+        { title: 'Kitchen worktops clean and dry', sub: 'Kitchen · 2 photos' },
+        { title: 'Bathroom mirror streak-free', sub: 'Bathroom · 1 photo' },
+        { title: 'Floors vacuumed and mopped', sub: 'Whole home · 3 photos' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

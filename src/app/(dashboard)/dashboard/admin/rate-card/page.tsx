@@ -1,6 +1,7 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { EditableTextCell } from "@/components/admin/EditableTextCell";
 import { listRateCardItems, updateRateCardValue, type RateCardItemRow } from "./actions";
+import { PageContainer } from "@/components/shell/PageContainer";
 
 const SERVICE_ORDER = ["general", "end_of_tenancy", "deep_cleaning", "office_cleaning"] as const;
 
@@ -28,7 +29,7 @@ export default async function RateCardPage() {
   const items = await listRateCardItems();
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Rate Card</h1>
         <p className="mt-1 text-sm text-gray-600">
@@ -78,6 +79,6 @@ export default async function RateCardPage() {
           </Card>
         );
       })}
-    </div>
+    </PageContainer>
   );
 }

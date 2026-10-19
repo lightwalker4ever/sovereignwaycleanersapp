@@ -16,13 +16,13 @@ export default async function LoginPage({
   const { redirectTo } = await searchParams;
 
   return (
-    <Card className="w-full max-w-sm px-2 py-6 shadow-sm">
+    <Card className="w-full max-w-sm rounded-2xl border-dash-border bg-dash-surface px-2 py-6 shadow-sm">
       <CardHeader className="text-center">
-        <Link href="/" className="mx-auto mb-2 text-sm font-semibold" style={{ color: "var(--color-brand)" }}>
-          Sovereign Way Cleaners
+        <Link href="/" className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-[10px] bg-dash-brand-900 text-sm font-extrabold text-dash-gold">
+          SW
         </Link>
-        <CardTitle className="text-xl">Sign in</CardTitle>
-        <CardDescription>
+        <CardTitle className="text-xl text-dash-ink">Sign in</CardTitle>
+        <CardDescription className="text-dash-muted">
           Sign in to book, manage, and track your cleans.
         </CardDescription>
       </CardHeader>

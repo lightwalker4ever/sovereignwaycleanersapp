@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { getClientDetail } from "../actions";
 import { AssignStandardListForm } from "@/components/admin/AssignStandardListForm";
 import { ClientStandardToggle } from "@/components/admin/ClientStandardToggle";
+import { PageContainer } from "@/components/shell/PageContainer";
 
 export default async function ClientDetailPage({
   params,
@@ -15,7 +16,7 @@ export default async function ClientDetailPage({
   if (!client) notFound();
 
   return (
-    <div className="space-y-8">
+    <PageContainer>
       <div>
         <Link href="/dashboard/admin/clients" className="text-sm text-gray-500 hover:underline">
           ← Clients
@@ -67,6 +68,6 @@ export default async function ClientDetailPage({
           )}
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

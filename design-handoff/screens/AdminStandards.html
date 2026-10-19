@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin standards</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B">
+
+<nav aria-label="Main" style="flex: 1 1 240px; background: #0F3B26; color: #D7E7DD; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 0 8px">
+<div style="width: 40px; height: 40px; border-radius: 10px; background: #E9C46A; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px">SW</div>
+<div style="display: flex; flex-direction: column"><span style="color: #FFFFFF; font-weight: 700; font-size: 15px">Sovereign Way</span><span style="font-size: 12px; color: #A9C7B5">Cleaners</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{nav}}" as="item" hint-placeholder-count="6">
+<a href="{{item.href}}" style="{{item.style}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg>
+<span style="flex: 1">{{item.label}}</span>
+<sc-if value="{{item.badge}}" hint-placeholder-val="{{true}}"><span style="background: #E9C46A; color: #0F3B26; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 8px">{{item.badge}}</span></sc-if>
+</a>
+</sc-for>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.08)">
+<div style="width: 36px; height: 36px; border-radius: 999px; background: #D7E7DD; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px">NT</div>
+<div style="flex: 1; display: flex; flex-direction: column"><span style="color: #FFFFFF; font-size: 14px; font-weight: 600">Nuno Teixeira</span><span style="font-size: 12px; color: #A9C7B5">Admin</span></div>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box">
+<div style="max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+<header>
+<h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em">Standards</h1>
+<p style="margin: 4px 0 0; color: #55615A; font-size: 14px">Checklists that cleaners photograph and supervisors check. Pick a list to edit it.</p>
+</header>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+
+<section aria-label="Standard lists" style="flex: 1 1 260px; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{lists}}" as="l" hint-placeholder-count="3">
+<a href="#" style="{{l.style}}"><span style="font-weight: 700; font-size: 14px">{{l.name}}</span><span style="font-size: 13px; color: #55615A">{{l.meta}}</span></a>
+</sc-for>
+<button style="height: 44px; margin-top: 6px; border: 1px dashed #A9B6AE; border-radius: 10px; background: none; font: inherit; font-size: 14px; font-weight: 700; color: #1B5E3B">+ New list</button>
+</section>
+
+<section aria-label="Standard 1" style="flex: 3 1 520px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow: hidden">
+<div style="padding: 22px 24px; border-bottom: 1px solid #E2E7E3; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start">
+<div style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0; font-size: 22px; font-weight: 800">Standard 1</h2>
+<p style="margin: 0; font-size: 14px; color: #55615A">It's the first standard</p>
+</div>
+<button style="height: 40px; padding: 0 14px; border: 1px solid #C9D1CC; background: #FFFFFF; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600">Rename</button>
+<button style="height: 40px; padding: 0 14px; border: 1px solid #C9D1CC; background: #FFFFFF; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600">Duplicate</button>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 8px; align-items: center">
+<span style="font-size: 13px; color: #55615A; font-weight: 600">Used by</span>
+<span style="font-size: 13px; font-weight: 600; background: #EEF1EF; border-radius: 999px; padding: 6px 12px">Ana Client</span>
+<span style="font-size: 13px; font-weight: 600; background: #EEF1EF; border-radius: 999px; padding: 6px 12px">Nuno The Client</span>
+<button style="height: 32px; padding: 0 12px; border: 0; background: none; font: inherit; font-size: 13px; font-weight: 700; color: #1B5E3B">+ Assign to client</button>
+</div>
+</div>
+
+<ol style="list-style: none; margin: 0; padding: 8px 0">
+<sc-for list="{{items}}" as="s" hint-placeholder-count="3">
+<li style="display: flex; gap: 14px; align-items: center; padding: 14px 24px; border-bottom: 1px solid #EEF1EF">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="#9AA59F" aria-hidden="true" style="flex: none"><path d="M9 5.5a1.5 1.5 0 1 0 0 .01z M15 5.5a1.5 1.5 0 1 0 0 .01z M9 12a1.5 1.5 0 1 0 0 .01z M15 12a1.5 1.5 0 1 0 0 .01z M9 18.5a1.5 1.5 0 1 0 0 .01z M15 18.5a1.5 1.5 0 1 0 0 .01z"></path></svg>
+<span style="width: 28px; height: 28px; border-radius: 999px; background: #DFF1E5; color: #155B33; font-weight: 800; font-size: 13px; display: flex; align-items: center; justify-content: center; flex: none">{{s.n}}</span>
+<div style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700; font-size: 15px">{{s.title}}</span><span style="font-size: 13px; color: #55615A">{{s.desc}}</span></div>
+<span style="font-size: 12px; font-weight: 600; color: #34403A; border: 1px solid #E2E7E3; border-radius: 8px; padding: 4px 8px">{{s.area}}</span>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 13px; color: #34403A; white-space: nowrap"><input type="checkbox" checked="{{s.photo}}" style="width: 18px; height: 18px; accent-color: #1B5E3B">Photo required</label>
+<button aria-label="Edit standard" style="width: 40px; height: 40px; border: 0; background: none; color: #55615A"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 20h9 M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4z"></path></svg></button>
+</li>
+</sc-for>
+</ol>
+<div style="padding: 16px 24px 22px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<label style="flex: 1 1 280px; display: flex; flex-direction: column; gap: 6px"><span style="position: absolute; left: -9999px">New standard</span>
+<input placeholder="Add a standard, e.g. Oven door glass streak-free" style="height: 44px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14px"></label>
+<button style="height: 44px; padding: 0 18px; border: 0; background: #1B5E3B; color: #FFFFFF; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 700">Add</button>
+</div>
+<div style="margin: 0 24px 24px; padding: 12px 14px; border-radius: 10px; background: #F5F7F5; font-size: 13px; color: #34403A">Changes apply to cleanings scheduled from now on. Cleanings already in progress keep the checklist they started with.</div>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":960}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var navBase = 'display:flex;align-items:center;gap:12px;padding:0 12px;height:44px;border-radius:10px;font-size:14px;';
+    var nav = [
+      ['Dashboard', 'M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z', 'AdminDashboard.html', 0],
+      ['Cleanings', 'M3 5h18v16H3z M3 10h18 M8 3v4 M16 3v4', 'AdminCleanings.html', 2],
+      ['Clients', 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z', '#', 0],
+      ['Staff', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', 'AdminStaff.html', 0],
+      ['Standards', 'M11 6h10 M11 12h10 M11 18h10 M3 6l1.5 1.5L7 5 M3 12l1.5 1.5L7 11 M3 18l1.5 1.5L7 17', 'AdminStandards.html', 0],
+      ['Feedback', 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', '#', 1]
+    ].map(function (n, i) {
+      var active = i === 4;
+      return { label: n[0], d: n[1], href: n[2], badge: n[3] || null,
+        style: navBase + (active ? 'background:rgba(255,255,255,0.14);color:#FFFFFF;font-weight:700' : 'color:#D7E7DD;font-weight:500') };
+    });
+    var lists = [['Standard 1', '3 standards · 2 clients'], ['[Residential deep clean]', 'Example list'], ['[End of tenancy]', 'Example list']].map(function (l, i) {
+      return { name: l[0], meta: l[1], style: 'display:flex;flex-direction:column;gap:2px;padding:12px 14px;border-radius:10px;color:#15211B;' + (i === 0 ? 'background:#DFF1E5;outline:2px solid #1B5E3B;outline-offset:-2px' : 'background:transparent') };
+    });
+    var items = [
+      ['Kitchen worktops clean and dry', 'Including behind the kettle and toaster', 'Kitchen', true],
+      ['Bathroom mirror streak-free', 'Photo taken at an angle to show streaks', 'Bathroom', true],
+      ['Floors vacuumed and mopped', 'All rooms, including under the bed edges', 'Whole home', false]
+    ].map(function (s, i) { return { n: i + 1, title: s[0], desc: s[1], area: s[2], photo: s[3] }; });
+    return { nav: nav, lists: lists, items: items };
+  }
+}
+</script>
+</body>
+</html>

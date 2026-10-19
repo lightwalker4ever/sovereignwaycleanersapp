@@ -29,7 +29,7 @@ export function StandardRowActions({
 
   function remove() {
     startTransition(async () => {
-      await deleteStandard(standardId, listId);
+      await deleteStandard(standardId);
     });
   }
 

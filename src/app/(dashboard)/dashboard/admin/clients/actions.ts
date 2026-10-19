@@ -15,6 +15,7 @@ const ghostClientSchema = z.object({
     .optional()
     .refine((v) => !v || z.string().email().safeParse(v).success, "Invalid email provided"),
   phone: phoneSchema,
+  address: z.string().trim().optional(),
 });
 
 export type GhostClientFormState = { success: boolean; error?: string } | null;
@@ -29,17 +30,19 @@ export async function createGhostClient(
     fullName: formData.get("fullName"),
     email: (formData.get("email") as string) || undefined,
     phone: (formData.get("phone") as string) || undefined,
+    address: (formData.get("address") as string) || undefined,
   });
   if (!parsed.success) {
     return { success: false, error: parsed.error.issues[0].message };
   }
-  const { fullName, email, phone } = parsed.data;
+  const { fullName, email, phone, address } = parsed.data;
 
   const admin = createAdminClient();
   const { error } = await admin.from("clients").insert({
     full_name: fullName,
     email: email || null,
     phone: phone || null,
+    address: address || null,
   });
   if (error) return { success: false, error: error.message };
 
@@ -107,8 +110,10 @@ export interface ClientSummary {
   fullName: string | null;
   email: string | null;
   phone: string | null;
+  address: string | null;
   isGhost: boolean;
   standardListName: string | null;
+  lastCleaningAt: string | null;
 }
 
 export async function listClients(): Promise<ClientSummary[]> {
@@ -119,25 +124,37 @@ export async function listClients(): Promise<ClientSummary[]> {
     { data: clients, error },
     { data: assignments, error: assignError },
     { data: lists, error: listsError },
+    { data: cleanings, error: cleaningsError },
   ] = await Promise.all([
-    admin.from("clients").select("id, profile_id, full_name, email, phone").order("full_name"),
+    admin.from("clients").select("id, profile_id, full_name, email, phone, address").order("full_name"),
     admin.from("client_standard_assignments").select("client_id, standard_list_id"),
     admin.from("standard_lists").select("id, name"),
+    admin.from("cleanings").select("client_id, scheduled_at"),
   ]);
   if (error) throw new Error(error.message);
   if (assignError) throw new Error(assignError.message);
   if (listsError) throw new Error(listsError.message);
+  if (cleaningsError) throw new Error(cleaningsError.message);
 
   const listNameById = new Map((lists ?? []).map((l) => [l.id, l.name]));
   const listIdByClient = new Map((assignments ?? []).map((a) => [a.client_id, a.standard_list_id]));
+  const lastCleaningByClient = new Map<string, string>();
+  for (const c of cleanings ?? []) {
+    const current = lastCleaningByClient.get(c.client_id);
+    if (!current || new Date(c.scheduled_at) > new Date(current)) {
+      lastCleaningByClient.set(c.client_id, c.scheduled_at);
+    }
+  }
 
   return (clients ?? []).map((c) => ({
     id: c.id,
     fullName: c.full_name,
     email: c.email,
     phone: c.phone,
+    address: c.address,
     isGhost: c.profile_id === null,
     standardListName: listNameById.get(listIdByClient.get(c.id) ?? "") ?? null,
+    lastCleaningAt: lastCleaningByClient.get(c.id) ?? null,
   }));
 }
 

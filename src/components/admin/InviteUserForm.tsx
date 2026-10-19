@@ -61,7 +61,12 @@ export function InviteUserForm() {
       onSubmit={() => setLastSubmitted({ email, password })}
       className="flex flex-col gap-4"
     >
-      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+      {/* Single column -- this form only ever renders inside the ~400px
+          Add staff member drawer now, and Tailwind's sm:/lg: breakpoints
+          respond to the viewport, not the drawer's own width, so a
+          multi-column grid here would overflow regardless of how wide
+          the browser window is. */}
+      <div className="grid grid-cols-1 gap-4">
         <div className="space-y-1.5">
           <Label htmlFor="invite-name">Name</Label>
           <Input
