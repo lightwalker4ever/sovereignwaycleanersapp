@@ -7,6 +7,11 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, phoneSchema } from "@/lib/validation";
 import { resolveClientStandardState } from "@/lib/standards";
 import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
+import {
+  toDisplayCleaningStatus,
+  aggregateChecklistByCleaning,
+  type DisplayCleaningStatus,
+} from "@/lib/cleaning-status";
 
 export interface AssignableStaff {
   id: string;
@@ -14,24 +19,43 @@ export interface AssignableStaff {
   email: string | null;
 }
 
+export interface CleanerBooking {
+  cleanerId: string;
+  scheduledAt: string;
+}
+
 export async function listAssignableStaff(): Promise<{
   cleaners: AssignableStaff[];
   supervisors: AssignableStaff[];
+  /** Each cleaner's upcoming jobs (from yesterday on), for the New cleaning
+   *  drawer's availability hint -- small enough to fetch once up front
+   *  rather than round-tripping on every date/time change. */
+  cleanerSchedule: CleanerBooking[];
 }> {
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
-  const [{ data: cleaners, error: cleanerError }, { data: supervisors, error: supervisorError }] =
-    await Promise.all([
-      admin.from("profiles").select("id, full_name, email").eq("role", "cleaner").order("full_name"),
-      admin.from("profiles").select("id, full_name, email").eq("role", "supervisor").order("full_name"),
-    ]);
+  const [
+    { data: cleaners, error: cleanerError },
+    { data: supervisors, error: supervisorError },
+    { data: upcoming, error: upcomingError },
+  ] = await Promise.all([
+    admin.from("profiles").select("id, full_name, email").eq("role", "cleaner").order("full_name"),
+    admin.from("profiles").select("id, full_name, email").eq("role", "supervisor").order("full_name"),
+    admin
+      .from("cleanings")
+      .select("cleaner_id, scheduled_at")
+      .gte("scheduled_at", new Date(Date.now() - 24 * 3_600_000).toISOString())
+      .neq("status", "completed"),
+  ]);
   if (cleanerError) throw new Error(cleanerError.message);
   if (supervisorError) throw new Error(supervisorError.message);
+  if (upcomingError) throw new Error(upcomingError.message);
 
   return {
     cleaners: (cleaners ?? []).map((c) => ({ id: c.id, fullName: c.full_name, email: c.email })),
     supervisors: (supervisors ?? []).map((s) => ({ id: s.id, fullName: s.full_name, email: s.email })),
+    cleanerSchedule: (upcoming ?? []).map((u) => ({ cleanerId: u.cleaner_id, scheduledAt: u.scheduled_at })),
   };
 }
 
@@ -60,9 +84,19 @@ export async function createCleaning(
   const supervisorId = formData.get("supervisorId") as string;
   const notes = ((formData.get("notes") as string) || "").trim() || null;
   const standardListId = (formData.get("standardListId") as string) || null;
+  const date = (formData.get("date") as string) || "";
+  const time = (formData.get("time") as string) || "";
+  const repeatWeekly = formData.get("repeatWeekly") === "on";
 
   if (!cleanerId || !supervisorId) {
     return { success: false, error: "Pick a cleaner and a supervisor" };
+  }
+  if (!date || !time) {
+    return { success: false, error: "Pick a date and start time" };
+  }
+  const scheduledAt = new Date(`${date}T${time}`);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    return { success: false, error: "That date and time isn't valid" };
   }
 
   // Re-validate role server-side rather than trusting the dropdown.
@@ -136,7 +170,14 @@ export async function createCleaning(
 
   const { data: cleaning, error: cleaningError } = await admin
     .from("cleanings")
-    .insert({ client_id: clientId, cleaner_id: cleanerId, supervisor_id: supervisorId, notes })
+    .insert({
+      client_id: clientId,
+      cleaner_id: cleanerId,
+      supervisor_id: supervisorId,
+      notes,
+      scheduled_at: scheduledAt.toISOString(),
+      repeat_weekly: repeatWeekly,
+    })
     .select("id")
     .single();
   if (cleaningError || !cleaning) {
@@ -170,19 +211,24 @@ export async function createCleaning(
 
   revalidatePath("/dashboard/admin/cleanings");
   revalidatePath("/dashboard/admin/clients");
+  revalidatePath("/dashboard/admin");
   return { success: true };
 }
 
-export interface CleaningSummary {
+export interface CleaningRow {
   id: string;
+  scheduledAt: string;
   clientName: string | null;
+  address: string | null;
+  cleanerId: string;
   cleanerName: string | null;
   supervisorName: string | null;
-  status: string;
-  createdAt: string;
+  checklistDone: number;
+  checklistTotal: number;
+  displayStatus: DisplayCleaningStatus;
 }
 
-export async function listCleanings(): Promise<CleaningSummary[]> {
+export async function listCleanings(): Promise<CleaningRow[]> {
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
@@ -193,26 +239,43 @@ export async function listCleanings(): Promise<CleaningSummary[]> {
   ] = await Promise.all([
     admin
       .from("cleanings")
-      .select("id, client_id, cleaner_id, supervisor_id, status, created_at")
-      .order("created_at", { ascending: false }),
-    admin.from("clients").select("id, full_name"),
+      .select("id, client_id, cleaner_id, supervisor_id, status, scheduled_at")
+      .order("scheduled_at", { ascending: false }),
+    admin.from("clients").select("id, full_name, address"),
     admin.from("profiles").select("id, full_name"),
   ]);
   if (error) throw new Error(error.message);
   if (clientsError) throw new Error(clientsError.message);
   if (profilesError) throw new Error(profilesError.message);
 
-  const clientNameById = new Map((clients ?? []).map((c) => [c.id, c.full_name]));
-  const profileNameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+  const cleaningIds = (cleanings ?? []).map((c) => c.id);
+  const { data: checklist, error: checklistError } = cleaningIds.length
+    ? await admin.from("cleaning_standards").select("cleaning_id, review_status").in("cleaning_id", cleaningIds)
+    : { data: [], error: null };
+  if (checklistError) throw new Error(checklistError.message);
 
-  return (cleanings ?? []).map((c) => ({
-    id: c.id,
-    clientName: clientNameById.get(c.client_id) ?? null,
-    cleanerName: profileNameById.get(c.cleaner_id) ?? null,
-    supervisorName: profileNameById.get(c.supervisor_id) ?? null,
-    status: c.status,
-    createdAt: c.created_at,
-  }));
+  const clientById = new Map((clients ?? []).map((c) => [c.id, c]));
+  const profileNameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
+  const checklistByCleaningId = aggregateChecklistByCleaning(checklist ?? []);
+
+  const rows: CleaningRow[] = (cleanings ?? []).map((c) => {
+    const client = clientById.get(c.client_id);
+    const agg = checklistByCleaningId.get(c.id);
+    return {
+      id: c.id,
+      scheduledAt: c.scheduled_at,
+      clientName: client?.full_name ?? null,
+      address: client?.address ?? null,
+      cleanerId: c.cleaner_id,
+      cleanerName: profileNameById.get(c.cleaner_id) ?? null,
+      supervisorName: profileNameById.get(c.supervisor_id) ?? null,
+      checklistDone: agg?.done ?? 0,
+      checklistTotal: agg?.total ?? 0,
+      displayStatus: toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false),
+    };
+  });
+
+  return rows;
 }
 
 export async function getCleaningDetail(cleaningId: string): Promise<CleaningDetailForParty | null> {

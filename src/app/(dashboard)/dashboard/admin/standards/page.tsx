@@ -1,68 +1,72 @@
-import Link from "next/link";
-import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
-import { listStandardLists } from "./actions";
-import { CreateStandardListForm } from "@/components/admin/CreateStandardListForm";
+import { listStandardLists, getStandardList } from "./actions";
+import { listClients } from "../clients/actions";
+import { PageContainer } from "@/components/shell/PageContainer";
+import { NewStandardListDrawer } from "@/components/admin/NewStandardListDrawer";
+import { StandardListDetailPanel } from "@/components/admin/StandardListDetailPanel";
 
-export default async function StandardsPage() {
-  const lists = await listStandardLists();
+export default async function StandardsPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ list?: string }>;
+}) {
+  const { list: listId } = await searchParams;
+  const [lists, clients] = await Promise.all([listStandardLists(), listClients()]);
+
+  const selectedListId = listId && lists.some((l) => l.id === listId) ? listId : (lists[0]?.id ?? null);
+  const selectedList = selectedListId ? await getStandardList(selectedListId) : null;
 
   return (
-    <div className="space-y-8">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Standards</h1>
-        <p className="mt-1 text-sm text-gray-600">
-          Configure the quality standards checklists used for cleanings. Create one or more
-          lists, each with its own standards, then assign a list to a client.
-        </p>
-      </div>
+    <PageContainer>
+      <header className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-[28px] font-extrabold tracking-tight text-dash-ink">Standards</h1>
+          <p className="mt-1 text-sm text-dash-muted">
+            Checklists that cleaners photograph and supervisors check. Pick a list to edit it.
+          </p>
+        </div>
+      </header>
 
-      <Card className="p-5">
-        <CardHeader>
-          <CardTitle>Create a standard list</CardTitle>
-          <CardDescription>
-            A named group of standards (e.g. &quot;Standard Residential Clean&quot;) you can
-            assign to clients.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <CreateStandardListForm />
-        </CardContent>
-      </Card>
+      <div className="flex flex-wrap items-start gap-5">
+        <section
+          aria-label="Standard lists"
+          className="flex min-w-0 flex-[1_1_260px] flex-col gap-1 rounded-2xl border border-dash-border bg-dash-surface p-2.5"
+        >
+          {lists.map((l) => {
+            const active = l.id === selectedListId;
+            return (
+              <a
+                key={l.id}
+                href={`/dashboard/admin/standards?list=${l.id}`}
+                className={
+                  "flex flex-col gap-0.5 rounded-[10px] px-3.5 py-3 " +
+                  (active ? "bg-dash-brand-100 outline-2 outline-dash-brand-700 -outline-offset-2" : "")
+                }
+              >
+                <span className="text-sm font-bold text-dash-ink">{l.name}</span>
+                <span className="text-[13px] text-dash-muted">
+                  {l.standardCount} standard{l.standardCount === 1 ? "" : "s"} · {l.clientCount} client
+                  {l.clientCount === 1 ? "" : "s"}
+                </span>
+              </a>
+            );
+          })}
+          {lists.length === 0 && (
+            <p className="px-3.5 py-3 text-sm text-dash-muted">No standard lists yet.</p>
+          )}
+          <NewStandardListDrawer />
+        </section>
 
-      <div className="overflow-x-auto rounded-xl ring-1 ring-foreground/10">
-        <table className="w-full min-w-150 text-left text-sm">
-          <thead className="border-b border-gray-200 bg-gray-50 text-xs uppercase tracking-wide text-gray-500">
-            <tr>
-              <th className="px-4 py-3 font-medium">Name</th>
-              <th className="px-4 py-3 font-medium">Description</th>
-              <th className="px-4 py-3 font-medium">Standards</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-gray-100">
-            {lists.map((list) => (
-              <tr key={list.id}>
-                <td className="px-4 py-3">
-                  <Link
-                    href={`/dashboard/admin/standards/${list.id}`}
-                    className="font-medium text-gray-900 hover:underline"
-                  >
-                    {list.name}
-                  </Link>
-                </td>
-                <td className="px-4 py-3 text-gray-600">{list.description || "—"}</td>
-                <td className="px-4 py-3 text-gray-600">{list.standardCount}</td>
-              </tr>
-            ))}
-            {lists.length === 0 && (
-              <tr>
-                <td colSpan={3} className="px-4 py-6 text-center text-gray-400">
-                  No standard lists yet.
-                </td>
-              </tr>
-            )}
-          </tbody>
-        </table>
+        {selectedList ? (
+          <StandardListDetailPanel
+            list={selectedList}
+            allClients={clients.map((c) => ({ id: c.id, fullName: c.fullName }))}
+          />
+        ) : (
+          <section className="flex min-w-0 flex-[3_1_520px] items-center justify-center rounded-2xl border border-dash-border bg-dash-surface p-10 text-sm text-dash-muted">
+            Create a standard list to get started.
+          </section>
+        )}
       </div>
-    </div>
+    </PageContainer>
   );
 }

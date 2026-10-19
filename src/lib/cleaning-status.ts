@@ -50,3 +50,28 @@ export function toDisplayCleaningStatus(
   if (dbStatus === "in_progress" && hasNotMet) return "changes_requested";
   return DB_STATUS_TO_DISPLAY[dbStatus] ?? "scheduled";
 }
+
+export interface ChecklistAggregate {
+  done: number;
+  total: number;
+  hasNotMet: boolean;
+}
+
+/**
+ * Groups cleaning_standards rows by cleaning_id into {done, total,
+ * hasNotMet} -- the shape both the admin dashboard's and the admin
+ * Cleanings list's checklist-progress column/status derivation need.
+ */
+export function aggregateChecklistByCleaning(
+  rows: { cleaning_id: string; review_status: string }[]
+): Map<string, ChecklistAggregate> {
+  const map = new Map<string, ChecklistAggregate>();
+  for (const row of rows) {
+    const agg = map.get(row.cleaning_id) ?? { done: 0, total: 0, hasNotMet: false };
+    agg.total += 1;
+    if (row.review_status === "met") agg.done += 1;
+    if (row.review_status === "not_met") agg.hasNotMet = true;
+    map.set(row.cleaning_id, agg);
+  }
+  return map;
+}

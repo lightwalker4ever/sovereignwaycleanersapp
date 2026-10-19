@@ -1,7 +1,7 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { toDisplayCleaningStatus, type DisplayCleaningStatus } from "@/lib/cleaning-status";
+import { toDisplayCleaningStatus, aggregateChecklistByCleaning, type DisplayCleaningStatus } from "@/lib/cleaning-status";
 
 export interface ScheduleRow {
   id: string;
@@ -139,14 +139,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   const clientById = new Map((clients ?? []).map((c) => [c.id, c]));
   const profileNameById = new Map((profiles ?? []).map((p) => [p.id, p.full_name]));
 
-  const checklistByCleaningId = new Map<string, { done: number; total: number; hasNotMet: boolean }>();
-  for (const item of checklist ?? []) {
-    const agg = checklistByCleaningId.get(item.cleaning_id) ?? { done: 0, total: 0, hasNotMet: false };
-    agg.total += 1;
-    if (item.review_status === "met") agg.done += 1;
-    if (item.review_status === "not_met") agg.hasNotMet = true;
-    checklistByCleaningId.set(item.cleaning_id, agg);
-  }
+  const checklistByCleaningId = aggregateChecklistByCleaning(checklist ?? []);
 
   function displayStatusFor(c: (typeof allCleanings)[number]) {
     const agg = checklistByCleaningId.get(c.id);
