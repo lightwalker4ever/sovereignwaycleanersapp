@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin cleanings</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B">
+
+<nav aria-label="Main" style="flex: 1 1 240px; background: #0F3B26; color: #D7E7DD; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 0 8px">
+<div style="width: 40px; height: 40px; border-radius: 10px; background: #E9C46A; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px">SW</div>
+<div style="display: flex; flex-direction: column"><span style="color: #FFFFFF; font-weight: 700; font-size: 15px">Sovereign Way</span><span style="font-size: 12px; color: #A9C7B5">Cleaners</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{nav}}" as="item" hint-placeholder-count="6">
+<a href="{{item.href}}" style="{{item.style}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg>
+<span style="flex: 1">{{item.label}}</span>
+<sc-if value="{{item.badge}}" hint-placeholder-val="{{true}}"><span style="background: #E9C46A; color: #0F3B26; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 8px">{{item.badge}}</span></sc-if>
+</a>
+</sc-for>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.08)">
+<div style="width: 36px; height: 36px; border-radius: 999px; background: #D7E7DD; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px">NT</div>
+<div style="flex: 1; display: flex; flex-direction: column"><span style="color: #FFFFFF; font-size: 14px; font-weight: 600">Nuno Teixeira</span><span style="font-size: 12px; color: #A9C7B5">Admin</span></div>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-wrap: wrap; align-items: stretch">
+
+<div style="flex: 999 1 520px; min-width: 0; padding: 32px 32px 48px; box-sizing: border-box; display: flex; flex-direction: column; gap: 20px">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<div style="flex: 1 1 260px"><h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em">Cleanings</h1><p style="margin: 4px 0 0; color: #55615A; font-size: 14px">Every job, newest first. Click a row to open it.</p></div>
+<div role="group" aria-label="View" style="display: flex; background: #E8ECE9; border-radius: 10px; padding: 3px">
+<button style="height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: #FFFFFF; font: inherit; font-size: 14px; font-weight: 600; box-shadow: 0 1px 2px rgba(0,0,0,0.08)">List</button>
+<button style="height: 38px; padding: 0 14px; border: 0; border-radius: 8px; background: transparent; font: inherit; font-size: 14px; color: #55615A">Calendar</button>
+</div>
+<button style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #1B5E3B; color: #FFFFFF; font: inherit; font-weight: 700; font-size: 14px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14 M5 12h14"></path></svg>New cleaning</button>
+</header>
+
+<div role="tablist" aria-label="Filter by status" style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{tabs}}" as="t" hint-placeholder-count="6">
+<button role="tab" aria-selected="{{t.sel}}" style="{{t.style}}">{{t.label}} <span style="opacity: 0.75; font-weight: 600">{{t.n}}</span></button>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px">
+<label style="display: flex; align-items: center; gap: 8px; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 10px; padding: 0 12px; height: 42px; flex: 1 1 220px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55615A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M21 21l-4.3-4.3"></path></svg>
+<span style="position: absolute; left: -9999px">Search cleanings</span>
+<input placeholder="Search client or address" style="border: 0; outline: none; font: inherit; font-size: 14px; flex: 1; min-width: 0; background: transparent">
+</label>
+<button style="height: 42px; padding: 0 14px; border: 1px solid #E2E7E3; background: #FFFFFF; border-radius: 10px; font: inherit; font-size: 14px; color: #15211B">This week ▾</button>
+<button style="height: 42px; padding: 0 14px; border: 1px solid #E2E7E3; background: #FFFFFF; border-radius: 10px; font: inherit; font-size: 14px; color: #15211B">Any cleaner ▾</button>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow-x: auto">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 640px">
+<thead><tr style="text-align: left; color: #55615A; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em">
+<th style="padding: 12px 16px; font-weight: 600">When</th><th style="padding: 12px 8px; font-weight: 600">Client</th><th style="padding: 12px 8px; font-weight: 600">Cleaner</th><th style="padding: 12px 8px; font-weight: 600">Checklist</th><th style="padding: 12px 8px; font-weight: 600">Status</th><th style="padding: 12px 16px 12px 0"><span style="position: absolute; left: -9999px">Open</span></th>
+</tr></thead>
+<tbody>
+<sc-for list="{{rows}}" as="r" hint-placeholder-count="8">
+<tr style="border-top: 1px solid #EEF1EF">
+<td style="padding: 14px 16px; white-space: nowrap"><div style="font-weight: 700">{{r.date}}</div><div style="color: #55615A; font-size: 13px">{{r.time}}</div></td>
+<td style="padding: 14px 8px"><div style="font-weight: 600">{{r.client}}</div><div style="color: #55615A; font-size: 13px">{{r.address}}</div></td>
+<td style="padding: 14px 8px"><span style="{{r.cleanerStyle}}">{{r.cleaner}}</span></td>
+<td style="padding: 14px 8px; width: 120px"><div style="height: 6px; border-radius: 99px; background: #E8ECE9; overflow: hidden"><div style="{{r.barStyle}}"></div></div><div style="color: #55615A; font-size: 12px; margin-top: 4px">{{r.progress}}</div></td>
+<td style="padding: 14px 8px"><span style="{{r.pill}}">{{r.status}}</span></td>
+<td style="padding: 14px 16px 14px 0; text-align: right"><a href="#" aria-label="Open cleaning" style="display: inline-flex; width: 36px; height: 36px; align-items: center; justify-content: center; border-radius: 8px; color: #55615A"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></a></td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+</div>
+</div>
+
+<aside aria-label="New cleaning" style="flex: 1 1 380px; max-width: 100%; background: #FFFFFF; border-left: 1px solid #E2E7E3; box-shadow: -12px 0 32px rgba(15,59,38,0.08); display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; justify-content: space-between; padding: 22px 24px; border-bottom: 1px solid #E2E7E3">
+<h2 style="margin: 0; font-size: 19px; font-weight: 800">New cleaning</h2>
+<button aria-label="Close" style="width: 44px; height: 44px; border: 0; background: none; color: #55615A"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12 M18 6L6 18"></path></svg></button>
+</div>
+<div style="padding: 20px 24px; display: flex; flex-direction: column; gap: 22px; flex: 1">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase">1 · Client</span>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Client
+<select style="height: 44px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14px; background: #FFFFFF"><option>Nuno The Client</option></select></label>
+<div style="display: flex; gap: 10px; align-items: center; background: #F5F7F5; border-radius: 10px; padding: 10px 12px; font-size: 13px; color: #34403A">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55615A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z M12 12.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5z"></path></svg>
+<span style="flex: 1">4 Sovereign Way · 07123 456789</span>
+</div>
+<a href="#" style="font-size: 14px; font-weight: 600">+ Add a new client instead</a>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase">2 · When</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Date<input value="Tue 20 Oct 2026" style="height: 44px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Start<input value="10:00" style="height: 44px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14px"></label>
+</div>
+<label style="display: flex; align-items: center; gap: 8px; font-size: 14px"><input type="checkbox" style="width: 18px; height: 18px; accent-color: #1B5E3B"> Repeat weekly</label>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase">3 · Team</span>
+<div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Cleaner<select style="height: 44px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14px; background: #FFFFFF"><option>Cliff Cleaner</option></select></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Supervisor<select style="height: 44px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14px; background: #FFFFFF"><option>Jane Supervisor</option></select></label>
+</div>
+<span style="font-size: 13px; color: #155B33; font-weight: 600">✓ Cliff is free 10:00–12:00 on Tue 20 Oct</span>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 12px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase">4 · Checklist</span>
+<div style="border: 1px solid #E2E7E3; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 8px">
+<div style="display: flex; justify-content: space-between; align-items: center"><span style="font-weight: 700; font-size: 14px">Standard 1 · 3 standards</span><a href="AdminStandards.html" style="font-size: 13px; font-weight: 600">Change</a></div>
+<span style="font-size: 13px; color: #55615A">From Nuno The Client's assigned list</span>
+</div>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Notes for the cleaner <span style="font-weight: 400; color: #55615A; font-size: 13px">Optional, e.g. key safe code, pets</span>
+<textarea rows="2" style="border: 1px solid #C9D1CC; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; resize: vertical"></textarea></label>
+</div>
+<div style="display: flex; gap: 10px; justify-content: flex-end; padding: 16px 24px; border-top: 1px solid #E2E7E3; background: #FAFBFA">
+<button style="height: 44px; padding: 0 18px; border: 1px solid #C9D1CC; background: #FFFFFF; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 600">Cancel</button>
+<button style="height: 44px; padding: 0 20px; border: 0; background: #1B5E3B; color: #FFFFFF; border-radius: 10px; font: inherit; font-size: 14px; font-weight: 700">Schedule cleaning</button>
+</div>
+</aside>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1040}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var S = {
+      'Scheduled': ['#EEF1EF', '#3F4B44'],
+      'In progress': ['#FFF1D1', '#7A4B00'],
+      'In review': ['#E3EEFB', '#1C4F8F'],
+      'Changes requested': ['#FCE6DA', '#9A3A0B'],
+      'Completed': ['#DFF1E5', '#155B33']
+    };
+    var pill = function (s) { return 'display:inline-block;white-space:nowrap;font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;background:' + S[s][0] + ';color:' + S[s][1]; };
+    var navBase = 'display:flex;align-items:center;gap:12px;padding:0 12px;height:44px;border-radius:10px;font-size:14px;';
+    var nav = [
+      ['Dashboard', 'M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z', 'AdminDashboard.html', 0],
+      ['Cleanings', 'M3 5h18v16H3z M3 10h18 M8 3v4 M16 3v4', 'AdminCleanings.html', 2],
+      ['Clients', 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z', '#', 0],
+      ['Staff', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', 'AdminStaff.html', 0],
+      ['Standards', 'M11 6h10 M11 12h10 M11 18h10 M3 6l1.5 1.5L7 5 M3 12l1.5 1.5L7 11 M3 18l1.5 1.5L7 17', 'AdminStandards.html', 0],
+      ['Feedback', 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', '#', 1]
+    ].map(function (n, i) {
+      var active = i === 1;
+      return { label: n[0], d: n[1], href: n[2], badge: n[3] || null,
+        style: navBase + (active ? 'background:rgba(255,255,255,0.14);color:#FFFFFF;font-weight:700' : 'color:#D7E7DD;font-weight:500') };
+    });
+    var tabs = [['All', 14], ['Scheduled', 5], ['In progress', 1], ['In review', 2], ['Changes requested', 1], ['Completed', 5]].map(function (t, i) {
+      var sel = i === 0;
+      return { label: t[0], n: t[1], sel: sel ? 'true' : 'false',
+        style: 'height:38px;padding:0 14px;border-radius:999px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;' + (sel ? 'background:#15211B;color:#FFFFFF;border:1px solid #15211B' : 'background:#FFFFFF;color:#15211B;border:1px solid #E2E7E3') };
+    });
+    var rows = [
+      ['Today', '16:00', 'Nuno The Client', '4 Sovereign Way', null, 0, 3, 'Scheduled'],
+      ['Today', '14:00', 'Ana Client', '12 Elm Road', 'Cliff Cleaner', 2, 3, 'Changes requested'],
+      ['Today', '12:30', 'Oakfield Lettings', 'Flat 2, 9 Mill Lane', 'Cliff Cleaner', 1, 4, 'In progress'],
+      ['Today', '10:00', 'Nuno The Client', '4 Sovereign Way', 'Cliff Cleaner', 3, 3, 'In review'],
+      ['Today', '08:30', 'Ana Client', '12 Elm Road', 'Cliff Cleaner', 3, 3, 'Completed'],
+      ['Wed 14 Oct', '10:00', 'Nuno The Client', '4 Sovereign Way', 'Cliff Cleaner', 3, 3, 'In review'],
+      ['Tue 13 Oct', '13:30', 'Ana Client', '12 Elm Road', 'Cliff Cleaner', 3, 3, 'Completed'],
+      ['Tue 13 Oct', '09:00', 'Ana Client', '12 Elm Road', 'Cliff Cleaner', 3, 3, 'Completed']
+    ].map(function (r) {
+      var pct = Math.round(r[5] / r[6] * 100);
+      return { date: r[0], time: r[1], client: r[2], address: r[3],
+        cleaner: r[4] || 'Assign cleaner',
+        cleanerStyle: r[4] ? 'color:#15211B' : 'color:#9A3A0B;font-weight:700;text-decoration:underline',
+        progress: r[5] + ' of ' + r[6], status: r[7], pill: pill(r[7]),
+        barStyle: 'height:100%;width:' + pct + '%;background:' + (pct === 100 ? '#1B5E3B' : '#5E9C78') };
+    });
+    return { nav: nav, tabs: tabs, rows: rows };
+  }
+}
+</script>
+</body>
+</html>

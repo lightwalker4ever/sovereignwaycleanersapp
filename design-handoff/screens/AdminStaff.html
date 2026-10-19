@@ -1,0 +1,145 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Admin staff</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B">
+
+<nav aria-label="Main" style="flex: 1 1 240px; background: #0F3B26; color: #D7E7DD; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 0 8px">
+<div style="width: 40px; height: 40px; border-radius: 10px; background: #E9C46A; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px">SW</div>
+<div style="display: flex; flex-direction: column"><span style="color: #FFFFFF; font-weight: 700; font-size: 15px">Sovereign Way</span><span style="font-size: 12px; color: #A9C7B5">Cleaners</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{nav}}" as="item" hint-placeholder-count="6">
+<a href="{{item.href}}" style="{{item.style}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg>
+<span style="flex: 1">{{item.label}}</span>
+<sc-if value="{{item.badge}}" hint-placeholder-val="{{true}}"><span style="background: #E9C46A; color: #0F3B26; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 8px">{{item.badge}}</span></sc-if>
+</a>
+</sc-for>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.08)">
+<div style="width: 36px; height: 36px; border-radius: 999px; background: #D7E7DD; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px">NT</div>
+<div style="flex: 1; display: flex; flex-direction: column"><span style="color: #FFFFFF; font-size: 14px; font-weight: 600">Nuno Teixeira</span><span style="font-size: 12px; color: #A9C7B5">Admin</span></div>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box">
+<div style="max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: 20px">
+<header style="display: flex; flex-wrap: wrap; align-items: center; gap: 12px">
+<div style="flex: 1 1 300px"><h1 style="margin: 0; font-size: 28px; font-weight: 800; letter-spacing: -0.01em">Staff</h1><p style="margin: 4px 0 0; color: #55615A; font-size: 14px">Cleaners, supervisors, managers and admins. Clients live under Clients.</p></div>
+<button style="display: inline-flex; align-items: center; gap: 8px; height: 44px; padding: 0 18px; border-radius: 10px; border: 0; background: #1B5E3B; color: #FFFFFF; font: inherit; font-weight: 700; font-size: 14px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14 M5 12h14"></path></svg>Add staff member</button>
+</header>
+
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 12px">
+<sc-for list="{{counts}}" as="c" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 14px; padding: 14px 16px; display: flex; flex-direction: column; gap: 2px"><span style="font-size: 13px; color: #55615A; font-weight: 600">{{c.label}}</span><span style="font-size: 24px; font-weight: 800">{{c.n}}</span></div>
+</sc-for>
+</div>
+
+<div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+<div role="tablist" aria-label="Filter by role" style="display: flex; flex-wrap: wrap; gap: 8px; flex: 1 1 auto">
+<sc-for list="{{chips}}" as="t" hint-placeholder-count="5">
+<button role="tab" aria-selected="{{t.sel}}" style="{{t.style}}">{{t.label}}</button>
+</sc-for>
+</div>
+<label style="display: flex; align-items: center; gap: 8px; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 10px; padding: 0 12px; height: 42px; flex: 0 1 280px">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#55615A" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M11 18a7 7 0 1 0 0-14 7 7 0 0 0 0 14z M21 21l-4.3-4.3"></path></svg>
+<span style="position: absolute; left: -9999px">Search staff</span>
+<input placeholder="Search name or email" style="border: 0; outline: none; font: inherit; font-size: 14px; flex: 1; min-width: 0; background: transparent">
+</label>
+</div>
+
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow-x: auto; overflow-y: visible">
+<table style="width: 100%; border-collapse: collapse; font-size: 14px; min-width: 700px">
+<thead><tr style="text-align: left; color: #55615A; font-size: 12px; text-transform: uppercase; letter-spacing: 0.05em">
+<th style="padding: 12px 20px; font-weight: 600">Name</th><th style="padding: 12px 8px; font-weight: 600">Role</th><th style="padding: 12px 8px; font-weight: 600">Status</th><th style="padding: 12px 8px; font-weight: 600">Jobs this month</th><th style="padding: 12px 8px; font-weight: 600">Last active</th><th style="padding: 12px 20px 12px 0"><span style="position: absolute; left: -9999px">Actions</span></th>
+</tr></thead>
+<tbody>
+<sc-for list="{{staff}}" as="s" hint-placeholder-count="5">
+<tr style="border-top: 1px solid #EEF1EF">
+<td style="padding: 14px 20px"><div style="display: flex; gap: 12px; align-items: center"><span style="{{s.avatar}}">{{s.initials}}</span><span style="display: flex; flex-direction: column"><span style="font-weight: 600">{{s.name}}</span><span style="color: #55615A; font-size: 13px">{{s.email}}</span></span></div></td>
+<td style="padding: 14px 8px"><span style="font-size: 13px; font-weight: 600; border: 1px solid #E2E7E3; border-radius: 8px; padding: 4px 10px">{{s.role}}</span></td>
+<td style="padding: 14px 8px"><span style="{{s.statusStyle}}">{{s.status}}</span></td>
+<td style="padding: 14px 8px">{{s.jobs}}</td>
+<td style="padding: 14px 8px; color: #55615A">{{s.last}}</td>
+<td style="padding: 14px 20px 14px 0; text-align: right; position: relative">
+<button aria-label="More actions" style="{{s.moreStyle}}"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" aria-hidden="true"><path d="M5 12h.01 M12 12h.01 M19 12h.01"></path></svg></button>
+<sc-if value="{{s.menu}}" hint-placeholder-val="{{false}}">
+<div role="menu" style="position: absolute; right: 20px; top: 56px; z-index: 5; width: 230px; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,59,38,0.16); padding: 6px; text-align: left; display: flex; flex-direction: column">
+<button role="menuitem" style="height: 40px; border: 0; background: none; text-align: left; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 14px">Edit details</button>
+<button role="menuitem" style="height: 40px; border: 0; background: #F5F7F5; text-align: left; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 14px">Change role</button>
+<button role="menuitem" style="height: 40px; border: 0; background: none; text-align: left; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 14px">Send password reset email</button>
+<button role="menuitem" style="height: 40px; border: 0; background: none; text-align: left; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 14px">Generate temporary password</button>
+<div style="height: 1px; background: #E2E7E3; margin: 4px 0"></div>
+<button role="menuitem" style="height: 40px; border: 0; background: none; text-align: left; padding: 0 12px; border-radius: 8px; font: inherit; font-size: 14px; color: #B42318; font-weight: 600">Deactivate</button>
+</div>
+</sc-if>
+</td>
+</tr>
+</sc-for>
+</tbody>
+</table>
+<div style="height: 140px"></div>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var navBase = 'display:flex;align-items:center;gap:12px;padding:0 12px;height:44px;border-radius:10px;font-size:14px;';
+    var nav = [
+      ['Dashboard', 'M3 3h7v9H3z M14 3h7v5h-7z M14 12h7v9h-7z M3 16h7v5H3z', 'AdminDashboard.html', 0],
+      ['Cleanings', 'M3 5h18v16H3z M3 10h18 M8 3v4 M16 3v4', 'AdminCleanings.html', 2],
+      ['Clients', 'M3 10l9-7 9 7v10a1 1 0 0 1-1 1h-5v-6H9v6H4a1 1 0 0 1-1-1z', '#', 0],
+      ['Staff', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', 'AdminStaff.html', 0],
+      ['Standards', 'M11 6h10 M11 12h10 M11 18h10 M3 6l1.5 1.5L7 5 M3 12l1.5 1.5L7 11 M3 18l1.5 1.5L7 17', 'AdminStandards.html', 0],
+      ['Feedback', 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z', '#', 1]
+    ].map(function (n, i) {
+      var active = i === 3;
+      return { label: n[0], d: n[1], href: n[2], badge: n[3] || null,
+        style: navBase + (active ? 'background:rgba(255,255,255,0.14);color:#FFFFFF;font-weight:700' : 'color:#D7E7DD;font-weight:500') };
+    });
+    var chips = ['All 5', 'Admins 2', 'Managers 0', 'Supervisors 1', 'Cleaners 2'].map(function (l, i) {
+      var sel = i === 0;
+      return { label: l, sel: sel ? 'true' : 'false', style: 'height:38px;padding:0 14px;border-radius:999px;font:inherit;font-size:13px;font-weight:700;' + (sel ? 'background:#15211B;color:#FFFFFF;border:1px solid #15211B' : 'background:#FFFFFF;color:#15211B;border:1px solid #E2E7E3') };
+    });
+    var colors = ['#DCE9F7', '#DFF1E5', '#FFF1D1', '#F1E4F7', '#E8ECE9'];
+    var staff = [
+      ['Forget The CEO', 'chikatif@gmail.com', 'Admin', 'Active', '—', '2 days ago'],
+      ['Cliff Cleaner', 'test.cleaner@example.com', 'Cleaner', 'Active', '18', 'Now · on a job'],
+      ['Jane Supervisor', 'test.supervisor@example.com', 'Supervisor', 'Active', '21 reviewed', '1 h ago'],
+      ['Nuno Teixeira', 'nuno.m.s.teixeira@gmail.com', 'Admin', 'Active', '—', 'Now'],
+      ['[New cleaner]', 'name@example.com', 'Cleaner', 'Invited', '0', 'Not signed in yet']
+    ].map(function (s, i) {
+      var inits = s[0].replace(/[\[\]]/g, '').split(' ').map(function (w) { return w[0]; }).join('').slice(0, 2);
+      var invited = s[3] === 'Invited';
+      return { name: s[0], email: s[1], role: s[2], status: s[3], jobs: s[4], last: s[5], initials: inits, menu: i === 1,
+        avatar: 'width:38px;height:38px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;color:#15211B;flex:none;background:' + colors[i],
+        statusStyle: 'font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;' + (invited ? 'background:#FFF1D1;color:#7A4B00' : 'background:#DFF1E5;color:#155B33'),
+        moreStyle: 'width:40px;height:40px;border-radius:8px;color:#34403A;cursor:pointer;' + (i === 1 ? 'background:#EEF1EF;border:1px solid #C9D1CC' : 'background:none;border:1px solid transparent') };
+    });
+    return { nav: nav, chips: chips, staff: staff,
+      counts: [{ label: 'Active staff', n: '4' }, { label: 'Invites pending', n: '1' }, { label: 'Cleaners on a job now', n: '1' }, { label: 'Deactivated', n: '0' }] };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,52 @@
+/**
+ * The 5 cleaning statuses used everywhere in the redesigned UI (admin,
+ * supervisor, cleaner, client) -- see design-handoff/DESIGN_HANDOFF.md's
+ * "Status system". The database's cleanings.status enum only has 4 values
+ * (assigned/in_progress/in_review/completed); "changes_requested" is
+ * derived here rather than stored, since it's fully reconstructable from
+ * existing data: a cleaning is "in_progress" *because* it was sent back
+ * only when at least one of its checklist items is still marked "not_met"
+ * (the only way a not_met row can exist is via the supervisor's
+ * send-back flow, which is the only thing that sets cleanings.status
+ * back to "in_progress" after it ever reached "in_review").
+ */
+export const DISPLAY_CLEANING_STATUSES = [
+  "scheduled",
+  "in_progress",
+  "in_review",
+  "changes_requested",
+  "completed",
+] as const;
+
+export type DisplayCleaningStatus = (typeof DISPLAY_CLEANING_STATUSES)[number];
+
+export const CLEANING_STATUS_INFO: Record<
+  DisplayCleaningStatus,
+  { label: string; bg: string; text: string }
+> = {
+  scheduled: { label: "Scheduled", bg: "#EEF1EF", text: "#3F4B44" },
+  in_progress: { label: "In progress", bg: "#FFF1D1", text: "#7A4B00" },
+  in_review: { label: "In review", bg: "#E3EEFB", text: "#1C4F8F" },
+  changes_requested: { label: "Changes requested", bg: "#FCE6DA", text: "#9A3A0B" },
+  completed: { label: "Completed", bg: "#DFF1E5", text: "#155B33" },
+};
+
+const DB_STATUS_TO_DISPLAY: Record<string, DisplayCleaningStatus> = {
+  assigned: "scheduled",
+  in_progress: "in_progress",
+  in_review: "in_review",
+  completed: "completed",
+};
+
+/**
+ * Maps a cleanings.status DB value (+ whether any checklist item is
+ * currently "not_met") to the 5-value display status. `hasNotMet` only
+ * matters while the DB status is "in_progress".
+ */
+export function toDisplayCleaningStatus(
+  dbStatus: string,
+  hasNotMet: boolean
+): DisplayCleaningStatus {
+  if (dbStatus === "in_progress" && hasNotMet) return "changes_requested";
+  return DB_STATUS_TO_DISPLAY[dbStatus] ?? "scheduled";
+}

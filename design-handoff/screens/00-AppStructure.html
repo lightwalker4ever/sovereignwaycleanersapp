@@ -1,0 +1,99 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>App structure and job lifecycle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="width: 1440px; height: 820px; box-sizing: border-box; padding: 56px 64px; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column; gap: 36px">
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<h1 style="margin: 0; font-size: 34px; font-weight: 800; letter-spacing: -0.02em">One sign-in, four role homes</h1>
+<p style="margin: 0; font-size: 17px; color: #55615A; max-width: 860px; line-height: 1.5">After signing in, each role lands on a dashboard that answers "what needs me now?" instead of a welcome page with a single button. Everyone shares one status language for a cleaning.</p>
+</div>
+
+<section aria-label="Cleaning lifecycle" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 20px; padding: 24px 28px; display: flex; flex-direction: column; gap: 16px">
+<h2 style="margin: 0; font-size: 13px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase">A cleaning's journey (same labels and colours everywhere)</h2>
+<div style="display: flex; align-items: flex-start; gap: 10px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="5">
+<div style="flex: 1; display: flex; align-items: flex-start; gap: 10px">
+<div style="flex: 1; display: flex; flex-direction: column; gap: 8px">
+<span style="{{s.pill}}">{{s.label}}</span>
+<span style="font-size: 14px; font-weight: 600">{{s.who}}</span>
+<span style="font-size: 13px; color: #55615A; line-height: 1.45">{{s.what}}</span>
+</div>
+<sc-if value="{{s.arrow}}" hint-placeholder-val="{{true}}">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#9AA59F" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="margin-top: 2px; flex: none"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg>
+</sc-if>
+</div>
+</sc-for>
+</div>
+</section>
+
+<section aria-label="Role homes" style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; flex: 1">
+<sc-for list="{{roles}}" as="r" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 20px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<span style="font-size: 18px; font-weight: 800">{{r.name}}</span>
+<span style="font-size: 12px; font-weight: 700; color: #1B5E3B; background: #DFF1E5; border-radius: 999px; padding: 4px 10px">{{r.device}}</span>
+</div>
+<div style="background: #0F3B26; color: #FFFFFF; border-radius: 12px; padding: 12px 14px; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 12px; color: #A9C7B5; font-weight: 600">Lands on</span>
+<span style="font-size: 15px; font-weight: 700">{{r.home}}</span>
+<span style="font-size: 13px; color: #D7E7DD">{{r.homeWhat}}</span>
+</div>
+<span style="font-size: 12px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase">{{r.navType}}</span>
+<div style="display: flex; flex-direction: column; gap: 6px">
+<sc-for list="{{r.items}}" as="i" hint-placeholder-count="5">
+<div style="display: flex; gap: 10px; align-items: baseline; font-size: 14px; border-bottom: 1px solid #EEF1EF; padding-bottom: 6px"><span style="font-weight: 600; flex: none">{{i.n}}</span><span style="color: #55615A; font-size: 13px">{{i.d}}</span></div>
+</sc-for>
+</div>
+</div>
+</sc-for>
+</section>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":820}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var S = {
+      'Scheduled': ['#EEF1EF', '#3F4B44'],
+      'In progress': ['#FFF1D1', '#7A4B00'],
+      'In review': ['#E3EEFB', '#1C4F8F'],
+      'Changes requested': ['#FCE6DA', '#9A3A0B'],
+      'Completed': ['#DFF1E5', '#155B33']
+    };
+    var steps = [
+      ['Scheduled', 'Admin / Manager', 'Books date, time, cleaner and supervisor; checklist comes from the client’s standards.'],
+      ['In progress', 'Cleaner', 'Starts the job on their phone and photographs each standard.'],
+      ['In review', 'Supervisor', 'Checks photos, marks every standard Met or Not met.'],
+      ['Changes requested', 'Cleaner', 'Redoes only the standards marked Not met, then resubmits.'],
+      ['Completed', 'Client', 'Sees results with photos and leaves a rating.']
+    ].map(function (s, i) {
+      return { label: s[0], who: s[1], what: s[2], arrow: i < 4, pill: 'align-self:flex-start;font-size:13px;font-weight:700;padding:5px 12px;border-radius:999px;background:' + S[s[0]][0] + ';color:' + S[s[0]][1] };
+    });
+    var it = function (arr) { return arr.map(function (a) { return { n: a[0], d: a[1] }; }); };
+    return {
+      steps: steps,
+      roles: [
+        { name: 'Admin / Manager', device: 'Desktop', home: 'Dashboard', homeWhat: 'Today’s jobs, alerts, KPIs', navType: 'Left sidebar', items: it([['Cleanings', 'list, calendar, new'], ['Clients', 'details, standards, history'], ['Staff', 'roles, access'], ['Standards', 'checklist builder'], ['Feedback', 'ratings, comments']]) },
+        { name: 'Supervisor', device: 'Tablet / desktop', home: 'Review queue', homeWhat: 'What’s waiting, in progress, sent back', navType: 'Left sidebar', items: it([['Review queue', 'home'], ['Review screen', 'per-standard verdicts'], ['Cleanings', 'all jobs I supervise'], ['Team', 'pass rate by cleaner']]) },
+        { name: 'Cleaner', device: 'Phone', home: 'Today', homeWhat: 'Next job, redo requests, later today', navType: 'Bottom tabs', items: it([['Today', 'home'], ['Job checklist', 'photo per standard'], ['Schedule', 'upcoming week'], ['History', 'past jobs, feedback']]) },
+        { name: 'Client', device: 'Phone first', home: 'Home', homeWhat: 'Live status of the current cleaning', navType: 'Bottom tabs', items: it([['Home', 'live + upcoming'], ['Cleanings', 'past results, photos'], ['Request a cleaning', 'pick a date'], ['Account', 'details, address']]) }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

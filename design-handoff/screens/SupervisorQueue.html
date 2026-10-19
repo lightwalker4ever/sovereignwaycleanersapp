@@ -1,0 +1,147 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Supervisor review queue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-wrap: wrap; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B">
+
+<nav aria-label="Main" style="flex: 1 1 240px; background: #0F3B26; color: #D7E7DD; padding: 24px 16px; box-sizing: border-box; display: flex; flex-direction: column; gap: 28px">
+<div style="display: flex; align-items: center; gap: 12px; padding: 0 8px">
+<div style="width: 40px; height: 40px; border-radius: 10px; background: #E9C46A; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 15px">SW</div>
+<div style="display: flex; flex-direction: column"><span style="color: #FFFFFF; font-weight: 700; font-size: 15px">Sovereign Way</span><span style="font-size: 12px; color: #A9C7B5">Cleaners</span></div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 4px">
+<sc-for list="{{nav}}" as="item" hint-placeholder-count="3">
+<a href="{{item.href}}" style="{{item.style}}">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="{{item.d}}"></path></svg>
+<span style="flex: 1">{{item.label}}</span>
+<sc-if value="{{item.badge}}" hint-placeholder-val="{{true}}"><span style="background: #E9C46A; color: #0F3B26; font-size: 12px; font-weight: 700; border-radius: 999px; padding: 2px 8px">{{item.badge}}</span></sc-if>
+</a>
+</sc-for>
+</div>
+<div style="flex: 1"></div>
+<div style="display: flex; align-items: center; gap: 12px; padding: 12px; border-radius: 12px; background: rgba(255,255,255,0.08)">
+<div style="width: 36px; height: 36px; border-radius: 999px; background: #D7E7DD; color: #0F3B26; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 13px">JS</div>
+<div style="flex: 1; display: flex; flex-direction: column"><span style="color: #FFFFFF; font-size: 14px; font-weight: 600">Jane Supervisor</span><span style="font-size: 12px; color: #A9C7B5">Supervisor</span></div>
+</div>
+</nav>
+
+<main style="flex: 999 1 560px; min-width: 0; padding: 32px 40px 48px; box-sizing: border-box">
+<div style="max-width: 1160px; margin: 0 auto; display: flex; flex-direction: column; gap: 26px">
+<header>
+<div style="font-size: 13px; color: #55615A; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase">Sunday 18 October</div>
+<h1 style="margin: 4px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -0.01em">2 cleanings are waiting for you, Jane</h1>
+</header>
+
+<section aria-label="Key figures" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px">
+<sc-for list="{{kpis}}" as="k" hint-placeholder-count="4">
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #55615A; font-weight: 600">{{k.label}}</span>
+<span style="font-size: 30px; font-weight: 800">{{k.value}}</span>
+<span style="font-size: 13px; color: #55615A">{{k.sub}}</span>
+</div>
+</sc-for>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 12px">
+<div style="display: flex; align-items: center; gap: 10px"><h2 style="margin: 0; font-size: 18px; font-weight: 800">Waiting for your review</h2><span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #E3EEFB; color: #1C4F8F">In review · 2</span></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(420px, 1fr)); gap: 16px">
+<sc-for list="{{waiting}}" as="w" hint-placeholder-count="2">
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 20px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; justify-content: space-between; gap: 12px; align-items: flex-start">
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 17px; font-weight: 800">{{w.client}}</span><span style="font-size: 13px; color: #55615A">{{w.meta}}</span></div>
+<span style="{{w.ageStyle}}">{{w.age}}</span>
+</div>
+<div style="display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px">
+<sc-for list="{{w.thumbs}}" as="t" hint-placeholder-count="4">
+<div style="aspect-ratio: 1 / 1; border-radius: 10px; background: #DCE5DF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px; color: #55615A; font-size: 11px; font-weight: 600; text-align: center; padding: 4px">
+<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg>{{t}}</div>
+</sc-for>
+</div>
+<div style="display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap">
+<span style="font-size: 13px; color: #34403A">{{w.summary}}</span>
+<a href="SupervisorReview.html" style="display: inline-flex; align-items: center; height: 44px; padding: 0 18px; border-radius: 10px; background: #1B5E3B; color: #FFFFFF; font-weight: 700; font-size: 14px">Start review</a>
+</div>
+</div>
+</sc-for>
+</div>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-start">
+<section style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0 0 8px; font-size: 17px; font-weight: 700">In progress now</h2>
+<sc-for list="{{progress}}" as="p" hint-placeholder-count="2">
+<div style="display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid #EEF1EF">
+<div style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700; font-size: 14px">{{p.client}}</span><span style="font-size: 13px; color: #55615A">{{p.meta}}</span></div>
+<div style="width: 140px"><div style="height: 6px; border-radius: 99px; background: #E8ECE9; overflow: hidden"><div style="{{p.bar}}"></div></div><div style="font-size: 12px; color: #55615A; margin-top: 4px">{{p.label}}</div></div>
+<span style="{{p.pill}}">{{p.status}}</span>
+</div>
+</sc-for>
+</section>
+<section style="flex: 1 1 420px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 18px 20px; display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0 0 8px; font-size: 17px; font-weight: 700">Recently finalised</h2>
+<sc-for list="{{done}}" as="d" hint-placeholder-count="3">
+<div style="display: flex; gap: 14px; align-items: center; padding: 12px 0; border-top: 1px solid #EEF1EF">
+<div style="flex: 1; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700; font-size: 14px">{{d.client}}</span><span style="font-size: 13px; color: #55615A">{{d.meta}}</span></div>
+<span style="font-size: 13px; font-weight: 600; color: #155B33">{{d.result}}</span>
+</div>
+</sc-for>
+</section>
+</div>
+</div>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1080}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var navBase = 'display:flex;align-items:center;gap:12px;padding:0 12px;height:44px;border-radius:10px;font-size:14px;';
+    var nav = [
+      ['Review queue', 'M9 3h6v4H9z M9 5H6a1 1 0 0 0-1 1v14a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V6a1 1 0 0 0-1-1h-3 M9 14l2 2 4-4', 'SupervisorQueue.html', 2],
+      ['Cleanings', 'M3 5h18v16H3z M3 10h18 M8 3v4 M16 3v4', '#', 0],
+      ['Team', 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M9 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z M22 21v-2a4 4 0 0 0-3-3.87 M16 3.13a4 4 0 0 1 0 7.75', '#', 0]
+    ].map(function (n, i) {
+      var active = i === 0;
+      return { label: n[0], d: n[1], href: n[2], badge: n[3] || null,
+        style: navBase + (active ? 'background:rgba(255,255,255,0.14);color:#FFFFFF;font-weight:700' : 'color:#D7E7DD;font-weight:500') };
+    });
+    var age = function (old) { return 'font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;' + (old ? 'background:#FCE6DA;color:#9A3A0B' : 'background:#EEF1EF;color:#3F4B44'); };
+    return {
+      nav: nav,
+      kpis: [
+        { label: 'Waiting for you', value: '2', sub: 'Oldest: 4 days' },
+        { label: 'In progress', value: '1', sub: 'Will reach you next' },
+        { label: 'Sent back this week', value: '1', sub: 'Ana Client, 1 standard' },
+        { label: 'First-time pass rate', value: '92%', sub: 'Your team, last 30 days' }
+      ],
+      waiting: [
+        { client: 'Nuno The Client', meta: 'Wed 14 Oct · Cliff Cleaner · Standard 1', age: 'Waiting 4 days', ageStyle: age(true), thumbs: ['Worktops', 'Mirror', 'Floors', '+1'], summary: '3 of 3 standards photographed' },
+        { client: 'Nuno The Client', meta: 'Today 10:00 · Cliff Cleaner · Standard 1', age: 'Submitted 11:48', ageStyle: age(false), thumbs: ['Worktops', 'Mirror', 'Floors', 'Note'], summary: '3 of 3 photographed · 1 note from cleaner' }
+      ],
+      progress: [
+        { client: 'Oakfield Lettings', meta: 'Cliff Cleaner · started 12:34', label: '1 of 4 photographed', bar: 'height:100%;width:25%;background:#5E9C78', status: 'In progress', pill: 'font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;background:#FFF1D1;color:#7A4B00' },
+        { client: 'Ana Client', meta: 'Cliff Cleaner · redo requested 13:10', label: '1 standard to redo', bar: 'height:100%;width:67%;background:#5E9C78', status: 'Changes requested', pill: 'font-size:12px;font-weight:700;padding:4px 10px;border-radius:999px;white-space:nowrap;background:#FCE6DA;color:#9A3A0B' }
+      ],
+      done: [
+        { client: 'Ana Client', meta: 'Today 08:30 · Cliff Cleaner', result: '3 of 3 met' },
+        { client: 'Ana Client', meta: 'Tue 13 Oct · Cliff Cleaner', result: '3 of 3 met' },
+        { client: 'Ana Client', meta: 'Tue 13 Oct · Cliff Cleaner', result: '3 of 3 met (after 1 redo)' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

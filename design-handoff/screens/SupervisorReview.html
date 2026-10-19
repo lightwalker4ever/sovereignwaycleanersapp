@@ -1,0 +1,154 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Review a cleaning</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; display: flex; flex-direction: column; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 16px 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px">
+<a href="SupervisorQueue.html" style="display: inline-flex; align-items: center; gap: 6px; height: 44px; font-size: 14px; font-weight: 600; color: #34403A">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5 M12 19l-7-7 7-7"></path></svg>Review queue</a>
+<div style="width: 1px; height: 28px; background: #E2E7E3"></div>
+<div style="flex: 1 1 320px; display: flex; flex-direction: column">
+<div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap"><h1 style="margin: 0; font-size: 20px; font-weight: 800">Nuno The Client</h1><span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #E3EEFB; color: #1C4F8F">In review</span></div>
+<span style="font-size: 13px; color: #55615A">Wed 14 Oct, 10:00 · 4 Sovereign Way · Cleaned by Cliff Cleaner · Standard 1</span>
+</div>
+<div style="display: flex; flex-direction: column; align-items: flex-end; gap: 6px; min-width: 180px">
+<span style="font-size: 13px; font-weight: 700">{{checkedLabel}}</span>
+<div style="width: 180px; height: 8px; border-radius: 99px; background: #E8ECE9; overflow: hidden"><div style="{{progressBar}}"></div></div>
+</div>
+</header>
+
+<div style="flex: 1; display: flex; flex-wrap: wrap; gap: 24px; padding: 24px 32px; align-items: flex-start; max-width: 1280px; width: 100%; box-sizing: border-box; margin: 0 auto">
+
+<nav aria-label="Standards" style="flex: 1 1 280px; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 10px; display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 12px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase; padding: 8px 10px 4px">Checklist</span>
+<sc-for list="{{items}}" as="s" hint-placeholder-count="3">
+<button onClick="{{s.pick}}" aria-current="{{s.current}}" style="{{s.rowStyle}}">
+<span style="{{s.badgeStyle}}">{{s.badge}}</span>
+<span style="flex: 1; display: flex; flex-direction: column; gap: 2px; text-align: left"><span style="font-weight: 700; font-size: 14px">{{s.title}}</span><span style="font-size: 12px; color: #55615A">{{s.stateLabel}}</span></span>
+</button>
+</sc-for>
+</nav>
+
+<section aria-label="Current standard" style="flex: 3 1 560px; min-width: 0; background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 24px; display: flex; flex-direction: column; gap: 20px">
+<div style="display: flex; flex-direction: column; gap: 4px">
+<span style="font-size: 13px; color: #55615A; font-weight: 600">Standard {{cur.n}} of 3 · {{cur.area}}</span>
+<h2 style="margin: 0; font-size: 22px; font-weight: 800">{{cur.title}}</h2>
+<p style="margin: 0; font-size: 14px; color: #55615A">{{cur.desc}}</p>
+</div>
+
+<div style="display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 12px; font-weight: 700; color: #55615A; letter-spacing: 0.06em; text-transform: uppercase">Cleaner's photos</span>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px">
+<sc-for list="{{cur.photos}}" as="p" hint-placeholder-count="2">
+<div style="aspect-ratio: 4 / 3; border-radius: 12px; background: #DCE5DF; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: #55615A; font-size: 13px; font-weight: 600">
+<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 7h3l2-3h6l2 3h3a1 1 0 0 1 1 1v11a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8a1 1 0 0 1 1-1z M12 17a4 4 0 1 0 0-8 4 4 0 0 0 0 8z"></path></svg>{{p}}</div>
+</sc-for>
+<button style="aspect-ratio: 4 / 3; border-radius: 12px; border: 1.5px dashed #A9B6AE; background: #FAFBFA; font: inherit; font-size: 13px; font-weight: 700; color: #1B5E3B; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px">
+<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14 M5 12h14"></path></svg>Add your own photo</button>
+</div>
+<sc-if value="{{cur.note}}" hint-placeholder-val="{{true}}">
+<div style="background: #F5F7F5; border-radius: 10px; padding: 10px 12px; font-size: 14px; color: #34403A"><strong>Cliff's note:</strong> {{cur.note}}</div>
+</sc-if>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Comment for the cleaner <span style="font-weight: 400; color: #55615A; font-size: 13px">Required if you mark this Not met</span>
+<textarea rows="2" style="border: 1px solid #C9D1CC; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 14px; resize: vertical"></textarea></label>
+
+<div role="group" aria-label="Verdict" style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px">
+<button onClick="{{markMet}}" aria-pressed="{{metPressed}}" style="{{metStyle}}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>Met</button>
+<button onClick="{{markNot}}" aria-pressed="{{notPressed}}" style="{{notStyle}}">
+<svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12 M18 6L6 18"></path></svg>Not met</button>
+</div>
+</section>
+</div>
+
+<footer style="position: sticky; bottom: 0; background: #FFFFFF; border-top: 1px solid #E2E7E3; padding: 14px 32px; display: flex; flex-wrap: wrap; gap: 12px; align-items: center; box-shadow: 0 -8px 24px rgba(15,59,38,0.06)">
+<span style="flex: 1 1 280px; font-size: 14px; color: #34403A">{{footerMsg}}</span>
+<button style="{{backStyle}}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 14L4 9l5-5 M4 9h11a5 5 0 0 1 0 10h-2"></path></svg>Send back to cleaner</button>
+<button disabled="{{finalDisabled}}" style="{{finalStyle}}">
+<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg>Finalise cleaning</button>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1160}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { current: 3, verdicts: { 1: 'met', 2: 'met', 3: null } };
+  }
+  renderVals() {
+    var self = this;
+    var st = this.state;
+    var data = [
+      { n: 1, title: 'Kitchen worktops clean and dry', desc: 'Including behind the kettle and toaster.', area: 'Kitchen', photos: ['Worktop left', 'Worktop right'], note: null },
+      { n: 2, title: 'Bathroom mirror streak-free', desc: 'Photo taken at an angle to show streaks.', area: 'Bathroom', photos: ['Mirror, angled'], note: null },
+      { n: 3, title: 'Floors vacuumed and mopped', desc: 'All rooms, including under the bed edges.', area: 'Whole home', photos: ['Hallway', 'Bedroom', 'Lounge'], note: 'Couldn’t move the wardrobe in bedroom 2, cleaned around it.' }
+    ];
+    var marked = 0, notMet = 0;
+    var items = data.map(function (d) {
+      var v = st.verdicts[d.n];
+      if (v) marked++;
+      if (v === 'not') notMet++;
+      var isCur = st.current === d.n;
+      var badgeBg = v === 'met' ? '#1B5E3B' : v === 'not' ? '#B42318' : '#FFFFFF';
+      var badgeFg = v ? '#FFFFFF' : '#55615A';
+      return {
+        title: d.title, current: isCur ? 'step' : 'false',
+        badge: v === 'met' ? '✓' : v === 'not' ? '✕' : String(d.n),
+        stateLabel: v === 'met' ? 'Met' : v === 'not' ? 'Not met' : 'To check',
+        badgeStyle: 'width:30px;height:30px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;flex:none;background:' + badgeBg + ';color:' + badgeFg + ';border:1.5px solid ' + (v ? badgeBg : '#C9D1CC'),
+        rowStyle: 'display:flex;gap:12px;align-items:center;padding:12px 10px;min-height:56px;border:0;border-radius:10px;font:inherit;color:#15211B;cursor:pointer;width:100%;background:' + (isCur ? '#EEF4F0' : 'transparent') + ';outline:' + (isCur ? '2px solid #1B5E3B' : 'none') + ';outline-offset:-2px',
+        pick: function () { self.setState({ current: d.n }); }
+      };
+    });
+    var cur = data[st.current - 1];
+    var cv = st.verdicts[st.current];
+    var setV = function (val) {
+      var nv = Object.assign({}, st.verdicts); nv[st.current] = val;
+      var next = st.current;
+      for (var i = 1; i <= 3; i++) { if (!nv[i]) { next = i; break; } }
+      self.setState({ verdicts: nv, current: next });
+    };
+    var btn = 'height:64px;border-radius:12px;font:inherit;font-size:17px;font-weight:800;display:flex;align-items:center;justify-content:center;gap:10px;cursor:pointer;';
+    var left = 3 - marked;
+    var allMet = left === 0 && notMet === 0;
+    var footerMsg = left > 0 ? (left + (left === 1 ? ' standard' : ' standards') + ' left to check. Finalise unlocks when every standard is marked.')
+      : notMet > 0 ? (notMet + ' not met: send it back so Cliff can redo ' + (notMet === 1 ? 'that standard.' : 'those standards.'))
+      : 'All 3 standards met. Finalising notifies the client with the results.';
+    var primary = 'height:48px;padding:0 20px;border-radius:10px;font:inherit;font-size:15px;font-weight:700;display:inline-flex;align-items:center;gap:8px;';
+    return {
+      items: items, cur: cur,
+      checkedLabel: marked + ' of 3 checked',
+      progressBar: 'height:100%;background:#1B5E3B;width:' + Math.round(marked / 3 * 100) + '%',
+      markMet: function () { setV('met'); },
+      markNot: function () { setV('not'); },
+      metPressed: cv === 'met' ? 'true' : 'false',
+      notPressed: cv === 'not' ? 'true' : 'false',
+      metStyle: btn + (cv === 'met' ? 'background:#1B5E3B;color:#FFFFFF;border:2px solid #1B5E3B' : 'background:#FFFFFF;color:#155B33;border:2px solid #9CC3AC'),
+      notStyle: btn + (cv === 'not' ? 'background:#B42318;color:#FFFFFF;border:2px solid #B42318' : 'background:#FFFFFF;color:#B42318;border:2px solid #F0B8B0'),
+      footerMsg: footerMsg,
+      finalDisabled: !allMet,
+      backStyle: primary + (notMet > 0 ? 'background:#B42318;color:#FFFFFF;border:0' : 'background:#FFFFFF;color:#15211B;border:1px solid #C9D1CC'),
+      finalStyle: primary + 'border:0;' + (allMet ? 'background:#1B5E3B;color:#FFFFFF;cursor:pointer' : 'background:#E8ECE9;color:#6B7670;cursor:not-allowed')
+    };
+  }
+}
+</script>
+</body>
+</html>
