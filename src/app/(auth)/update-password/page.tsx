@@ -23,10 +23,13 @@ export default async function UpdatePasswordPage() {
   }
 
   return (
-    <Card className="w-full max-w-sm px-2 py-6 shadow-sm">
+    <Card className="w-full max-w-sm rounded-2xl border-dash-border bg-dash-surface px-2 py-6 shadow-sm">
       <CardHeader className="text-center">
-        <CardTitle className="text-xl">Set a new password</CardTitle>
-        <CardDescription>Choose a new password for your account.</CardDescription>
+        <div className="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-[10px] bg-dash-brand-900 text-sm font-extrabold text-dash-gold">
+          SW
+        </div>
+        <CardTitle className="text-xl text-dash-ink">Set a new password</CardTitle>
+        <CardDescription className="text-dash-muted">Choose a new password for your account.</CardDescription>
       </CardHeader>
       <CardContent>
         <UpdatePasswordForm />
