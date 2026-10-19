@@ -26,6 +26,7 @@ export interface CleaningCommentEntry {
   id: string;
   authorName: string | null;
   body: string;
+  rating: number | null;
   createdAt: string;
 }
 
@@ -39,6 +40,8 @@ export interface CleaningDetailForParty {
   notes: string | null;
   scheduledAt: string;
   endsAt: string | null;
+  startedAt: string | null;
+  submittedAt: string | null;
   createdAt: string;
   completedAt: string | null;
   checklist: CleaningChecklistItem[];
@@ -69,7 +72,9 @@ export async function getCleaningDetailForParty(
 
   const { data: cleaning, error } = await admin
     .from("cleanings")
-    .select("id, client_id, cleaner_id, supervisor_id, status, notes, scheduled_at, ends_at, created_at, completed_at")
+    .select(
+      "id, client_id, cleaner_id, supervisor_id, status, notes, scheduled_at, ends_at, started_at, submitted_at, created_at, completed_at"
+    )
     .eq("id", cleaningId)
     .single();
   if (error || !cleaning) return null;
@@ -92,7 +97,7 @@ export async function getCleaningDetailForParty(
       .order("sort_order", { ascending: true }),
     admin
       .from("cleaning_comments")
-      .select("id, author_profile_id, body, created_at")
+      .select("id, author_profile_id, body, rating, created_at")
       .eq("cleaning_id", cleaningId)
       .order("created_at", { ascending: true }),
   ]);
@@ -142,6 +147,8 @@ export async function getCleaningDetailForParty(
     notes: cleaning.notes,
     scheduledAt: cleaning.scheduled_at,
     endsAt: cleaning.ends_at,
+    startedAt: cleaning.started_at,
+    submittedAt: cleaning.submitted_at,
     createdAt: cleaning.created_at,
     completedAt: cleaning.completed_at,
     checklist: (checklist ?? []).map((c) => ({
@@ -157,6 +164,7 @@ export async function getCleaningDetailForParty(
       id: c.id,
       authorName: authorNameById.get(c.author_profile_id) ?? null,
       body: c.body,
+      rating: c.rating,
       createdAt: c.created_at,
     })),
   };
