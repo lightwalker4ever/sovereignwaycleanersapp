@@ -190,6 +190,7 @@ export async function createCleaning(
       standard_id: item.standardId,
       title: item.title,
       description: item.description,
+      area: item.area,
       sort_order: index,
     }))
   );

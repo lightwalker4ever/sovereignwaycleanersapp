@@ -6,6 +6,7 @@ export interface ClientStandardItem {
   standardId: string;
   title: string;
   description: string | null;
+  area: string | null;
   enabled: boolean;
 }
 
@@ -47,7 +48,7 @@ export async function resolveClientStandardState(
     await Promise.all([
       admin
         .from("standards")
-        .select("id, title, description")
+        .select("id, title, description, area")
         .eq("standard_list_id", assignment.standard_list_id)
         .order("sort_order", { ascending: true }),
       admin
@@ -67,6 +68,7 @@ export async function resolveClientStandardState(
       standardId: s.id,
       title: s.title,
       description: s.description,
+      area: s.area,
       enabled: !disabled.has(s.id),
     })),
   };

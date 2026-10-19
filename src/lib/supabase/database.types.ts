@@ -243,6 +243,7 @@ export type Database = {
           standard_id: string | null;
           title: string;
           description: string | null;
+          area: string | null;
           sort_order: number;
           review_status: string;
           supervisor_comment: string | null;
@@ -255,6 +256,7 @@ export type Database = {
           standard_id?: string | null;
           title: string;
           description?: string | null;
+          area?: string | null;
           sort_order?: number;
           review_status?: string;
           supervisor_comment?: string | null;
@@ -267,6 +269,7 @@ export type Database = {
           standard_id?: string | null;
           title?: string;
           description?: string | null;
+          area?: string | null;
           sort_order?: number;
           review_status?: string;
           supervisor_comment?: string | null;

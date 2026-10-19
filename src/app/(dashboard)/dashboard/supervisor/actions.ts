@@ -5,6 +5,63 @@ import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
+import { toDisplayCleaningStatus, aggregateChecklistByCleaning, type DisplayCleaningStatus } from "@/lib/cleaning-status";
+
+export interface SupervisorCleaningRow {
+  id: string;
+  scheduledAt: string;
+  clientName: string | null;
+  cleanerName: string | null;
+  checklistDone: number;
+  checklistTotal: number;
+  displayStatus: DisplayCleaningStatus;
+}
+
+/** Every cleaning this supervisor oversees -- the Cleanings nav item. */
+export async function listAllMyCleanings(): Promise<SupervisorCleaningRow[]> {
+  const { user } = await assertIsRole(["supervisor"]);
+
+  const admin = createAdminClient();
+  const { data: cleanings, error } = await admin
+    .from("cleanings")
+    .select("id, client_id, cleaner_id, status, scheduled_at")
+    .eq("supervisor_id", user.id)
+    .order("scheduled_at", { ascending: false });
+  if (error) throw new Error(error.message);
+
+  const ids = (cleanings ?? []).map((c) => c.id);
+  const clientIds = [...new Set((cleanings ?? []).map((c) => c.client_id))];
+  const cleanerIds = [...new Set((cleanings ?? []).map((c) => c.cleaner_id))];
+
+  const [{ data: checklist }, { data: clients }, { data: cleaners }] = await Promise.all([
+    ids.length
+      ? admin.from("cleaning_standards").select("cleaning_id, review_status").in("cleaning_id", ids)
+      : Promise.resolve({ data: [] }),
+    clientIds.length
+      ? admin.from("clients").select("id, full_name").in("id", clientIds)
+      : Promise.resolve({ data: [] }),
+    cleanerIds.length
+      ? admin.from("profiles").select("id, full_name").in("id", cleanerIds)
+      : Promise.resolve({ data: [] }),
+  ]);
+
+  const clientNameById = new Map((clients ?? []).map((c) => [c.id, c.full_name]));
+  const cleanerNameById = new Map((cleaners ?? []).map((c) => [c.id, c.full_name]));
+  const agg = aggregateChecklistByCleaning(checklist ?? []);
+
+  return (cleanings ?? []).map((c) => {
+    const a = agg.get(c.id);
+    return {
+      id: c.id,
+      scheduledAt: c.scheduled_at,
+      clientName: clientNameById.get(c.client_id) ?? null,
+      cleanerName: cleanerNameById.get(c.cleaner_id) ?? null,
+      checklistDone: a?.done ?? 0,
+      checklistTotal: a?.total ?? 0,
+      displayStatus: toDisplayCleaningStatus(c.status, a?.hasNotMet ?? false),
+    };
+  });
+}
 
 export interface CleaningSummary {
   id: string;
@@ -55,7 +112,7 @@ export async function getMyReviewDetail(cleaningId: string): Promise<CleaningDet
 async function assertOwnedInReview(admin: ReturnType<typeof createAdminClient>, cleaningId: string, userId: string) {
   const { data: cleaning, error } = await admin
     .from("cleanings")
-    .select("supervisor_id, status")
+    .select("supervisor_id, status, redo_count")
     .eq("id", cleaningId)
     .single();
   if (error || !cleaning) throw new Error("Cleaning not found");
@@ -207,11 +264,11 @@ export async function sendBackToCleaner(cleaningId: string) {
   const { user } = await assertIsRole(["supervisor"]);
 
   const admin = createAdminClient();
-  await assertOwnedInReview(admin, cleaningId, user.id);
+  const cleaning = await assertOwnedInReview(admin, cleaningId, user.id);
 
   const { error: updateError } = await admin
     .from("cleanings")
-    .update({ status: "in_progress" })
+    .update({ status: "in_progress", redo_count: cleaning.redo_count + 1 })
     .eq("id", cleaningId);
   if (updateError) throw new Error(updateError.message);
 
