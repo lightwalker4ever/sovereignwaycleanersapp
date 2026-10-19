@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { capitalize } from "@/lib/utils";
 import { getCleaningDetail } from "../actions";
+import { PageContainer } from "@/components/shell/PageContainer";
 
 const REVIEW_STATUS_LABEL: Record<string, string> = {
   pending: "Pending",
@@ -21,7 +22,7 @@ export default async function CleaningDetailPage({
   if (!cleaning) notFound();
 
   return (
-    <div className="space-y-8">
+    <PageContainer>
       <div>
         <Link href="/dashboard/admin/cleanings" className="text-sm text-gray-500 hover:underline">
           ← Cleanings
@@ -139,6 +140,6 @@ export default async function CleaningDetailPage({
           </CardContent>
         </Card>
       )}
-    </div>
+    </PageContainer>
   );
 }

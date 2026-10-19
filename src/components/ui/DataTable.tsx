@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { cn } from "@/lib/utils";
 
 /**
  * A white card wrapping a <table>, with uppercase muted headers and
@@ -18,7 +19,7 @@ export function DataTable({
   className?: string;
 }) {
   return (
-    <div className={`overflow-x-auto rounded-2xl border border-dash-border bg-dash-surface ${className ?? ""}`}>
+    <div className={cn("overflow-x-auto rounded-2xl border border-dash-border bg-dash-surface", className)}>
       <table className="w-full border-collapse text-sm" style={{ minWidth }}>
         {children}
       </table>

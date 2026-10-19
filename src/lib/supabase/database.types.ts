@@ -54,6 +54,7 @@ export type Database = {
           full_name: string | null;
           email: string | null;
           phone: string | null;
+          address: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -63,6 +64,7 @@ export type Database = {
           full_name?: string | null;
           email?: string | null;
           phone?: string | null;
+          address?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -72,6 +74,7 @@ export type Database = {
           full_name?: string | null;
           email?: string | null;
           phone?: string | null;
+          address?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -107,6 +110,8 @@ export type Database = {
           standard_list_id: string;
           title: string;
           description: string | null;
+          area: string | null;
+          photo_required: boolean;
           sort_order: number;
           created_at: string;
           updated_at: string;
@@ -116,6 +121,8 @@ export type Database = {
           standard_list_id: string;
           title: string;
           description?: string | null;
+          area?: string | null;
+          photo_required?: boolean;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -125,6 +132,8 @@ export type Database = {
           standard_list_id?: string;
           title?: string;
           description?: string | null;
+          area?: string | null;
+          photo_required?: boolean;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -181,6 +190,10 @@ export type Database = {
           supervisor_id: string;
           status: Database["public"]["Enums"]["cleaning_status"];
           notes: string | null;
+          scheduled_at: string;
+          ends_at: string | null;
+          repeat_weekly: boolean;
+          redo_count: number;
           started_at: string | null;
           submitted_at: string | null;
           completed_at: string | null;
@@ -194,6 +207,10 @@ export type Database = {
           supervisor_id: string;
           status?: Database["public"]["Enums"]["cleaning_status"];
           notes?: string | null;
+          scheduled_at?: string;
+          ends_at?: string | null;
+          repeat_weekly?: boolean;
+          redo_count?: number;
           started_at?: string | null;
           submitted_at?: string | null;
           completed_at?: string | null;
@@ -207,6 +224,10 @@ export type Database = {
           supervisor_id?: string;
           status?: Database["public"]["Enums"]["cleaning_status"];
           notes?: string | null;
+          scheduled_at?: string;
+          ends_at?: string | null;
+          repeat_weekly?: boolean;
+          redo_count?: number;
           started_at?: string | null;
           submitted_at?: string | null;
           completed_at?: string | null;
@@ -290,6 +311,7 @@ export type Database = {
           cleaning_id: string;
           author_profile_id: string;
           body: string;
+          rating: number | null;
           created_at: string;
         };
         Insert: {
@@ -297,6 +319,7 @@ export type Database = {
           cleaning_id: string;
           author_profile_id: string;
           body: string;
+          rating?: number | null;
           created_at?: string;
         };
         Update: {
@@ -304,6 +327,7 @@ export type Database = {
           cleaning_id?: string;
           author_profile_id?: string;
           body?: string;
+          rating?: number | null;
           created_at?: string;
         };
         Relationships: [];

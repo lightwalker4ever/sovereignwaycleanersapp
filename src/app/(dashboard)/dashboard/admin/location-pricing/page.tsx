@@ -4,12 +4,13 @@ import { CreateLocationMultiplierForm } from "@/components/admin/CreateLocationM
 import { LocationMultiplierRowActions } from "@/components/admin/LocationMultiplierRowActions";
 import { MATCH_TYPE_LABEL } from "@/lib/location-multiplier-labels";
 import { listLocationMultipliers, updateLocationMultiplierField } from "./actions";
+import { PageContainer } from "@/components/shell/PageContainer";
 
 export default async function LocationPricingPage() {
   const items = await listLocationMultipliers();
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Location Pricing</h1>
         <p className="mt-1 text-sm text-gray-600">
@@ -83,6 +84,6 @@ export default async function LocationPricingPage() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

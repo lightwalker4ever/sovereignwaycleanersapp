@@ -11,6 +11,13 @@ import type { ShellNavItem } from "./types";
  */
 export function BottomTabBar({ tabs }: { tabs: ShellNavItem[] }) {
   const pathname = usePathname();
+  // Same "most specific match wins" logic as Sidebar -- a tab whose href
+  // is a prefix of another tab's href (e.g. Today vs a job detail route
+  // reached from it) must not both claim active.
+  const activeHref = tabs
+    .map((t) => t.href)
+    .filter((href) => pathname === href || pathname.startsWith(href + "/"))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav
@@ -19,8 +26,7 @@ export function BottomTabBar({ tabs }: { tabs: ShellNavItem[] }) {
       style={{ gridTemplateColumns: `repeat(${tabs.length}, minmax(0, 1fr))` }}
     >
       {tabs.map((tab) => {
-        const active = pathname === tab.href || pathname.startsWith(tab.href + "/");
-        const Icon = tab.icon;
+        const active = tab.href === activeHref;
         return (
           <Link
             key={tab.href}
@@ -31,7 +37,7 @@ export function BottomTabBar({ tabs }: { tabs: ShellNavItem[] }) {
               (active ? "text-dash-brand-700" : "text-dash-muted")
             }
           >
-            <Icon size={22} strokeWidth={1.9} aria-hidden="true" />
+            {tab.icon}
             {tab.label}
           </Link>
         );

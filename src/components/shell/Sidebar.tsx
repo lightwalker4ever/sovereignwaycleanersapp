@@ -14,6 +14,14 @@ import type { ShellNavItem, ShellUser } from "./types";
  */
 export function Sidebar({ navItems, user }: { navItems: ShellNavItem[]; user: ShellUser }) {
   const pathname = usePathname();
+  // The single most specific (longest) nav href that matches the current
+  // path -- not "does this href match", since e.g. Dashboard's own href
+  // ("/dashboard/admin") is a prefix of every other admin route and would
+  // otherwise show as active on every page.
+  const activeHref = navItems
+    .map((i) => i.href)
+    .filter((href) => pathname === href || pathname.startsWith(href + "/"))
+    .sort((a, b) => b.length - a.length)[0];
 
   return (
     <nav
@@ -32,9 +40,7 @@ export function Sidebar({ navItems, user }: { navItems: ShellNavItem[]; user: Sh
 
       <div className="flex flex-col gap-1">
         {navItems.map((item) => {
-          const active =
-            pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href + "/"));
-          const Icon = item.icon;
+          const active = item.href === activeHref;
           return (
             <Link
               key={item.href}
@@ -45,7 +51,7 @@ export function Sidebar({ navItems, user }: { navItems: ShellNavItem[]; user: Sh
                 (active ? "bg-white/14 font-bold text-white" : "font-medium text-dash-sidebar-text hover:bg-white/8")
               }
             >
-              <Icon size={20} strokeWidth={1.8} aria-hidden="true" />
+              {item.icon}
               <span className="flex-1">{item.label}</span>
               {!!item.badge && (
                 <span className="rounded-full bg-dash-gold px-2 py-0.5 text-xs font-bold text-dash-brand-900">

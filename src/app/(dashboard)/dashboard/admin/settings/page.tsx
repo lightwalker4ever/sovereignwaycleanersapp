@@ -3,6 +3,7 @@ import { ContactFormToggle } from "@/components/admin/ContactFormToggle";
 import { EditableTextCell } from "@/components/admin/EditableTextCell";
 import { getContactFormEnabled, getSalesNotificationEmail } from "@/lib/app-settings";
 import { setSalesNotificationEmail } from "./actions";
+import { PageContainer } from "@/components/shell/PageContainer";
 
 export default async function AdminSettingsPage() {
   const [contactFormEnabled, salesNotificationEmail] = await Promise.all([
@@ -11,7 +12,7 @@ export default async function AdminSettingsPage() {
   ]);
 
   return (
-    <div className="space-y-6">
+    <PageContainer>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Settings</h1>
         <p className="mt-1 text-sm text-gray-600">Site-wide toggles.</p>
@@ -45,6 +46,6 @@ export default async function AdminSettingsPage() {
           />
         </CardContent>
       </Card>
-    </div>
+    </PageContainer>
   );
 }

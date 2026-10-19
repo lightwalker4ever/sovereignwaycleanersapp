@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listBookings } from "./actions";
 import { BookingStatusSelect } from "@/components/admin/BookingStatusSelect";
+import { PageContainer } from "@/components/shell/PageContainer";
 
 const SERVICE_LABEL: Record<string, string> = {
   end_of_tenancy: "End of Tenancy",
@@ -12,7 +13,7 @@ export default async function BookingsPage() {
   const bookings = await listBookings();
 
   return (
-    <div className="space-y-8">
+    <PageContainer>
       <div>
         <h1 className="text-2xl font-bold text-gray-900">Bookings</h1>
         <p className="mt-1 text-sm text-gray-600">
@@ -75,6 +76,6 @@ export default async function BookingsPage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </PageContainer>
   );
 }
