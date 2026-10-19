@@ -38,6 +38,7 @@ export interface CleaningDetailForParty {
   status: string;
   notes: string | null;
   scheduledAt: string;
+  endsAt: string | null;
   createdAt: string;
   completedAt: string | null;
   checklist: CleaningChecklistItem[];
@@ -68,7 +69,7 @@ export async function getCleaningDetailForParty(
 
   const { data: cleaning, error } = await admin
     .from("cleanings")
-    .select("id, client_id, cleaner_id, supervisor_id, status, notes, scheduled_at, created_at, completed_at")
+    .select("id, client_id, cleaner_id, supervisor_id, status, notes, scheduled_at, ends_at, created_at, completed_at")
     .eq("id", cleaningId)
     .single();
   if (error || !cleaning) return null;
@@ -140,6 +141,7 @@ export async function getCleaningDetailForParty(
     status: cleaning.status,
     notes: cleaning.notes,
     scheduledAt: cleaning.scheduled_at,
+    endsAt: cleaning.ends_at,
     createdAt: cleaning.created_at,
     completedAt: cleaning.completed_at,
     checklist: (checklist ?? []).map((c) => ({
