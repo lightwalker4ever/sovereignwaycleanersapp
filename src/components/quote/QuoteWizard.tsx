@@ -29,6 +29,7 @@ import {
   type QuoteServiceKey,
 } from "@/lib/quote-calculations";
 import type { RateCard } from "@/lib/rate-card";
+import { emailSchema } from "@/lib/validation";
 
 const SERVICE_TITLE: Record<QuoteServiceKey, string> = {
   end_of_tenancy: "End of Tenancy — Instant Quote",
@@ -72,27 +73,11 @@ export function QuoteWizard({
 
   const [step, setStep] = useState<"form" | "booking" | "success">("form");
   const [bookingName, setBookingName] = useState("");
-  const [bookingEmail, setBookingEmail] = useState("");
+  const [email, setEmail] = useState("");
   const [bookingPhone, setBookingPhone] = useState("");
   const [bookingHoneypot, setBookingHoneypot] = useState("");
   const [bookingError, setBookingError] = useState<string | null>(null);
   const [submittingBooking, startSubmittingBooking] = useTransition();
-
-  // Reset the booking step (and its fields) whenever the dialog closes --
-  // compares the tracked previous value of `open` itself, same "adjust
-  // state during render" pattern as `initialService` above.
-  const [handledOpen, setHandledOpen] = useState(open);
-  if (open !== handledOpen) {
-    setHandledOpen(open);
-    if (!open) {
-      setStep("form");
-      setBookingName("");
-      setBookingEmail("");
-      setBookingPhone("");
-      setBookingHoneypot("");
-      setBookingError(null);
-    }
-  }
 
   const [rateCard, setRateCard] = useState<RateCard | null>(null);
   const [rateCardError, setRateCardError] = useState<string | null>(null);
@@ -101,7 +86,36 @@ export function QuoteWizard({
   const [postcode, setPostcode] = useState("");
   const [location, setLocation] = useState<ResolvedLocation>(DEFAULT_LOCATION);
   const [resolvingLocation, startResolvingLocation] = useTransition();
+  // Which postcode `location` currently reflects -- distinct from the ref
+  // below, which is set the instant blur fires (before resolution
+  // finishes) and so can't be used to gate the price reveal.
+  const [resolvedForPostcode, setResolvedForPostcode] = useState("");
   const lastResolvedPostcode = useRef<string>("");
+
+  // Reset the whole wizard (form + booking fields) whenever the dialog
+  // closes -- compares the tracked previous value of `open` itself, same
+  // "adjust state during render" pattern as `initialService` above. The
+  // ref reset can't live in this block (refs may not be touched during
+  // render), so it's split into the effect right below instead.
+  const [handledOpen, setHandledOpen] = useState(open);
+  if (open !== handledOpen) {
+    setHandledOpen(open);
+    if (!open) {
+      setStep("form");
+      setBookingName("");
+      setEmail("");
+      setBookingPhone("");
+      setBookingHoneypot("");
+      setBookingError(null);
+      setPostcode("");
+      setLocation(DEFAULT_LOCATION);
+      setResolvedForPostcode("");
+    }
+  }
+
+  useEffect(() => {
+    if (!open) lastResolvedPostcode.current = "";
+  }, [open]);
 
   const [eotInput, setEotInput] = useState(DEFAULT_EOT_INPUT);
   const [deepInput, setDeepInput] = useState(DEFAULT_DEEP_INPUT);
@@ -126,6 +140,7 @@ export function QuoteWizard({
     const trimmed = postcode.trim();
     if (!trimmed) {
       setLocation(DEFAULT_LOCATION);
+      setResolvedForPostcode("");
       lastResolvedPostcode.current = "";
       return;
     }
@@ -134,6 +149,7 @@ export function QuoteWizard({
     startResolvingLocation(async () => {
       const resolved = await resolveLocationMultiplier(trimmed);
       setLocation(resolved);
+      setResolvedForPostcode(trimmed);
     });
   }
 
@@ -147,6 +163,15 @@ export function QuoteWizard({
     }
     return calculateOfficeCleaning(officeInput, rateCard, location.multiplier, location.label);
   }, [rateCard, service, eotInput, deepInput, officeInput, location]);
+
+  // The quote stays hidden until the customer has given us a postcode
+  // (resolved, not just typed -- so the shown price never reflects a
+  // stale/default location for a few hundred ms) and a validly-formatted
+  // email -- both required "for now" per explicit request, ahead of a
+  // fuller redesign of this wizard.
+  const postcodeReady = postcode.trim().length > 0 && resolvedForPostcode === postcode.trim();
+  const emailValid = emailSchema.safeParse(email.trim()).success;
+  const readyForPrice = postcodeReady && emailValid;
 
   function handleBookNow() {
     setBookingError(null);
@@ -164,7 +189,7 @@ export function QuoteWizard({
         selectedInputs,
         postcode,
         name: bookingName,
-        email: bookingEmail,
+        email,
         phone: bookingPhone || undefined,
         honeypot: bookingHoneypot || undefined,
       });
@@ -232,13 +257,14 @@ export function QuoteWizard({
                   )}
 
                   <div className="space-y-1.5">
-                    <Label htmlFor="quote-postcode">Postcode</Label>
+                    <Label htmlFor="quote-postcode">Postcode (required)</Label>
                     <Input
                       id="quote-postcode"
                       placeholder="e.g. TN9 1AB"
                       value={postcode}
                       onChange={(e) => setPostcode(e.target.value)}
                       onBlur={handlePostcodeBlur}
+                      required
                     />
                     {resolvingLocation && (
                       <p className="flex items-center gap-1 text-xs text-gray-400">
@@ -247,6 +273,25 @@ export function QuoteWizard({
                       </p>
                     )}
                   </div>
+
+                  <div className="space-y-1.5">
+                    <Label htmlFor="quote-email">Email (required)</Label>
+                    <Input
+                      id="quote-email"
+                      type="email"
+                      placeholder="jane@example.com"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      required
+                    />
+                    <p className="text-xs text-gray-400">So we can send you this quote request and its value.</p>
+                  </div>
+
+                  {!readyForPrice && (
+                    <p className="text-sm text-gray-500">
+                      Fill in your postcode and email above to see your price.
+                    </p>
+                  )}
                 </div>
               )}
             </>
@@ -264,16 +309,6 @@ export function QuoteWizard({
                   value={bookingName}
                   onChange={(e) => setBookingName(e.target.value)}
                   placeholder="Jane Smith"
-                />
-              </div>
-              <div className="space-y-1.5">
-                <Label htmlFor="booking-email">Email</Label>
-                <Input
-                  id="booking-email"
-                  type="email"
-                  value={bookingEmail}
-                  onChange={(e) => setBookingEmail(e.target.value)}
-                  placeholder="jane@example.com"
                 />
               </div>
               <div className="space-y-1.5">
@@ -311,7 +346,7 @@ export function QuoteWizard({
           )}
         </div>
 
-        {step === "form" && breakdown && (
+        {step === "form" && breakdown && readyForPrice && (
           <DialogFooter className="space-y-3">
             <PriceBreakdown breakdown={breakdown} />
             <Button type="button" className="w-full rounded-full" size="lg" onClick={handleBookNow}>

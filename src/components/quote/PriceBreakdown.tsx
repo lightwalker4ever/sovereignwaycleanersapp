@@ -16,15 +16,10 @@ export function PriceBreakdown({ breakdown }: { breakdown: QuoteBreakdown }) {
         ))}
       </div>
 
-      {breakdown.locationMultiplier !== 1 && (
-        <div className="flex items-center justify-between text-gray-600">
-          <span>Location adjustment ({breakdown.locationLabel})</span>
-          <span>
-            {breakdown.locationMultiplier > 1 ? "+" : ""}
-            {Math.round((breakdown.locationMultiplier - 1) * 100)}%
-          </span>
-        </div>
-      )}
+      {/* The location multiplier is still applied to subtotalExVat/vatAmount/
+          totalIncVat below -- it's deliberately not broken out as its own
+          line here, so a customer in a higher-cost area never sees that
+          they're being charged a location-based surplus. */}
 
       <div className="border-t border-gray-100 pt-2">
         <div className="flex items-center justify-between text-gray-700">
