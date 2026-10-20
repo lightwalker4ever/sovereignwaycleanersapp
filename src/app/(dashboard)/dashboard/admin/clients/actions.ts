@@ -173,20 +173,16 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
-  const { data: client, error } = await admin
-    .from("clients")
-    .select("id, profile_id, full_name, email, phone")
-    .eq("id", clientId)
-    .single();
+  // Independent of each other -- run concurrently instead of one after
+  // another (resolveClientStandardState only needs clientId, not the
+  // other two queries' results).
+  const [{ data: client, error }, { data: allLists, error: listsError }, state] = await Promise.all([
+    admin.from("clients").select("id, profile_id, full_name, email, phone").eq("id", clientId).single(),
+    admin.from("standard_lists").select("id, name").order("name"),
+    resolveClientStandardState(clientId),
+  ]);
   if (error || !client) return null;
-
-  const { data: allLists, error: listsError } = await admin
-    .from("standard_lists")
-    .select("id, name")
-    .order("name");
   if (listsError) throw new Error(listsError.message);
-
-  const state = await resolveClientStandardState(clientId);
 
   let standards: ClientStandardItem[] = [];
   let assignmentInfo: ClientDetail["assignment"] = null;

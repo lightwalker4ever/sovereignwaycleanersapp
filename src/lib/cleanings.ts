@@ -105,14 +105,24 @@ export async function getCleaningDetailForParty(
   if (commentsError) throw new Error(commentsError.message);
 
   const checklistIds = (checklist ?? []).map((c) => c.id);
-  const { data: photos, error: photosError } = checklistIds.length
-    ? await admin
-        .from("cleaning_photos")
-        .select("id, cleaning_standard_id, storage_path, comment, author_role, created_at")
-        .in("cleaning_standard_id", checklistIds)
-        .order("created_at", { ascending: true })
-    : { data: [], error: null };
+  const authorIds = [...new Set((comments ?? []).map((c) => c.author_profile_id))];
+
+  // `authors` only depends on `comments` (already fetched above), not on
+  // `photos` -- run them concurrently instead of one after another.
+  const [{ data: photos, error: photosError }, { data: authors, error: authorsError }] = await Promise.all([
+    checklistIds.length
+      ? admin
+          .from("cleaning_photos")
+          .select("id, cleaning_standard_id, storage_path, comment, author_role, created_at")
+          .in("cleaning_standard_id", checklistIds)
+          .order("created_at", { ascending: true })
+      : Promise.resolve({ data: [], error: null }),
+    authorIds.length
+      ? admin.from("profiles").select("id, full_name").in("id", authorIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (photosError) throw new Error(photosError.message);
+  if (authorsError) throw new Error(authorsError.message);
 
   const signedUrls = await getSignedPhotoUrls((photos ?? []).map((p) => p.storage_path));
 
@@ -130,11 +140,6 @@ export async function getCleaningDetailForParty(
     photosByStandard.set(p.cleaning_standard_id, list);
   }
 
-  const authorIds = [...new Set((comments ?? []).map((c) => c.author_profile_id))];
-  const { data: authors, error: authorsError } = authorIds.length
-    ? await admin.from("profiles").select("id, full_name").in("id", authorIds)
-    : { data: [], error: null };
-  if (authorsError) throw new Error(authorsError.message);
   const authorNameById = new Map((authors ?? []).map((a) => [a.id, a.full_name]));
 
   return {

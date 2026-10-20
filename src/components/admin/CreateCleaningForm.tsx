@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState, useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { Loader2, Plus, MapPin } from "lucide-react";
 import {
   Select,
@@ -371,9 +372,9 @@ export function CreateCleaningForm({
             <div className="flex flex-col gap-1.5 rounded-xl border border-dash-border px-3.5 py-3">
               <div className="flex items-center justify-between">
                 <span className="text-sm font-bold text-dash-ink">{selectedClient.standardListName}</span>
-                <a href="/dashboard/admin/standards" className="text-[13px] font-semibold text-dash-brand-700">
+                <Link href="/dashboard/admin/standards" className="text-[13px] font-semibold text-dash-brand-700">
                   Change
-                </a>
+                </Link>
               </div>
               <span className="text-[13px] text-dash-muted">From {selectedClient.fullName}&apos;s assigned list</span>
             </div>
