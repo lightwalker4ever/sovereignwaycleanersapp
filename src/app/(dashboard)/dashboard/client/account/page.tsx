@@ -1,15 +1,12 @@
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signOut } from "@/app/(dashboard)/actions";
 import { getMyClientAccount } from "../actions";
 import { MobileShell } from "@/components/shell/MobileShell";
 import { CLIENT_TABS } from "../page";
 
 export default async function ClientAccountPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   const account = await getMyClientAccount();
 
   const fullName = account?.fullName ?? user?.email ?? "";

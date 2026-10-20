@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 
 const ROLE_HOME: Record<string, string> = {
   admin: "/dashboard/admin",
@@ -16,15 +16,10 @@ const ROLE_HOME: Record<string, string> = {
  * send a just-signed-in user straight to their role's real home.
  */
 export default async function DashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase.from("profiles").select("role").eq("id", user.id).single();
-
-  redirect(ROLE_HOME[profile?.role ?? ""] ?? "/login");
+  redirect(ROLE_HOME[user.role ?? ""] ?? "/login");
 }

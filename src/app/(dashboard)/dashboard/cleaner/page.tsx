@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Home, Calendar, History, User, PlayCircle, ClipboardCheck } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listCleanerJobCards, isSameDay, jobTimeLabel } from "@/lib/cleaner-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -14,13 +14,9 @@ export const CLEANER_TABS: ShellNavItem[] = [
 ];
 
 export default async function CleanerTodayPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user!.id).single();
+  const user = await getCurrentUser();
 
-  const fullName = profile?.full_name ?? user!.email ?? "";
+  const fullName = user?.fullName ?? user?.email ?? "";
   const firstName = fullName.split(" ")[0] || "there";
   const initials = fullName
     .split(" ")

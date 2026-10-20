@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ClipboardCheck, CalendarDays } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { getSupervisorQueueData } from "@/lib/supervisor-queue";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageContainer } from "@/components/shell/PageContainer";
@@ -11,19 +11,10 @@ import { capitalize } from "@/lib/utils";
 import type { ShellNavItem } from "@/components/shell/types";
 
 export default async function SupervisorPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user!.id)
-    .single();
-
+  const user = await getCurrentUser();
   const data = await getSupervisorQueueData(user!.id);
 
-  const fullName = profile?.full_name ?? user!.email ?? "";
+  const fullName = user?.fullName ?? user?.email ?? "";
   const firstName = fullName.split(" ")[0] || "there";
   const initials = fullName
     .split(" ")
@@ -50,7 +41,7 @@ export default async function SupervisorPage() {
   const dateLabel = new Date().toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
 
   return (
-    <AppShell navItems={navItems} user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(profile?.role ?? "supervisor") }}>
+    <AppShell navItems={navItems} user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(user?.role ?? "supervisor") }}>
       <PageContainer>
         <header>
           <div className="text-[13px] font-semibold tracking-wide text-dash-muted uppercase">{dateLabel}</div>

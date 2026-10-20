@@ -13,7 +13,7 @@ import {
   Settings as SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { getAdminNavBadges } from "@/lib/admin-dashboard";
 import { AppShell } from "@/components/shell/AppShell";
 import { capitalize } from "@/lib/utils";
@@ -39,21 +39,12 @@ export default async function AdminLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "admin" && profile?.role !== "manager") {
+  if (user.role !== "admin" && user.role !== "manager") {
     redirect("/dashboard");
   }
 
@@ -92,7 +83,7 @@ export default async function AdminLayout({
     { href: "/dashboard/admin/settings", label: "Settings", icon: navIcon(SettingsIcon) },
   ];
 
-  const fullName = profile?.full_name ?? user.email ?? "";
+  const fullName = user.fullName ?? user.email ?? "";
   const initials = fullName
     .split(" ")
     .map((w) => w[0])
@@ -104,7 +95,7 @@ export default async function AdminLayout({
   return (
     <AppShell
       navItems={navItems}
-      user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(profile.role) }}
+      user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(user.role ?? "") }}
     >
       {children}
     </AppShell>

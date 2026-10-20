@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { ClipboardCheck, CalendarDays } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listAllMyCleanings } from "../actions";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageContainer } from "@/components/shell/PageContainer";
@@ -11,14 +11,10 @@ import { capitalize } from "@/lib/utils";
 import type { ShellNavItem } from "@/components/shell/types";
 
 export default async function SupervisorCleaningsPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("full_name, role").eq("id", user!.id).single();
+  const user = await getCurrentUser();
   const rows = await listAllMyCleanings();
 
-  const fullName = profile?.full_name ?? user!.email ?? "";
+  const fullName = user?.fullName ?? user?.email ?? "";
   const initials = fullName.split(" ").map((w) => w[0]).filter(Boolean).slice(0, 2).join("").toUpperCase();
 
   const navItems: ShellNavItem[] = [
@@ -27,7 +23,7 @@ export default async function SupervisorCleaningsPage() {
   ];
 
   return (
-    <AppShell navItems={navItems} user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(profile?.role ?? "supervisor") }}>
+    <AppShell navItems={navItems} user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(user?.role ?? "supervisor") }}>
       <PageContainer>
         <header>
           <h1 className="text-[28px] font-extrabold tracking-tight text-dash-ink">Cleanings</h1>

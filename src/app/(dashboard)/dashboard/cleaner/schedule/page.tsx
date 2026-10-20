@@ -1,15 +1,12 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listCleanerJobCards, jobTimeLabel } from "@/lib/cleaner-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { CLEANER_TABS } from "../page";
 
 export default async function CleanerSchedulePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const cards = await listCleanerJobCards(user!.id);
   const upcoming = cards.filter((c) => c.displayStatus !== "completed");

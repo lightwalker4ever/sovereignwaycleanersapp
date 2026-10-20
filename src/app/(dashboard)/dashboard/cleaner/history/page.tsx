@@ -1,14 +1,11 @@
 import Link from "next/link";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listCleanerJobCards } from "@/lib/cleaner-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
 import { CLEANER_TABS } from "../page";
 
 export default async function CleanerHistoryPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
 
   const cards = await listCleanerJobCards(user!.id);
   const past = cards

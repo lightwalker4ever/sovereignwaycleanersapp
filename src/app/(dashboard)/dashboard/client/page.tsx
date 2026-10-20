@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Home, Calendar, User, Plus, Bell } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listMyCleaningJobCards } from "./actions";
 import { isSameDay } from "@/lib/client-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
@@ -14,12 +14,8 @@ export const CLIENT_TABS: ShellNavItem[] = [
 ];
 
 export default async function ClientHomePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("full_name").eq("id", user!.id).single();
-  const firstName = (profile?.full_name ?? user!.email ?? "").split(" ")[0] || "there";
+  const user = await getCurrentUser();
+  const firstName = (user?.fullName ?? user?.email ?? "").split(" ")[0] || "there";
 
   const cards = await listMyCleaningJobCards();
   const now = new Date();

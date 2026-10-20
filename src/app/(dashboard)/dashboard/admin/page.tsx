@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Search, Plus, ChevronRight } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { getAdminDashboardData } from "@/lib/admin-dashboard";
 import { PageContainer } from "@/components/shell/PageContainer";
 import { KpiTile } from "@/components/ui/KpiTile";
@@ -9,20 +9,12 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { DataTable, DataTableHeadRow, DataTableRow } from "@/components/ui/DataTable";
 
 export default async function AdminDashboardPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name")
-    .eq("id", user!.id)
-    .single();
+  const user = await getCurrentUser();
   const data = await getAdminDashboardData();
 
   const hour = new Date().getHours();
   const greeting = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
-  const firstName = (profile?.full_name ?? "").split(" ")[0] || "there";
+  const firstName = (user?.fullName ?? "").split(" ")[0] || "there";
   const dateLabel = new Date().toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { capitalize } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
 
@@ -21,21 +21,12 @@ export default async function SalesLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+  const user = await getCurrentUser();
   if (!user) {
     redirect("/login");
   }
 
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user.id)
-    .single();
-
-  if (profile?.role !== "sales") {
+  if (user.role !== "sales") {
     redirect("/dashboard");
   }
 
@@ -52,9 +43,9 @@ export default async function SalesLayout({
           </Link>
           <div className="flex items-center gap-4">
             <span className="text-sm text-gray-600">
-              {profile?.full_name ?? user.email}
+              {user.fullName ?? user.email}
               <span className="ml-2 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700">
-                {capitalize(profile.role)}
+                {capitalize(user.role ?? "")}
               </span>
             </span>
             <form action={signOut}>

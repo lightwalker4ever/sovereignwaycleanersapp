@@ -6,7 +6,7 @@ import { PageContainer } from "@/components/shell/PageContainer";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { toDisplayCleaningStatus } from "@/lib/cleaning-status";
 import { capitalize } from "@/lib/utils";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { getMyReviewDetail } from "../actions";
 import { ReviewWorkspace } from "@/components/supervisor/ReviewWorkspace";
 import type { ShellNavItem } from "@/components/shell/types";
@@ -24,17 +24,8 @@ export default async function SupervisorReviewDetailPage({
     return <ReviewWorkspace cleaning={cleaning} />;
   }
 
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("full_name, role")
-    .eq("id", user!.id)
-    .single();
-
-  const fullName = profile?.full_name ?? user!.email ?? "";
+  const user = await getCurrentUser();
+  const fullName = user?.fullName ?? user?.email ?? "";
   const initials = fullName
     .split(" ")
     .map((w) => w[0])
@@ -54,7 +45,7 @@ export default async function SupervisorReviewDetailPage({
   return (
     <AppShell
       navItems={navItems}
-      user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(profile?.role ?? "supervisor") }}
+      user={{ initials: initials || "?", name: fullName, roleLabel: capitalize(user?.role ?? "supervisor") }}
     >
       <PageContainer>
         <div>

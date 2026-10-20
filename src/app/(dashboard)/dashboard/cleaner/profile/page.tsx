@@ -1,17 +1,13 @@
 import { LogOut } from "lucide-react";
-import { createClient } from "@/lib/supabase/server";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signOut } from "@/app/(dashboard)/actions";
 import { MobileShell } from "@/components/shell/MobileShell";
 import { CLEANER_TABS } from "../page";
 
 export default async function CleanerProfilePage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  const { data: profile } = await supabase.from("profiles").select("full_name, email, phone").eq("id", user!.id).single();
+  const user = await getCurrentUser();
 
-  const fullName = profile?.full_name ?? user!.email ?? "";
+  const fullName = user?.fullName ?? user?.email ?? "";
   const initials = fullName
     .split(" ")
     .map((w) => w[0])
@@ -36,8 +32,8 @@ export default async function CleanerProfilePage() {
           </div>
           <div className="flex flex-col gap-0.5">
             <span className="text-lg font-extrabold">{fullName}</span>
-            <span className="text-sm text-dash-muted">{profile?.email ?? user?.email}</span>
-            {profile?.phone && <span className="text-sm text-dash-muted">{profile.phone}</span>}
+            <span className="text-sm text-dash-muted">{user?.email}</span>
+            {user?.phone && <span className="text-sm text-dash-muted">{user.phone}</span>}
           </div>
         </div>
 
