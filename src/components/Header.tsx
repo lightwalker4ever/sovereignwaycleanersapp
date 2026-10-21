@@ -9,11 +9,9 @@ import { buttonVariants } from "@/lib/button-variants";
 import { cn } from "@/lib/utils";
 
 const navLinks = [
-  { href: "#services", label: "Services" },
-  { href: "#about", label: "About" },
-  { href: "#gallery", label: "Gallery" },
-  { href: "#testimonials", label: "Trusted By" },
-  { href: "#contact", label: "Contact" },
+  { href: "/services", label: "Services" },
+  { href: "/gallery", label: "Gallery" },
+  { href: "/about", label: "About" },
 ];
 
 export default function Header() {
@@ -23,7 +21,7 @@ export default function Header() {
     <header className="fixed inset-x-0 top-0 z-50 border-b border-black/5 bg-white/90 backdrop-blur-sm">
       <div className="mx-auto flex h-24 max-w-7xl items-center justify-between px-6 lg:px-8">
         {/* Logo */}
-        <a href="#">
+        <Link href="/">
           <Image
             src="/image.png"
             alt="Sovereign Way Cleaners"
@@ -32,18 +30,18 @@ export default function Header() {
             className="object-contain max-h-20 w-auto"
             priority
           />
-        </a>
+        </Link>
 
         {/* Desktop nav */}
         <nav className="hidden items-center gap-6 md:flex">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="text-sm font-medium text-gray-600 transition-colors hover:text-gray-900"
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <Link
             href="/login"
@@ -51,15 +49,16 @@ export default function Header() {
           >
             Sign In
           </Link>
-          <a
-            href="#contact"
+          <Link
+            href="?quote=open"
+            scroll={false}
             className={cn(
               buttonVariants({ variant: "default" }),
               "rounded-full px-5"
             )}
           >
             Get a Quote
-          </a>
+          </Link>
         </nav>
 
         {/* Mobile hamburger */}
@@ -78,14 +77,14 @@ export default function Header() {
       {open && (
         <div className="border-t border-gray-100 bg-white px-6 pb-4 md:hidden">
           {navLinks.map((link) => (
-            <a
+            <Link
               key={link.href}
               href={link.href}
               className="block py-3 text-sm font-medium text-gray-700 transition-colors hover:text-gray-900"
               onClick={() => setOpen(false)}
             >
               {link.label}
-            </a>
+            </Link>
           ))}
           <Link
             href="/login"
@@ -94,8 +93,9 @@ export default function Header() {
           >
             Sign In
           </Link>
-          <a
-            href="#contact"
+          <Link
+            href="?quote=open"
+            scroll={false}
             onClick={() => setOpen(false)}
             className={cn(
               buttonVariants({ variant: "default" }),
@@ -103,7 +103,7 @@ export default function Header() {
             )}
           >
             Get a Quote
-          </a>
+          </Link>
         </div>
       )}
     </header>

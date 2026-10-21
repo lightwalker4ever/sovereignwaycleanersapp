@@ -79,15 +79,15 @@ export default function Hero() {
           >
             Get a Free Quote
           </Link>
-          <a
-            href="#services"
+          <Link
+            href="/services"
             className={cn(
               buttonVariants({ variant: "outline", size: "lg" }),
               "rounded-full border-white/70 bg-transparent px-8 py-3.5 text-base font-semibold text-white hover:bg-white/10 hover:text-white"
             )}
           >
             Our Services
-          </a>
+          </Link>
         </div>
       </div>
 

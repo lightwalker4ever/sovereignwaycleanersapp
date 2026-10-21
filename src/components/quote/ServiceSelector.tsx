@@ -1,40 +1,21 @@
 "use client";
 
-import { KeyRound, Sparkles, Briefcase } from "lucide-react";
-import type { QuoteServiceKey } from "@/lib/quote-calculations";
+import { services, type Service } from "@/components/Services";
 
-const SERVICES: { key: QuoteServiceKey; icon: typeof KeyRound; name: string; description: string }[] = [
-  {
-    key: "end_of_tenancy",
-    icon: KeyRound,
-    name: "End of Tenancy",
-    description: "Thorough move-out cleans to meet landlord and letting agency standards.",
-  },
-  {
-    key: "deep_cleaning",
-    icon: Sparkles,
-    name: "Deep Cleaning",
-    description: "Top-to-bottom intensive cleans for kitchens, bathrooms, and entire properties.",
-  },
-  {
-    key: "office_cleaning",
-    icon: Briefcase,
-    name: "Office Cleaning",
-    description: "Regular or one-off cleaning for offices, priced by hours or floor area.",
-  },
-];
-
-export function ServiceSelector({ onSelect }: { onSelect: (service: QuoteServiceKey) => void }) {
+export function ServiceSelector({ onSelect }: { onSelect: (service: Service) => void }) {
   return (
     <div className="space-y-3">
-      <p className="text-sm text-gray-600">Choose a service to get an instant price.</p>
-      {SERVICES.map((service) => {
+      <p className="text-sm text-gray-600">
+        Choose a service. Instant pricing is available for three of them — for the rest, tell us
+        what you need and we&apos;ll get back to you within 24 hours.
+      </p>
+      {services.map((service) => {
         const Icon = service.icon;
         return (
           <button
-            key={service.key}
+            key={service.slug}
             type="button"
-            onClick={() => onSelect(service.key)}
+            onClick={() => onSelect(service)}
             className="flex w-full items-start gap-3 rounded-xl border border-gray-200 p-4 text-left transition-colors hover:border-primary hover:bg-accent"
           >
             <div
@@ -43,8 +24,15 @@ export function ServiceSelector({ onSelect }: { onSelect: (service: QuoteService
             >
               <Icon size={20} style={{ color: "var(--color-brand)" }} />
             </div>
-            <div>
-              <p className="font-semibold text-gray-900">{service.name}</p>
+            <div className="flex-1">
+              <div className="flex items-center justify-between gap-2">
+                <p className="font-semibold text-gray-900">{service.name}</p>
+                {!service.quoteService && (
+                  <span className="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-[11px] font-medium text-gray-500">
+                    24h quote
+                  </span>
+                )}
+              </div>
               <p className="mt-0.5 text-sm text-gray-500">{service.description}</p>
             </div>
           </button>

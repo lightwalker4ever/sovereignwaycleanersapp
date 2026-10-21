@@ -18,6 +18,8 @@ import { EndOfTenancyForm } from "@/components/quote/EndOfTenancyForm";
 import { DeepCleaningForm } from "@/components/quote/DeepCleaningForm";
 import { OfficeCleaningForm } from "@/components/quote/OfficeCleaningForm";
 import { PriceBreakdown } from "@/components/quote/PriceBreakdown";
+import { FallbackRequestForm } from "@/components/quote/FallbackRequestForm";
+import type { Service } from "@/components/Services";
 import { getQuoteRateCard, resolveLocationMultiplier, submitBooking, type ResolvedLocation } from "@/actions/quote";
 import {
   calculateEndOfTenancy,
@@ -58,10 +60,16 @@ const DEFAULT_OFFICE_INPUT: OfficeCleaningInput = {
 export function QuoteWizard({
   open,
   initialService,
+  initialRequestService,
+  contactFormEnabled,
   onClose,
 }: {
   open: boolean;
   initialService: QuoteServiceKey | null;
+  /** Display name of a service with no rate-card support, set when the
+   *  deep link matched one of those instead of a calculator service. */
+  initialRequestService: string | null;
+  contactFormEnabled: boolean;
   onClose: () => void;
 }) {
   const [service, setService] = useState<QuoteServiceKey | null>(initialService);
@@ -69,6 +77,23 @@ export function QuoteWizard({
   if (initialService !== handledInitialService) {
     setHandledInitialService(initialService);
     setService(initialService);
+  }
+
+  // Set only for a service with no rate-card support -- renders the
+  // "request a quote" fallback form instead of the live calculator.
+  const [requestService, setRequestService] = useState<string | null>(initialRequestService);
+  const [handledInitialRequestService, setHandledInitialRequestService] = useState(initialRequestService);
+  if (initialRequestService !== handledInitialRequestService) {
+    setHandledInitialRequestService(initialRequestService);
+    setRequestService(initialRequestService);
+  }
+
+  function handleSelectService(svc: Service) {
+    if (svc.quoteService) {
+      setService(svc.quoteService);
+    } else {
+      setRequestService(svc.name);
+    }
   }
 
   const [step, setStep] = useState<"form" | "booking" | "success">("form");
@@ -110,6 +135,7 @@ export function QuoteWizard({
       setPostcode("");
       setLocation(DEFAULT_LOCATION);
       setResolvedForPostcode("");
+      setRequestService(null);
     }
   }
 
@@ -206,32 +232,42 @@ export function QuoteWizard({
       <DialogContent>
         <DialogHeader>
           <div className="flex items-center gap-2">
-            {step === "form" && service && !initialService && (
+            {((step === "form" && service && !initialService) ||
+              (requestService && !initialRequestService)) && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
-                onClick={() => setService(null)}
+                onClick={() => {
+                  setService(null);
+                  setRequestService(null);
+                }}
                 aria-label="Back to service selection"
               >
                 <ArrowLeft className="size-4" />
               </Button>
             )}
             <DialogTitle>
-              {step === "booking"
-                ? "Confirm Your Booking"
-                : step === "success"
-                  ? "Booking Received"
-                  : service
-                    ? SERVICE_TITLE[service]
-                    : "Get an Instant Quote"}
+              {requestService
+                ? `${requestService} — Request a Quote`
+                : step === "booking"
+                  ? "Confirm Your Booking"
+                  : step === "success"
+                    ? "Booking Received"
+                    : service
+                      ? SERVICE_TITLE[service]
+                      : "Get an Instant Quote"}
             </DialogTitle>
           </div>
           <DialogClose />
         </DialogHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
-          {step === "form" && (
+          {requestService && (
+            <FallbackRequestForm service={requestService} contactFormEnabled={contactFormEnabled} />
+          )}
+
+          {!requestService && step === "form" && (
             <>
               {rateCardError && <p className="text-sm text-red-600">{rateCardError}</p>}
 
@@ -242,7 +278,7 @@ export function QuoteWizard({
                 </div>
               )}
 
-              {!rateCardError && rateCard && !service && <ServiceSelector onSelect={setService} />}
+              {!rateCardError && rateCard && !service && <ServiceSelector onSelect={handleSelectService} />}
 
               {!rateCardError && rateCard && service && (
                 <div className="space-y-4">
@@ -297,7 +333,7 @@ export function QuoteWizard({
             </>
           )}
 
-          {step === "booking" && (
+          {!requestService && step === "booking" && (
             <div className="space-y-4">
               <p className="text-sm text-gray-600">
                 A few details so we can confirm your booking and get in touch.
@@ -336,7 +372,7 @@ export function QuoteWizard({
             </div>
           )}
 
-          {step === "success" && (
+          {!requestService && step === "success" && (
             <div className="space-y-2 py-6 text-center">
               <p className="text-lg font-semibold text-gray-900">Thank you, {bookingName.split(" ")[0] || "there"}!</p>
               <p className="text-sm text-gray-600">
@@ -346,7 +382,7 @@ export function QuoteWizard({
           )}
         </div>
 
-        {step === "form" && breakdown && readyForPrice && (
+        {!requestService && step === "form" && breakdown && readyForPrice && (
           <DialogFooter className="space-y-3">
             <PriceBreakdown breakdown={breakdown} />
             <Button type="button" className="w-full rounded-full" size="lg" onClick={handleBookNow}>
@@ -355,7 +391,7 @@ export function QuoteWizard({
           </DialogFooter>
         )}
 
-        {step === "booking" && (
+        {!requestService && step === "booking" && (
           <DialogFooter className="flex gap-3">
             <Button
               type="button"
@@ -380,7 +416,7 @@ export function QuoteWizard({
           </DialogFooter>
         )}
 
-        {step === "success" && (
+        {!requestService && step === "success" && (
           <DialogFooter>
             <Button type="button" className="w-full rounded-full" size="lg" onClick={onClose}>
               Close

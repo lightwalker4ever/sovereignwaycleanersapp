@@ -24,21 +24,20 @@ export default function Footer() {
             </h3>
             <ul className="mt-4 space-y-2 text-sm">
               {[
-                { href: "#services", label: "Services" },
-                { href: "#about", label: "About Us" },
-                { href: "#values", label: "Core Values" },
-                { href: "#affiliations", label: "Affiliations" },
-                { href: "#gallery", label: "Gallery" },
-                { href: "#testimonials", label: "Trusted By" },
-                { href: "#contact", label: "Contact" },
+                { href: "/", label: "Home" },
+                { href: "/services", label: "Services" },
+                { href: "/gallery", label: "Gallery" },
+                { href: "/about", label: "About Us" },
+                { href: "?quote=open", label: "Get a Quote" },
               ].map((link) => (
                 <li key={link.href}>
-                  <a
+                  <Link
                     href={link.href}
+                    scroll={link.href.startsWith("?") ? false : undefined}
                     className="transition-colors hover:text-white"
                   >
                     {link.label}
-                  </a>
+                  </Link>
                 </li>
               ))}
             </ul>

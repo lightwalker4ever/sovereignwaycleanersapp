@@ -44,8 +44,13 @@ const links = [
 
 export default function SocialSidebar() {
   const pathname = usePathname();
-  // Start as true — page loads at the Hero (dark section)
-  const [isDark, setIsDark] = useState(true);
+  // Only the homepage opens on the dark Hero section -- every other
+  // marketing page (Services/Gallery/About) starts on a light section,
+  // now that each lives on its own route instead of further down the
+  // same page. The IntersectionObserver below corrects this on the
+  // first tick regardless, but starting from the right guess avoids an
+  // initial flash of white icons on a light background.
+  const [isDark, setIsDark] = useState(pathname === "/");
 
   useEffect(() => {
     const intersecting = new Set<Element>();

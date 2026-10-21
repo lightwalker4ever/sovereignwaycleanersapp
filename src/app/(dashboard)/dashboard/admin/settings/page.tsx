@@ -22,8 +22,8 @@ export default async function AdminSettingsPage() {
         <CardHeader>
           <CardTitle>Contact form</CardTitle>
           <CardDescription>
-            Turn the homepage contact form off once the instant quote and booking flow covers
-            what you need — visitors will see an alternative way to reach you instead.
+            Turn off the &ldquo;request a quote&rdquo; form shown in the quote wizard for services
+            without instant pricing — visitors will see an alternative way to reach you instead.
           </CardDescription>
         </CardHeader>
         <CardContent>

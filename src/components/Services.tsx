@@ -19,12 +19,19 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 
-interface Service {
+export interface Service {
   icon: LucideIcon;
   name: string;
   description: string;
   image: string;
-  /** Set only for the 3 services with rate-card data -- links "Book a Clean" into the instant-quote wizard instead of the contact form. */
+  /** Stable key for ?quote=<slug> deep links into the quote wizard --
+   *  every service has one. Distinct from quoteService below, which
+   *  additionally marks the 3 with full instant-pricing support. */
+  slug: string;
+  /** Set only for the 3 services with rate-card data -- the quote
+   *  wizard opens straight into the live calculator for these; every
+   *  other service opens the wizard's "request a quote" fallback form
+   *  instead (no instant pricing available yet). */
   quoteService?: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
 }
 
@@ -35,6 +42,7 @@ export const services: Service[] = [
     description:
       "Regular home cleaning tailored to your schedule. We keep your living spaces spotless so you can focus on what matters.",
     image: "/images/Domestic%20Cleaning.png",
+    slug: "domestic_cleaning",
   },
   {
     icon: Building2,
@@ -42,6 +50,7 @@ export const services: Service[] = [
     description:
       "Professional cleaning for offices, retail spaces, and commercial premises. First impressions count.",
     image: "/images/Commercial%20Cleaning.png",
+    slug: "commercial_cleaning",
   },
   {
     icon: KeyRound,
@@ -49,6 +58,7 @@ export const services: Service[] = [
     description:
       "Thorough move-out cleans to meet landlord and letting agency standards. Helping you secure your deposit.",
     image: "/images/end%20of%20tenancy.jpg",
+    slug: "end_of_tenancy",
     quoteService: "end_of_tenancy",
   },
   {
@@ -57,6 +67,7 @@ export const services: Service[] = [
     description:
       "Top-to-bottom intensive cleans for kitchens, bathrooms, and entire properties that need extra attention.",
     image: "/images/Deep%20Cleaning.png",
+    slug: "deep_cleaning",
     quoteService: "deep_cleaning",
   },
   {
@@ -65,6 +76,7 @@ export const services: Service[] = [
     description:
       "Steam and dry cleaning methods to lift stains and refresh carpets. Restoring colour and freshness.",
     image: "/images/Carpet%20Cleaning.png",
+    slug: "carpet_cleaning",
   },
   {
     icon: HardHat,
@@ -72,6 +84,7 @@ export const services: Service[] = [
     description:
       "Post-construction cleaning removing dust, debris, and residue — leaving new spaces ready to use.",
     image: "/images/After%20Build%20Clean.png",
+    slug: "after_build_clean",
   },
   {
     icon: PaintRoller,
@@ -79,6 +92,7 @@ export const services: Service[] = [
     description:
       "The finishing touch after renovations or a new build — we clear dust and debris, then detail every surface until it sparkles, ready to hand over.",
     image: "/images/Builders%20and%20sparkle%20clean.png",
+    slug: "builders_sparkle_clean",
   },
   {
     icon: Boxes,
@@ -86,6 +100,7 @@ export const services: Service[] = [
     description:
       "Starting fresh or leaving spotless — a thorough clean of every room so the property is ready for its next chapter.",
     image: "/images/move_in_out_1.png",
+    slug: "move_in_out",
   },
   {
     icon: Briefcase,
@@ -95,6 +110,7 @@ export const services: Service[] = [
     // Placeholder until a real photo is supplied -- swap for a local
     // asset under /public/images/ the same way every other service does.
     image: "https://picsum.photos/seed/office-cleaning/800/600",
+    slug: "office_cleaning",
     quoteService: "office_cleaning",
   },
 ];
@@ -156,8 +172,8 @@ export default function Services() {
                     {service.description}
                   </p>
                   <Link
-                    href={service.quoteService ? `?quote=${service.quoteService}` : "#contact"}
-                    scroll={!service.quoteService}
+                    href={`?quote=${service.slug}`}
+                    scroll={false}
                     className="mt-auto inline-flex w-fit items-center gap-1.5 pt-4 text-sm font-semibold transition-colors hover:gap-2.5"
                     style={{ color: "var(--color-brand)" }}
                   >
