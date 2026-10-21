@@ -28,6 +28,7 @@ export default function Footer() {
                 { href: "/services", label: "Services" },
                 { href: "/gallery", label: "Gallery" },
                 { href: "/about", label: "About Us" },
+                { href: "/contact", label: "Contact Us" },
                 { href: "?quote=open", label: "Get a Quote" },
               ].map((link) => (
                 <li key={link.href}>

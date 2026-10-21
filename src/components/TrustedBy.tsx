@@ -44,7 +44,7 @@ export default function TrustedBy() {
           {partners.map((partner) => (
             <div
               key={partner.name}
-              className="flex h-28 items-center justify-center rounded-2xl bg-gray-50 p-6 shadow-sm"
+              className="flex h-28 items-center justify-center p-6"
             >
               <Image
                 src={partner.logoSrc}

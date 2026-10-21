@@ -2,7 +2,7 @@
 
 import { z } from "zod";
 import { Resend } from "resend";
-import { nameSchema, emailSchema, phoneSchema } from "@/lib/validation";
+import { nameSchema, emailSchema, phoneSchema, messageSchema } from "@/lib/validation";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getSalesNotificationEmail } from "@/lib/app-settings";
 
@@ -11,7 +11,7 @@ const schema = z.object({
   email: emailSchema,
   phone: phoneSchema,
   service: z.string().min(1, "Please select one service"),
-  message: z.string().min(50, "Please provide a description of at least 50 characters"),
+  message: messageSchema,
 });
 
 const resend = new Resend(process.env.RESEND_API_KEY);

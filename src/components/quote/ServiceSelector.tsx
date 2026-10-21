@@ -6,8 +6,8 @@ export function ServiceSelector({ onSelect }: { onSelect: (service: Service) => 
   return (
     <div className="space-y-3">
       <p className="text-sm text-gray-600">
-        Choose a service. Instant pricing is available for three of them — for the rest, tell us
-        what you need and we&apos;ll get back to you within 24 hours.
+        Instant pricing is available for some services. For all other services without instant
+        pricing, we&apos;ll get back to you in 24 hours.
       </p>
       {services.map((service) => {
         const Icon = service.icon;

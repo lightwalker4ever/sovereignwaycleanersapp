@@ -39,3 +39,20 @@ export const requiredPhoneSchema = z.string().refine(
 export const passwordSchema = z
   .string()
   .min(6, "Password must be at least 6 characters");
+
+export const messageSchema = z
+  .string()
+  .trim()
+  .min(50, "Please provide a description of at least 50 characters");
+
+/**
+ * Runs a field's value through its zod schema and returns just the
+ * first issue's message (or null) -- used to show per-field errors as
+ * the user types/blurs, ahead of the same schema re-running server-side
+ * on submit. Trims first so validation matches what the user sees in a
+ * character counter, which is always trimmed.
+ */
+export function schemaFieldError(schema: z.ZodTypeAny, value: string): string | null {
+  const result = schema.safeParse(value.trim());
+  return result.success ? null : result.error.issues[0]?.message ?? null;
+}
