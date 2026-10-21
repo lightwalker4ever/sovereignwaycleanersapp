@@ -229,8 +229,8 @@ export function QuoteWizard({
 
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
-      <DialogContent className="bg-[var(--color-accent)]">
-        <DialogHeader>
+      <DialogContent>
+        <DialogHeader className="bg-[var(--color-accent)]">
           <div className="flex items-center gap-2">
             {((step === "form" && service && !initialService) ||
               (requestService && !initialRequestService)) && (
@@ -383,7 +383,7 @@ export function QuoteWizard({
         </div>
 
         {!requestService && step === "form" && breakdown && readyForPrice && (
-          <DialogFooter className="space-y-3 bg-[var(--color-accent)]">
+          <DialogFooter className="space-y-3">
             <PriceBreakdown breakdown={breakdown} />
             <Button type="button" className="w-full rounded-full" size="lg" onClick={handleBookNow}>
               Book Now
@@ -392,7 +392,7 @@ export function QuoteWizard({
         )}
 
         {!requestService && step === "booking" && (
-          <DialogFooter className="flex gap-3 bg-[var(--color-accent)]">
+          <DialogFooter className="flex gap-3">
             <Button
               type="button"
               variant="outline"
@@ -417,7 +417,7 @@ export function QuoteWizard({
         )}
 
         {!requestService && step === "success" && (
-          <DialogFooter className="bg-[var(--color-accent)]">
+          <DialogFooter>
             <Button type="button" className="w-full rounded-full" size="lg" onClick={onClose}>
               Close
             </Button>
