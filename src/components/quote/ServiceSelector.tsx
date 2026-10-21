@@ -16,7 +16,7 @@ export function ServiceSelector({ onSelect }: { onSelect: (service: Service) => 
             key={service.slug}
             type="button"
             onClick={() => onSelect(service)}
-            className="flex w-full items-start gap-3 rounded-xl border border-gray-200 p-4 text-left transition-colors hover:border-primary hover:bg-accent"
+            className="flex w-full items-start gap-3 rounded-xl border border-gray-200 bg-white p-4 text-left transition-colors hover:border-primary hover:bg-[var(--color-brand-light)]"
           >
             <div
               className="inline-flex shrink-0 items-center justify-center rounded-full p-2.5"

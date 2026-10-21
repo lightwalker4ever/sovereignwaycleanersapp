@@ -97,7 +97,7 @@ export function FallbackRequestForm({
 
   return (
     <div className="space-y-4">
-      <div className="flex items-start gap-2 rounded-xl bg-accent p-3">
+      <div className="flex items-start gap-2 rounded-xl bg-white p-3">
         <Clock className="mt-0.5 size-4 shrink-0" style={{ color: "var(--color-brand)" }} />
         <p className="text-sm text-gray-600">
           Instant pricing isn&apos;t available yet for <strong>{service}</strong>. Tell us a bit about the job and
