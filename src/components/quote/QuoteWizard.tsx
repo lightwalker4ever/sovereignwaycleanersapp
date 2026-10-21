@@ -230,7 +230,7 @@ export function QuoteWizard({
   return (
     <Dialog open={open} onOpenChange={(next) => !next && onClose()}>
       <DialogContent>
-        <DialogHeader className="bg-[var(--color-accent)]">
+        <DialogHeader className="bg-[var(--color-brand)]">
           <div className="flex items-center gap-2">
             {((step === "form" && service && !initialService) ||
               (requestService && !initialRequestService)) && (
@@ -243,11 +243,12 @@ export function QuoteWizard({
                   setRequestService(null);
                 }}
                 aria-label="Back to service selection"
+                className="text-white hover:bg-white/15 hover:text-white"
               >
                 <ArrowLeft className="size-4" />
               </Button>
             )}
-            <DialogTitle>
+            <DialogTitle className="text-white">
               {requestService
                 ? `${requestService} — Request a Quote`
                 : step === "booking"
@@ -259,7 +260,7 @@ export function QuoteWizard({
                       : "Get an Instant Quote"}
             </DialogTitle>
           </div>
-          <DialogClose />
+          <DialogClose className="text-white/80 hover:bg-white/15 hover:text-white" />
         </DialogHeader>
 
         <div className="flex-1 space-y-4 overflow-y-auto p-4 sm:p-6">
