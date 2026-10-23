@@ -26,6 +26,7 @@ export interface QuoteContact {
 export interface QuoteState {
   postcode: string;
   coverage: { checked: boolean; covered: boolean; area: string | null } | null;
+  location: { multiplier: number; label: string } | null;
   service: QuoteServiceKey | null;
   tailoredService: TailoredServiceSlug | null;
   eot: EndOfTenancyInput;
@@ -47,6 +48,7 @@ export interface QuoteState {
 export const DEFAULT_QUOTE_STATE: QuoteState = {
   postcode: "",
   coverage: null,
+  location: null,
   service: null,
   tailoredService: null,
   eot: { propertySize: "bed2", bathrooms: 1, addons: {} },

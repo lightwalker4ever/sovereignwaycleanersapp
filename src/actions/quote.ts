@@ -86,6 +86,61 @@ export async function submitCoverageWaitlist(postcode: string, email: string): P
   return { success: true };
 }
 
+const SERVICE_TITLE: Record<QuoteServiceKey, string> = {
+  end_of_tenancy: "End of Tenancy",
+  deep_cleaning: "Deep Cleaning",
+  office_cleaning: "Office Cleaning",
+};
+
+export type EmailQuoteResult = { success: true } | { success: false; error: string };
+
+/**
+ * Step 2's "Not ready? Email me this quote" link -- the only place an
+ * email is asked for before step 4, so this never persists a lead or a
+ * client record, it just sends the already-computed breakdown. The
+ * breakdown is trusted as given here (not recomputed) since nothing is
+ * stored or charged -- worst case a tampered link emails someone an
+ * incorrect-but-harmless quote, same trust level as sharing a screenshot.
+ */
+export async function emailQuoteToSelf(
+  service: QuoteServiceKey,
+  breakdown: QuoteBreakdown,
+  email: string
+): Promise<EmailQuoteResult> {
+  const parsed = emailSchema.safeParse(email.trim());
+  if (!parsed.success) {
+    return { success: false, error: "Enter a valid email address" };
+  }
+
+  const lineRows = breakdown.lineItems
+    .map((l) => `<tr><td style="padding:4px 0;color:#34403A">${l.label}</td><td style="padding:4px 0;text-align:right">£${l.amount.toFixed(2)}</td></tr>`)
+    .join("");
+
+  try {
+    await resend.emails.send({
+      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      to: parsed.data,
+      subject: `Your ${SERVICE_TITLE[service]} quote from Sovereign Way Cleaners`,
+      html: `
+        <p>Hi,</p>
+        <p>Here's the ${SERVICE_TITLE[service]} quote you were looking at:</p>
+        <table style="width:100%;max-width:420px;border-collapse:collapse;font-family:sans-serif;font-size:14px">
+          ${lineRows}
+          <tr><td style="padding:8px 0;border-top:1px solid #E2E7E3;color:#55615A">Subtotal (ex. VAT)</td><td style="padding:8px 0;border-top:1px solid #E2E7E3;text-align:right">£${breakdown.subtotalExVat.toFixed(2)}</td></tr>
+          <tr><td style="color:#55615A">VAT (20%)</td><td style="text-align:right">£${breakdown.vatAmount.toFixed(2)}</td></tr>
+          <tr><td style="padding-top:8px;font-weight:bold">Total (inc. VAT)</td><td style="padding-top:8px;text-align:right;font-weight:bold">£${breakdown.totalIncVat.toFixed(2)}</td></tr>
+        </table>
+        <p>When you're ready, you can pick up where you left off any time at <a href="https://sovereignwaycleaners.co.uk/quote">sovereignwaycleaners.co.uk/quote</a>.</p>
+        <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+      `,
+    });
+    return { success: true };
+  } catch (e) {
+    console.error("Failed to email quote", e);
+    return { success: false, error: "Couldn't send that right now. Please try again." };
+  }
+}
+
 export interface ResolvedLocation {
   multiplier: number;
   label: string;
