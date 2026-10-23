@@ -457,6 +457,7 @@ export async function submitInstantQuoteRequest(input: {
       access_notes: input.accessNotes.trim() || null,
       marketing_consent: input.marketingConsent,
       source: "website_quote",
+      service: input.service,
       property_answers: input.selectedInputs as unknown as Json,
       price_breakdown: breakdown as unknown as Json,
       notes: `Booked via the website quote journey (${input.service}).`,

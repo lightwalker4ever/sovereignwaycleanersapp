@@ -1,3 +1,4 @@
+import { Suspense } from "react";
 import { listCleanings, listAssignableStaff } from "./actions";
 import { listClients } from "../clients/actions";
 import { listStandardLists } from "../standards/actions";
@@ -50,7 +51,9 @@ export default async function CleaningsPage({
         />
       </header>
 
-      <CleaningsList rows={rows} cleaners={cleaners} />
+      <Suspense fallback={null}>
+        <CleaningsList rows={rows} cleaners={cleaners} supervisors={supervisors} standardLists={standardLists} />
+      </Suspense>
     </PageContainer>
   );
 }

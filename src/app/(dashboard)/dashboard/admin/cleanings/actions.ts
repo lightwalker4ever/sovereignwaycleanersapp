@@ -1,17 +1,21 @@
 "use server";
 
 import { z } from "zod";
+import { Resend } from "resend";
 import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, phoneSchema } from "@/lib/validation";
-import { resolveClientStandardState } from "@/lib/standards";
+import { resolveClientStandardState, assignChecklistToCleaning } from "@/lib/standards";
 import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
 import {
   toDisplayCleaningStatus,
   aggregateChecklistByCleaning,
   type DisplayCleaningStatus,
 } from "@/lib/cleaning-status";
+import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
+
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 export interface AssignableStaff {
   id: string;
@@ -288,4 +292,291 @@ export async function getCleaningDetail(cleaningId: string): Promise<CleaningDet
   // No one specific user -- admin isn't the cleaner or supervisor --
   // so ownerColumn null skips the ownership check entirely.
   return getCleaningDetailForParty(cleaningId, "", null);
+}
+
+const SERVICE_TITLE: Record<string, string> = {
+  end_of_tenancy: "End of Tenancy",
+  deep_cleaning: "Deep Cleaning",
+  office_cleaning: "Office Cleaning",
+};
+
+export interface CleaningRequestDetail {
+  id: string;
+  status: string;
+  service: string | null;
+  serviceTitle: string;
+  clientName: string | null;
+  clientEmail: string | null;
+  clientPhone: string | null;
+  clientAddress: string | null;
+  requestedDate: string | null;
+  requestedWindow: string | null;
+  isFlexible: boolean;
+  accessMethod: string | null;
+  accessNotes: string | null;
+  notes: string | null;
+  marketingConsent: boolean;
+  propertyAnswers: Record<string, unknown> | null;
+  priceBreakdown: {
+    lineItems: { label: string; amount: number }[];
+    subtotalExVat: number;
+    vatAmount: number;
+    totalIncVat: number;
+    locationLabel: string;
+  } | null;
+  declineReason: string | null;
+  createdAt: string;
+}
+
+/**
+ * Purpose-built fetch for the admin request drawer -- distinct from
+ * getCleaningDetailForParty() (shared by cleaner/supervisor/client/admin
+ * for an already-confirmed job's checklist/photos/comments), since an
+ * awaiting_confirmation request has none of that yet. Admin-only.
+ */
+export async function getCleaningRequestDetail(cleaningId: string): Promise<CleaningRequestDetail | null> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  const { data: cleaning, error } = await admin
+    .from("cleanings")
+    .select(
+      "id, status, service, client_id, requested_date, requested_window, is_flexible, access_method, access_notes, notes, marketing_consent, property_answers, price_breakdown, decline_reason, created_at"
+    )
+    .eq("id", cleaningId)
+    .single();
+  if (error || !cleaning) return null;
+
+  const { data: client } = await admin
+    .from("clients")
+    .select("full_name, email, phone, address")
+    .eq("id", cleaning.client_id)
+    .single();
+
+  return {
+    id: cleaning.id,
+    status: cleaning.status,
+    service: cleaning.service,
+    serviceTitle: cleaning.service ? (SERVICE_TITLE[cleaning.service] ?? cleaning.service) : "Unknown service",
+    clientName: client?.full_name ?? null,
+    clientEmail: client?.email ?? null,
+    clientPhone: client?.phone ?? null,
+    clientAddress: client?.address ?? null,
+    requestedDate: cleaning.requested_date,
+    requestedWindow: cleaning.requested_window,
+    isFlexible: cleaning.is_flexible,
+    accessMethod: cleaning.access_method,
+    accessNotes: cleaning.access_notes,
+    notes: cleaning.notes,
+    marketingConsent: cleaning.marketing_consent,
+    propertyAnswers: (cleaning.property_answers as Record<string, unknown> | null) ?? null,
+    priceBreakdown: (cleaning.price_breakdown as CleaningRequestDetail["priceBreakdown"]) ?? null,
+    declineReason: cleaning.decline_reason,
+    createdAt: cleaning.created_at,
+  };
+}
+
+function windowLabelFor(key: string | null): string {
+  return ARRIVAL_WINDOWS.find((w) => w.key === key)?.label ?? "";
+}
+
+export type ConfirmRequestResult = { success: true } | { success: false; error: string };
+
+/**
+ * "Confirm & schedule" -- the website-quote equivalent of createCleaning(),
+ * but updates the existing awaiting_confirmation row (assigning cleaner/
+ * supervisor/the exact time) rather than inserting a new one, and
+ * generates the checklist as a separate step via assignChecklistToCleaning()
+ * since the row already exists. Emails the customer.
+ */
+export async function confirmCleaningRequest(input: {
+  cleaningId: string;
+  cleanerId: string;
+  supervisorId: string;
+  date: string;
+  time: string;
+  standardListId?: string;
+}): Promise<ConfirmRequestResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  if (!input.cleanerId || !input.supervisorId) {
+    return { success: false, error: "Pick a cleaner and a supervisor" };
+  }
+  if (!input.date || !input.time) {
+    return { success: false, error: "Pick a date and start time" };
+  }
+  const scheduledAt = new Date(`${input.date}T${input.time}`);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    return { success: false, error: "That date and time isn't valid" };
+  }
+
+  const [{ data: cleanerProfile }, { data: supervisorProfile }] = await Promise.all([
+    admin.from("profiles").select("role").eq("id", input.cleanerId).single(),
+    admin.from("profiles").select("role").eq("id", input.supervisorId).single(),
+  ]);
+  if (cleanerProfile?.role !== "cleaner") return { success: false, error: "Selected cleaner is invalid" };
+  if (supervisorProfile?.role !== "supervisor") return { success: false, error: "Selected supervisor is invalid" };
+
+  const { data: cleaning, error: fetchError } = await admin
+    .from("cleanings")
+    .select("client_id, service")
+    .eq("id", input.cleaningId)
+    .single();
+  if (fetchError || !cleaning) return { success: false, error: "Request not found" };
+
+  const checklistResult = await assignChecklistToCleaning(
+    input.cleaningId,
+    cleaning.client_id,
+    input.standardListId ?? null
+  );
+  if (!checklistResult.success) return checklistResult;
+
+  const { error: updateError } = await admin
+    .from("cleanings")
+    .update({
+      cleaner_id: input.cleanerId,
+      supervisor_id: input.supervisorId,
+      scheduled_at: scheduledAt.toISOString(),
+      status: "assigned",
+    })
+    .eq("id", input.cleaningId);
+  if (updateError) return { success: false, error: updateError.message };
+
+  const { data: client } = await admin.from("clients").select("full_name, email").eq("id", cleaning.client_id).single();
+  if (client?.email) {
+    const dateLabel = scheduledAt.toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    const timeLabel = scheduledAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
+    try {
+      await resend.emails.send({
+        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        to: client.email,
+        subject: "Your cleaning is confirmed",
+        html: `
+          <p>Hi ${client.full_name ?? "there"},</p>
+          <p>Good news -- your ${SERVICE_TITLE[cleaning.service ?? ""] ?? "cleaning"} is confirmed for <strong>${dateLabel} at ${timeLabel}</strong>.</p>
+          <p>We'll be in touch if anything changes. If you have any questions, call us on <strong>01732 711856</strong> or WhatsApp <strong>07445 109813</strong>.</p>
+          <br>
+          <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+        `,
+      });
+    } catch (e) {
+      console.error("Failed to send confirmation email", e);
+    }
+  }
+
+  revalidatePath("/dashboard/admin/cleanings");
+  revalidatePath("/dashboard/admin");
+  return { success: true };
+}
+
+/**
+ * "Propose another date" -- updates the request's requested date/window
+ * (status stays 'awaiting_confirmation') and emails the customer asking
+ * them to call or reply to confirm. There's no customer-facing accept/
+ * reject UI for this yet -- the email is the negotiation mechanism, same
+ * as a phone call would be.
+ */
+export async function proposeAnotherDate(input: {
+  cleaningId: string;
+  date: string;
+  window: string | null;
+}): Promise<ConfirmRequestResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  if (!input.date) return { success: false, error: "Pick a date to propose" };
+
+  const windowStart = input.window === "morning" ? "08:00" : input.window === "midday" ? "11:00" : input.window === "afternoon" ? "14:00" : "09:00";
+  const scheduledAt = new Date(`${input.date}T${windowStart}:00`);
+
+  const { data: cleaning, error: fetchError } = await admin
+    .from("cleanings")
+    .select("client_id, service")
+    .eq("id", input.cleaningId)
+    .single();
+  if (fetchError || !cleaning) return { success: false, error: "Request not found" };
+
+  const { error: updateError } = await admin
+    .from("cleanings")
+    .update({
+      requested_date: input.date,
+      requested_window: input.window,
+      is_flexible: false,
+      scheduled_at: scheduledAt.toISOString(),
+    })
+    .eq("id", input.cleaningId);
+  if (updateError) return { success: false, error: updateError.message };
+
+  const { data: client } = await admin.from("clients").select("full_name, email").eq("id", cleaning.client_id).single();
+  if (client?.email) {
+    const dateLabel = new Date(`${input.date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
+    try {
+      await resend.emails.send({
+        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        to: client.email,
+        subject: "A different date for your cleaning?",
+        html: `
+          <p>Hi ${client.full_name ?? "there"},</p>
+          <p>Your original date isn't available, but we could do <strong>${dateLabel}${input.window ? `, ${windowLabelFor(input.window)}` : ""}</strong> instead.</p>
+          <p>Let us know if that works by calling <strong>01732 711856</strong>, WhatsApp <strong>07445 109813</strong>, or just replying to this email.</p>
+          <br>
+          <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+        `,
+      });
+    } catch (e) {
+      console.error("Failed to send proposed-date email", e);
+    }
+  }
+
+  revalidatePath("/dashboard/admin/cleanings");
+  return { success: true };
+}
+
+export async function declineCleaningRequest(input: {
+  cleaningId: string;
+  reason: string;
+}): Promise<ConfirmRequestResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  const reason = input.reason.trim();
+  if (!reason) return { success: false, error: "Add a reason for the customer" };
+
+  const { data: cleaning, error: fetchError } = await admin
+    .from("cleanings")
+    .select("client_id")
+    .eq("id", input.cleaningId)
+    .single();
+  if (fetchError || !cleaning) return { success: false, error: "Request not found" };
+
+  const { error: updateError } = await admin
+    .from("cleanings")
+    .update({ status: "declined", decline_reason: reason })
+    .eq("id", input.cleaningId);
+  if (updateError) return { success: false, error: updateError.message };
+
+  const { data: client } = await admin.from("clients").select("full_name, email").eq("id", cleaning.client_id).single();
+  if (client?.email) {
+    try {
+      await resend.emails.send({
+        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        to: client.email,
+        subject: "About your booking request",
+        html: `
+          <p>Hi ${client.full_name ?? "there"},</p>
+          <p>Unfortunately we're not able to take on this booking: ${reason}</p>
+          <p>We're sorry for the inconvenience. If you'd like to discuss alternatives, call us on <strong>01732 711856</strong> or WhatsApp <strong>07445 109813</strong>.</p>
+          <br>
+          <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+        `,
+      });
+    } catch (e) {
+      console.error("Failed to send decline email", e);
+    }
+  }
+
+  revalidatePath("/dashboard/admin/cleanings");
+  revalidatePath("/dashboard/admin");
+  return { success: true };
 }

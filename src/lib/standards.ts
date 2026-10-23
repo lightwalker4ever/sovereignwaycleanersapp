@@ -73,3 +73,61 @@ export async function resolveClientStandardState(
     })),
   };
 }
+
+/**
+ * Snapshots a client's currently-enabled standards into cleaning_standards
+ * rows for an already-existing cleaning -- used by admin's "Confirm &
+ * schedule" on a website-quote request, which (unlike createCleaning())
+ * updates an existing awaiting_confirmation row rather than inserting a
+ * new one, so the checklist has to be created as a separate step. Falls
+ * back to assigning standardListId first if the client has none yet,
+ * same behaviour as createCleaning()'s own inline version of this.
+ */
+export async function assignChecklistToCleaning(
+  cleaningId: string,
+  clientId: string,
+  standardListId: string | null
+): Promise<{ success: true } | { success: false; error: string }> {
+  const admin = createAdminClient();
+
+  let state = await resolveClientStandardState(clientId);
+
+  if (!state) {
+    if (!standardListId) {
+      return { success: false, error: "This client has no standards assigned -- pick a standard list" };
+    }
+    const { data: assignment, error: assignError } = await admin
+      .from("client_standard_assignments")
+      .upsert({ client_id: clientId, standard_list_id: standardListId }, { onConflict: "client_id" })
+      .select("id")
+      .single();
+    if (assignError || !assignment) {
+      return { success: false, error: assignError?.message ?? "Failed to assign standards" };
+    }
+    state = await resolveClientStandardState(clientId);
+    if (!state) {
+      return { success: false, error: "Failed to resolve the assigned standards" };
+    }
+  }
+
+  const enabledItems = state.items.filter((i) => i.enabled);
+  if (enabledItems.length === 0) {
+    return { success: false, error: "This client's standard list has no enabled standards" };
+  }
+
+  const { error: checklistError } = await admin.from("cleaning_standards").insert(
+    enabledItems.map((item, index) => ({
+      cleaning_id: cleaningId,
+      standard_id: item.standardId,
+      title: item.title,
+      description: item.description,
+      area: item.area,
+      sort_order: index,
+    }))
+  );
+  if (checklistError) {
+    return { success: false, error: checklistError.message };
+  }
+
+  return { success: true };
+}

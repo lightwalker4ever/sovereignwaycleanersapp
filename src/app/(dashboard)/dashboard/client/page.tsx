@@ -20,7 +20,14 @@ export default async function ClientHomePage() {
   const cards = await listMyCleaningJobCards();
   const now = new Date();
 
-  const today = cards.find((c) => isSameDay(c.scheduledAt, now) && c.displayStatus !== "completed") ?? null;
+  // A request still awaiting confirmation has no real date yet (its
+  // scheduledAt is just a placeholder), so it's shown in the live card
+  // regardless of day -- the customer wants to see it right away, not
+  // only once its placeholder date happens to be today.
+  const today =
+    cards.find((c) => c.displayStatus === "awaiting_confirmation") ??
+    cards.find((c) => isSameDay(c.scheduledAt, now) && c.displayStatus !== "completed") ??
+    null;
   const next =
     cards
       .filter((c) => c.displayStatus === "scheduled" && new Date(c.scheduledAt) > now && c.id !== today?.id)

@@ -204,6 +204,7 @@ export type Database = {
           access_notes: string | null;
           marketing_consent: boolean;
           source: string;
+          service: string | null;
           property_answers: Json | null;
           price_breakdown: Json | null;
           decline_reason: string | null;
@@ -231,6 +232,7 @@ export type Database = {
           access_notes?: string | null;
           marketing_consent?: boolean;
           source?: string;
+          service?: string | null;
           property_answers?: Json | null;
           price_breakdown?: Json | null;
           decline_reason?: string | null;
@@ -258,6 +260,7 @@ export type Database = {
           access_notes?: string | null;
           marketing_consent?: boolean;
           source?: string;
+          service?: string | null;
           property_answers?: Json | null;
           price_breakdown?: Json | null;
           decline_reason?: string | null;

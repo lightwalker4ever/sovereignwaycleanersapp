@@ -18,6 +18,8 @@ function headline(card: ClientJobCard): string {
   const cleaner = card.cleanerName?.split(" ")[0] || "Your cleaner";
   const supervisor = card.supervisorName?.split(" ")[0] || "Your supervisor";
   switch (card.displayStatus) {
+    case "awaiting_confirmation":
+      return "We're confirming your date.";
     case "scheduled":
       return `${cleaner} is booked in for today.`;
     case "in_progress":
@@ -26,6 +28,8 @@ function headline(card: ClientJobCard): string {
       return `${cleaner} has finished. ${supervisor} is checking the photos now.`;
     case "changes_requested":
       return `${supervisor} asked for a couple of things to be redone -- ${cleaner} is sorting them now.`;
+    case "declined":
+      return "We weren't able to take this one on -- check your email for details.";
     default:
       return "Your cleaning is complete.";
   }
