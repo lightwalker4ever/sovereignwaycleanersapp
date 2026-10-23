@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState, useTransition } from "react";
+import { useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
@@ -11,6 +11,7 @@ import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning }
 import { nameSchema, emailSchema, requiredPhoneSchema, schemaFieldError } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
 import { ARRIVAL_WINDOWS, CONFIRMATION_WINDOW_HOURS } from "@/lib/quote-config";
+import { writeQuoteConfirmation } from "@/lib/quote-confirmation";
 import type { RateCard } from "@/lib/rate-card";
 import { cn } from "@/lib/utils";
 
@@ -39,8 +40,15 @@ export default function QuoteDetailsPage() {
     });
   }, []);
 
+  // Set synchronously (not state) right before clear() below, so the
+  // still-mounted page's own re-render from that state change doesn't
+  // race its "no service picked" redirect against the real navigation
+  // to /quote/confirmed -- clear() nulls state.service, which would
+  // otherwise re-trigger this guard a moment after a successful submit.
+  const submittedRef = useRef(false);
+
   useEffect(() => {
-    if (hydrated && !state.service) router.replace("/quote/service");
+    if (hydrated && !state.service && !submittedRef.current) router.replace("/quote/service");
   }, [hydrated, state.service, router]);
 
   const breakdown = useMemo(() => {
@@ -98,24 +106,19 @@ export default function QuoteDetailsPage() {
         setSubmitError(result.error);
         return;
       }
-      try {
-        sessionStorage.setItem(
-          "swc:quote:confirmation:v1",
-          JSON.stringify({
-            reference: result.reference,
-            cleaningId: result.cleaningId,
-            firstName: state.contact.name.split(" ")[0] || "there",
-            email: state.contact.email,
-            serviceName: SERVICE_NAME[state.service!],
-            whenLabel,
-            totalIncVat: result.totalIncVat,
-            dateIso: state.date,
-            windowLabel: state.flexible ? "Any time that day" : selectedWindow ? `${selectedWindow.label}, ${selectedWindow.time}` : "",
-          })
-        );
-      } catch {
-        // Private browsing / storage disabled -- confirmation page falls back to generic copy.
-      }
+      submittedRef.current = true;
+      writeQuoteConfirmation({
+        reference: result.reference,
+        cleaningId: result.cleaningId,
+        firstName: state.contact.name.split(" ")[0] || "there",
+        email: state.contact.email,
+        serviceName: SERVICE_NAME[state.service!],
+        totalIncVat: result.totalIncVat,
+        postcode: state.postcode,
+        dateIso: state.date,
+        windowKey: state.flexible ? null : state.window,
+        isFlexible: state.flexible,
+      });
       clear();
       router.push("/quote/confirmed");
     });

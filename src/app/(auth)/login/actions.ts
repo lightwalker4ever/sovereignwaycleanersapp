@@ -3,7 +3,8 @@
 import { redirect } from "next/navigation";
 import { z } from "zod";
 import { createClient } from "@/lib/supabase/server";
-import { ensureClientRow } from "@/lib/clients";
+import { createAdminClient } from "@/lib/supabase/admin";
+import { linkGhostClientToProfile } from "@/lib/clients";
 import {
   nameSchema,
   emailSchema,
@@ -50,12 +51,30 @@ export async function signInWithPassword(
   }
 
   const supabase = await createClient();
-  const { error } = await supabase.auth.signInWithPassword({
+  const { data, error } = await supabase.auth.signInWithPassword({
     email: parsedEmail.data,
     password,
   });
   if (error) {
     return { error: "Incorrect email or password." };
+  }
+
+  // Best-effort: links this login to a ghost clients row created by the
+  // /quote journey before this account existed (e.g. the customer's
+  // email confirmation delayed their first session past signUp()'s own
+  // attempt). Idempotent and never blocks sign-in on failure.
+  try {
+    const admin = createAdminClient();
+    const { data: profile } = await admin
+      .from("profiles")
+      .select("role, full_name, phone")
+      .eq("id", data.user.id)
+      .single();
+    if (profile?.role === "client") {
+      await linkGhostClientToProfile(data.user.id, profile.full_name, data.user.email ?? null, profile.phone);
+    }
+  } catch (e) {
+    console.error("Failed to link ghost client on sign-in", e);
   }
 
   redirect(next);
@@ -107,7 +126,7 @@ export async function signUp(
     return { error: "Account created, but something went wrong. Please try signing in." };
   }
 
-  await ensureClientRow(data.user.id, fullName, email, phone);
+  await linkGhostClientToProfile(data.user.id, fullName, email, phone);
 
   if (!data.session) {
     // This project currently requires confirming your email before a

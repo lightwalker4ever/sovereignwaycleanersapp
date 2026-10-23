@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase/server";
-import { ensureClientRow } from "@/lib/clients";
+import { linkGhostClientToProfile } from "@/lib/clients";
 
 /**
  * Supabase redirects here after Google sign-in with a `code` query
@@ -28,7 +28,7 @@ export async function GET(request: Request) {
         .eq("id", data.user.id)
         .single();
       if (profile?.role === "client") {
-        await ensureClientRow(data.user.id, profile.full_name, profile.email, profile.phone);
+        await linkGhostClientToProfile(data.user.id, profile.full_name, profile.email, profile.phone);
       }
 
       return NextResponse.redirect(`${origin}${next}`);
