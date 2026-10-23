@@ -19,6 +19,7 @@ const SERVICE_TITLE: Record<string, string> = {
 
 export interface QuoteRequestRow {
   id: string;
+  reference: string;
   serviceTitle: string;
   clientName: string | null;
   postcode: string;
@@ -33,7 +34,7 @@ export async function listQuoteRequests(): Promise<QuoteRequestRow[]> {
 
   const { data: requests, error } = await admin
     .from("quote_requests")
-    .select("id, service, client_id, postcode, status, quoted_price, created_at")
+    .select("id, reference, service, client_id, postcode, status, quoted_price, created_at")
     .order("created_at", { ascending: false });
   if (error) throw new Error(error.message);
 
@@ -45,6 +46,7 @@ export async function listQuoteRequests(): Promise<QuoteRequestRow[]> {
 
   return (requests ?? []).map((r) => ({
     id: r.id,
+    reference: r.reference,
     serviceTitle: SERVICE_TITLE[r.service] ?? r.service,
     clientName: nameById.get(r.client_id) ?? null,
     postcode: r.postcode,
@@ -56,6 +58,7 @@ export async function listQuoteRequests(): Promise<QuoteRequestRow[]> {
 
 export interface QuoteRequestDetail {
   id: string;
+  reference: string;
   status: string;
   serviceTitle: string;
   clientName: string | null;
@@ -78,7 +81,7 @@ export async function getQuoteRequestDetail(id: string): Promise<QuoteRequestDet
 
   const { data: request, error } = await admin
     .from("quote_requests")
-    .select("id, service, client_id, postcode, answers, notes, marketing_consent, status, quoted_price, decline_reason, created_at")
+    .select("id, reference, service, client_id, postcode, answers, notes, marketing_consent, status, quoted_price, decline_reason, created_at")
     .eq("id", id)
     .single();
   if (error || !request) return null;
@@ -92,6 +95,7 @@ export async function getQuoteRequestDetail(id: string): Promise<QuoteRequestDet
 
   return {
     id: request.id,
+    reference: request.reference,
     status: request.status,
     serviceTitle: SERVICE_TITLE[request.service] ?? request.service,
     clientName: client?.full_name ?? null,
@@ -129,7 +133,7 @@ export async function sendQuoteForRequest(id: string, price: number): Promise<Qu
   const admin = createAdminClient();
   const { data: request, error: fetchError } = await admin
     .from("quote_requests")
-    .select("service, client_id")
+    .select("reference, service, client_id")
     .eq("id", id)
     .single();
   if (fetchError || !request) return { success: false, error: "Request not found" };
@@ -146,10 +150,10 @@ export async function sendQuoteForRequest(id: string, price: number): Promise<Qu
       await resend.emails.send({
         from: "Sovereign Way Cleaners <onboarding@resend.dev>",
         to: client.email,
-        subject: "Your tailored price from Sovereign Way Cleaners",
+        subject: `Your tailored price from Sovereign Way Cleaners (${request.reference})`,
         html: `
           <p>Hi ${client.full_name ?? "there"},</p>
-          <p>Here's your price for <strong>${SERVICE_TITLE[request.service] ?? request.service}</strong>: <strong>£${price.toFixed(2)}</strong>.</p>
+          <p>Here's your price for <strong>${SERVICE_TITLE[request.service] ?? request.service}</strong>: <strong>£${price.toFixed(2)}</strong>. Reference <strong>${request.reference}</strong>.</p>
           <p>To book, just call us on <strong>01732 711856</strong>, WhatsApp <strong>07445 109813</strong>, or reply to this email.</p>
           <br>
           <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>

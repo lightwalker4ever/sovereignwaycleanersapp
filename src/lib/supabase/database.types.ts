@@ -208,6 +208,7 @@ export type Database = {
           property_answers: Json | null;
           price_breakdown: Json | null;
           decline_reason: string | null;
+          reference: string;
           created_at: string;
           updated_at: string;
         };
@@ -516,6 +517,7 @@ export type Database = {
           quoted_price: number | null;
           quoted_at: string | null;
           decline_reason: string | null;
+          reference: string;
           created_at: string;
           updated_at: string;
         };

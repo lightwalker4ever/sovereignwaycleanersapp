@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { ChevronRight } from "lucide-react";
+import { ChevronRight, Search } from "lucide-react";
 import { DataTable, DataTableHeadRow, DataTableRow } from "@/components/ui/DataTable";
 import { FilterChips } from "@/components/ui/FilterChips";
 import { QuoteRequestDrawer } from "@/components/admin/QuoteRequestDrawer";
@@ -15,12 +15,25 @@ const STATUS_INFO: Record<string, { label: string; bg: string; text: string }> =
 
 export function QuoteRequestsList({ rows }: { rows: QuoteRequestRow[] }) {
   const [status, setStatus] = useState("all");
+  const [query, setQuery] = useState("");
   const [openId, setOpenId] = useState<string | null>(null);
 
-  const filtered = useMemo(
-    () => rows.filter((r) => status === "all" || r.status === status),
-    [rows, status]
-  );
+  const filtered = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return rows.filter((r) => {
+      if (status !== "all" && r.status !== status) return false;
+      if (
+        q &&
+        !(
+          r.clientName?.toLowerCase().includes(q) ||
+          r.postcode.toLowerCase().includes(q) ||
+          r.reference.toLowerCase().includes(q)
+        )
+      )
+        return false;
+      return true;
+    });
+  }, [rows, status, query]);
 
   const chips = [
     { key: "all", label: "All", count: rows.length },
@@ -34,6 +47,17 @@ export function QuoteRequestsList({ rows }: { rows: QuoteRequestRow[] }) {
   return (
     <div className="flex flex-col gap-4">
       <FilterChips chips={chips} selected={status} onSelect={setStatus} label="Filter by status" />
+
+      <label className="flex h-[42px] max-w-[320px] items-center gap-2 rounded-[10px] border border-dash-border bg-dash-surface px-3">
+        <Search size={18} className="text-dash-muted" aria-hidden="true" />
+        <span className="sr-only">Search quote requests</span>
+        <input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search client, postcode, or reference"
+          className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
+        />
+      </label>
 
       <DataTable minWidth={620}>
         <DataTableHeadRow>
@@ -52,7 +76,10 @@ export function QuoteRequestsList({ rows }: { rows: QuoteRequestRow[] }) {
                 <td className="px-4 py-3.5 whitespace-nowrap">
                   {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                 </td>
-                <td className="px-2 py-3.5 font-semibold text-dash-ink">{r.serviceTitle}</td>
+                <td className="px-2 py-3.5">
+                  <div className="font-semibold text-dash-ink">{r.serviceTitle}</div>
+                  <div className="text-[13px] text-dash-muted">{r.reference}</div>
+                </td>
                 <td className="px-2 py-3.5">{r.clientName || "—"}</td>
                 <td className="px-2 py-3.5">{r.postcode}</td>
                 <td className="px-2 py-3.5">

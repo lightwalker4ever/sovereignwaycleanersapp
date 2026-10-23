@@ -49,7 +49,15 @@ export function CleaningsList({
     return rows.filter((r) => {
       if (status !== "all" && r.displayStatus !== status) return false;
       if (cleanerId !== "all" && r.cleanerId !== cleanerId) return false;
-      if (q && !(r.clientName?.toLowerCase().includes(q) || r.address?.toLowerCase().includes(q))) return false;
+      if (
+        q &&
+        !(
+          r.clientName?.toLowerCase().includes(q) ||
+          r.address?.toLowerCase().includes(q) ||
+          r.reference.toLowerCase().includes(q)
+        )
+      )
+        return false;
       if (rangeEnd && !REQUEST_STATUSES.has(r.displayStatus)) {
         const t = new Date(r.scheduledAt);
         if (t < todayStart || t >= rangeEnd) return false;
@@ -78,7 +86,7 @@ export function CleaningsList({
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search client or address"
+            placeholder="Search client, address, or reference"
             className="min-w-0 flex-1 border-0 bg-transparent text-sm outline-none"
           />
         </label>
@@ -130,7 +138,7 @@ export function CleaningsList({
                 </td>
                 <td className="px-2 py-3.5">
                   <div className="font-semibold text-dash-ink">{r.clientName || "—"}</div>
-                  <div className="text-[13px] text-dash-muted">{r.address || "—"}</div>
+                  <div className="text-[13px] text-dash-muted">{r.address || "—"} · {r.reference}</div>
                 </td>
                 <td className="px-2 py-3.5">{r.cleanerName || "—"}</td>
                 <td className="w-32 px-2 py-3.5">

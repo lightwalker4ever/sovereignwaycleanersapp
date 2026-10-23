@@ -335,14 +335,14 @@ export async function submitInstantQuoteRequest(input: {
       price_breakdown: breakdown as unknown as Json,
       notes: `Booked via the website quote journey (${input.service}).`,
     })
-    .select("id, created_at")
+    .select("id, reference, created_at")
     .single();
   if (cleaningError || !cleaning) {
     console.error("Failed to create cleaning for instant quote request", cleaningError);
     return { success: false, error: "Unable to process your request right now. Please try again." };
   }
 
-  const reference = `SWC-${cleaning.id.slice(0, 4).toUpperCase()}`;
+  const reference = cleaning.reference;
   const dateLabel = new Date(`${input.requestedDate}T00:00:00`).toLocaleDateString("en-GB", {
     weekday: "long",
     day: "numeric",
@@ -513,7 +513,7 @@ export async function submitTailoredQuoteRequest(input: {
       notes: input.notes.trim() || null,
       marketing_consent: input.marketingConsent,
     })
-    .select("id")
+    .select("id, reference")
     .single();
   if (requestError || !quoteRequest) {
     console.error("Failed to create tailored quote request", requestError);
@@ -532,7 +532,7 @@ export async function submitTailoredQuoteRequest(input: {
     }
   }
 
-  const reference = `SWC-${quoteRequest.id.slice(0, 4).toUpperCase()}`;
+  const reference = quoteRequest.reference;
 
   try {
     await resend.emails.send({

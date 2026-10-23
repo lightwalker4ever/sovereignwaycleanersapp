@@ -145,7 +145,10 @@ export function RequestDrawer({
     <Drawer open={open} onOpenChange={onOpenChange}>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>{detail ? `${detail.serviceTitle} request` : "Booking request"}</DrawerTitle>
+          <div className="flex flex-col gap-0.5">
+            <DrawerTitle>{detail ? `${detail.serviceTitle} request` : "Booking request"}</DrawerTitle>
+            {detail && <span className="text-xs font-semibold text-dash-muted">{detail.reference}</span>}
+          </div>
           <DrawerClose />
         </DrawerHeader>
 

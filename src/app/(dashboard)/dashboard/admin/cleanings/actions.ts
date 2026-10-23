@@ -214,6 +214,7 @@ export async function createCleaning(
 
 export interface CleaningRow {
   id: string;
+  reference: string;
   scheduledAt: string;
   clientName: string | null;
   address: string | null;
@@ -236,7 +237,7 @@ export async function listCleanings(): Promise<CleaningRow[]> {
   ] = await Promise.all([
     admin
       .from("cleanings")
-      .select("id, client_id, cleaner_id, supervisor_id, status, scheduled_at")
+      .select("id, reference, client_id, cleaner_id, supervisor_id, status, scheduled_at")
       .order("scheduled_at", { ascending: false }),
     admin.from("clients").select("id, full_name, address"),
     admin.from("profiles").select("id, full_name"),
@@ -260,6 +261,7 @@ export async function listCleanings(): Promise<CleaningRow[]> {
     const agg = checklistByCleaningId.get(c.id);
     return {
       id: c.id,
+      reference: c.reference,
       scheduledAt: c.scheduled_at,
       clientName: client?.full_name ?? null,
       address: client?.address ?? null,
@@ -290,6 +292,7 @@ const SERVICE_TITLE: Record<string, string> = {
 
 export interface CleaningRequestDetail {
   id: string;
+  reference: string;
   status: string;
   service: string | null;
   serviceTitle: string;
@@ -329,7 +332,7 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
   const { data: cleaning, error } = await admin
     .from("cleanings")
     .select(
-      "id, status, service, client_id, requested_date, requested_window, is_flexible, access_method, access_notes, notes, marketing_consent, property_answers, price_breakdown, decline_reason, created_at"
+      "id, reference, status, service, client_id, requested_date, requested_window, is_flexible, access_method, access_notes, notes, marketing_consent, property_answers, price_breakdown, decline_reason, created_at"
     )
     .eq("id", cleaningId)
     .single();
@@ -343,6 +346,7 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
 
   return {
     id: cleaning.id,
+    reference: cleaning.reference,
     status: cleaning.status,
     service: cleaning.service,
     serviceTitle: cleaning.service ? (SERVICE_TITLE[cleaning.service] ?? cleaning.service) : "Unknown service",
