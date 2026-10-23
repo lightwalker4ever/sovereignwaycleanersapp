@@ -55,6 +55,7 @@ export function DesktopPriceSidebar({
   primaryPending,
   emailQuoteSlot,
   extraRows,
+  bodyOverride,
 }: {
   serviceTitle: string;
   recap: string;
@@ -65,6 +66,9 @@ export function DesktopPriceSidebar({
   primaryPending?: boolean;
   emailQuoteSlot?: React.ReactNode;
   extraRows?: React.ReactNode;
+  /** Replaces the default line-items body entirely -- step 3 shows a short
+   *  postcode/date/arrival recap + "See full breakdown" link instead. */
+  bodyOverride?: React.ReactNode;
 }) {
   return (
     <div className="hidden overflow-hidden rounded-2xl border border-dash-border bg-dash-surface md:block">
@@ -77,8 +81,12 @@ export function DesktopPriceSidebar({
         <div className="text-[13px] text-dash-sidebar-text">{recap}</div>
       </div>
       <div className="flex flex-col gap-2 px-5 py-4">
-        {extraRows}
-        <Lines breakdown={breakdown} />
+        {bodyOverride ?? (
+          <>
+            {extraRows}
+            <Lines breakdown={breakdown} />
+          </>
+        )}
       </div>
       <div className="flex flex-col gap-2.5 px-5 pb-5">
         <button
