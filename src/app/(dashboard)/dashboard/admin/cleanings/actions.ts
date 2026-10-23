@@ -206,18 +206,6 @@ export async function createCleaning(
     return { success: false, error: checklistError.message };
   }
 
-  const bookingId = (formData.get("bookingId") as string) || null;
-  if (bookingId) {
-    const { error: bookingUpdateError } = await admin
-      .from("quote_bookings")
-      .update({ status: "converted" })
-      .eq("id", bookingId);
-    if (bookingUpdateError) {
-      console.error("Failed to mark booking as converted", bookingUpdateError);
-    }
-    revalidatePath("/dashboard/admin/bookings");
-  }
-
   revalidatePath("/dashboard/admin/cleanings");
   revalidatePath("/dashboard/admin/clients");
   revalidatePath("/dashboard/admin");

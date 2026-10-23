@@ -83,7 +83,7 @@ export default async function ClientHomePage() {
         )}
 
         <Link
-          href="/?quote=open"
+          href="/quote"
           className="flex h-13 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dash-brand-700 bg-white text-[15px] font-extrabold text-dash-brand-700"
         >
           <Plus size={20} strokeWidth={2.2} aria-hidden="true" />

@@ -29,12 +29,11 @@ export default function Footer() {
                 { href: "/gallery", label: "Gallery" },
                 { href: "/about", label: "About Us" },
                 { href: "/contact", label: "Contact Us" },
-                { href: "?quote=open", label: "Get a Quote" },
+                { href: "/quote", label: "Get a Quote" },
               ].map((link) => (
                 <li key={link.href}>
                   <Link
                     href={link.href}
-                    scroll={link.href.startsWith("?") ? false : undefined}
                     className="transition-colors hover:text-white"
                   >
                     {link.label}

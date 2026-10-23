@@ -6,7 +6,6 @@ import {
   Users,
   ListChecks,
   MessageSquare,
-  ClipboardList,
   Inbox,
   Sparkles,
   Tag,
@@ -49,7 +48,7 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
-  const { cleaningsInReview, bookingsPending, enquiriesNew, quoteRequestsAwaiting } = await getAdminNavBadges();
+  const { cleaningsInReview, enquiriesNew, quoteRequestsAwaiting } = await getAdminNavBadges();
 
   // The handoff's own nav list (Dashboard/Cleanings/Clients/Staff/
   // Standards/Feedback) plus the pre-existing Quote-and-Book admin
@@ -67,12 +66,6 @@ export default async function AdminLayout({
     { href: "/dashboard/admin/staff", label: "Staff", icon: navIcon(Users) },
     { href: "/dashboard/admin/standards", label: "Standards", icon: navIcon(ListChecks) },
     { href: "/dashboard/admin/feedback", label: "Feedback", icon: navIcon(MessageSquare) },
-    {
-      href: "/dashboard/admin/bookings",
-      label: "Bookings",
-      icon: navIcon(ClipboardList),
-      badge: bookingsPending || undefined,
-    },
     {
       href: "/dashboard/admin/enquiries",
       label: "Enquiries",

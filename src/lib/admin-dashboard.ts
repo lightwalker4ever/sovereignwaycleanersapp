@@ -65,34 +65,29 @@ function addDays(d: Date, n: number) {
  * load (admin/layout.tsx), so it only queries what a badge actually
  * needs rather than the full dashboard's data. Covers both the
  * redesign's own nav items and the pre-existing Quote-and-Book admin
- * pages (Bookings/Enquiries), which the handoff's mockups don't show
- * but which still need to stay reachable from the sidebar.
+ * pages (Enquiries), which the handoff's mockups don't show but which
+ * still need to stay reachable from the sidebar.
  */
 export async function getAdminNavBadges(): Promise<{
   cleaningsInReview: number;
-  bookingsPending: number;
   enquiriesNew: number;
   quoteRequestsAwaiting: number;
 }> {
   const admin = createAdminClient();
   const [
     { count: cleaningsInReview, error: cleaningsError },
-    { count: bookingsPending, error: bookingsError },
     { count: enquiriesNew, error: enquiriesError },
     { count: quoteRequestsAwaiting, error: quoteRequestsError },
   ] = await Promise.all([
     admin.from("cleanings").select("id", { count: "exact", head: true }).eq("status", "in_review"),
-    admin.from("quote_bookings").select("id", { count: "exact", head: true }).eq("status", "pending"),
     admin.from("contact_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
     admin.from("quote_requests").select("id", { count: "exact", head: true }).eq("status", "awaiting_quote"),
   ]);
   if (cleaningsError) throw new Error(cleaningsError.message);
-  if (bookingsError) throw new Error(bookingsError.message);
   if (enquiriesError) throw new Error(enquiriesError.message);
   if (quoteRequestsError) throw new Error(quoteRequestsError.message);
   return {
     cleaningsInReview: cleaningsInReview ?? 0,
-    bookingsPending: bookingsPending ?? 0,
     enquiriesNew: enquiriesNew ?? 0,
     quoteRequestsAwaiting: quoteRequestsAwaiting ?? 0,
   };

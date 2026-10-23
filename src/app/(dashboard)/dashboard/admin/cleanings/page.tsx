@@ -9,9 +9,9 @@ import { PageContainer } from "@/components/shell/PageContainer";
 export default async function CleaningsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ clientId?: string; bookingId?: string }>;
+  searchParams: Promise<{ clientId?: string }>;
 }) {
-  const [{ clientId, bookingId }, rows, { cleaners, supervisors, cleanerSchedule }, clients, standardLists] =
+  const [{ clientId }, rows, { cleaners, supervisors, cleanerSchedule }, clients, standardLists] =
     await Promise.all([
       searchParams,
       listCleanings(),
@@ -47,7 +47,6 @@ export default async function CleaningsPage({
           cleanerSchedule={cleanerSchedule}
           standardLists={standardLists}
           initialClientId={clientId}
-          initialBookingId={bookingId}
         />
       </header>
 

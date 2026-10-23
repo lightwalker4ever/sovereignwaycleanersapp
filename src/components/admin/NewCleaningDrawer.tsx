@@ -21,7 +21,6 @@ export function NewCleaningDrawer({
   cleanerSchedule,
   standardLists,
   initialClientId,
-  initialBookingId,
 }: {
   clients: ClientSummary[];
   cleaners: AssignableStaff[];
@@ -29,11 +28,10 @@ export function NewCleaningDrawer({
   cleanerSchedule: CleanerBooking[];
   standardLists: { id: string; name: string }[];
   initialClientId?: string;
-  initialBookingId?: string;
 }) {
-  // Auto-open when arriving from a booking's "Create cleaning job" link
-  // (clientId/bookingId present) -- otherwise the admin has to notice
-  // and click the button themselves after already being sent here.
+  // Auto-open when arriving with a clientId pre-selected -- otherwise
+  // the admin has to notice and click the button themselves after
+  // already being sent here.
   const [open, setOpen] = useState(!!initialClientId);
 
   return (
@@ -54,7 +52,6 @@ export function NewCleaningDrawer({
           cleanerSchedule={cleanerSchedule}
           standardLists={standardLists}
           initialClientId={initialClientId}
-          initialBookingId={initialBookingId}
           onSuccess={() => setOpen(false)}
         />
       </DrawerContent>

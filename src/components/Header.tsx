@@ -51,8 +51,7 @@ export default function Header() {
             Sign In
           </Link>
           <Link
-            href="?quote=open"
-            scroll={false}
+            href="/quote"
             className={cn(
               buttonVariants({ variant: "default" }),
               "rounded-full px-5"
@@ -95,8 +94,7 @@ export default function Header() {
             Sign In
           </Link>
           <Link
-            href="?quote=open"
-            scroll={false}
+            href="/quote"
             onClick={() => setOpen(false)}
             className={cn(
               buttonVariants({ variant: "default" }),

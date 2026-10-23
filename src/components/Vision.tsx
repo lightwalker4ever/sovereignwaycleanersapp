@@ -71,8 +71,7 @@ export default function Vision() {
             </p>
             <div className="mt-8">
               <Link
-                href="?quote=open"
-                scroll={false}
+                href="/quote"
                 className={cn(
                   buttonVariants({ variant: "default", size: "lg" }),
                   "rounded-full px-8"

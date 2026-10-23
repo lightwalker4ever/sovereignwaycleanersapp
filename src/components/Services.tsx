@@ -172,8 +172,7 @@ export default function Services() {
                     {service.description}
                   </p>
                   <Link
-                    href={`?quote=${service.slug}`}
-                    scroll={false}
+                    href={`/quote?service=${service.slug}`}
                     className="mt-auto inline-flex w-fit items-center gap-1.5 pt-4 text-sm font-semibold transition-colors hover:gap-2.5"
                     style={{ color: "var(--color-brand)" }}
                   >

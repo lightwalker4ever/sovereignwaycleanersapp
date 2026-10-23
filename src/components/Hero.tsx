@@ -70,8 +70,7 @@ export default function Hero() {
 
         <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
           <Link
-            href="?quote=open"
-            scroll={false}
+            href="/quote"
             className={cn(
               buttonVariants({ variant: "default", size: "lg" }),
               "rounded-full px-8 py-3.5 text-base font-semibold"

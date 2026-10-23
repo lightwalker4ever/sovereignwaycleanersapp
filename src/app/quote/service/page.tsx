@@ -57,13 +57,21 @@ function QuoteServicePageInner() {
     const qService = searchParams.get("service");
     const qPostcode = searchParams.get("postcode");
     if (qPostcode) setPostcodeInput(qPostcode);
-    const instant = instantServices.find((s) => s.slug === qService || s.quoteService === qService);
-    const tailored = tailoredServices.find((s) => s.slug === qService);
-    update((prev) => ({
-      postcode: qPostcode || prev.postcode,
-      service: instant?.quoteService ?? prev.service,
-      tailoredService: (tailored?.slug as TailoredServiceSlug | undefined) ?? prev.tailoredService,
-    }));
+    if (qService) {
+      // A deep-linked service fully determines the selection -- clear
+      // whichever of instant/tailored it didn't match, so a link into
+      // a tailored service can't leave a stale instant selection (or
+      // vice versa) from whatever sessionStorage already had.
+      const instant = instantServices.find((s) => s.slug === qService || s.quoteService === qService);
+      const tailored = tailoredServices.find((s) => s.slug === qService);
+      update((prev) => ({
+        postcode: qPostcode || prev.postcode,
+        service: instant?.quoteService ?? null,
+        tailoredService: (tailored?.slug as TailoredServiceSlug | undefined) ?? null,
+      }));
+    } else if (qPostcode) {
+      update((prev) => ({ ...prev, postcode: qPostcode }));
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, seededFromQuery]);
 

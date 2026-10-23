@@ -86,7 +86,6 @@ export function CreateCleaningForm({
   cleanerSchedule,
   standardLists,
   initialClientId,
-  initialBookingId,
   onSuccess,
 }: {
   clients: ClientSummary[];
@@ -95,7 +94,6 @@ export function CreateCleaningForm({
   cleanerSchedule: CleanerBooking[];
   standardLists: { id: string; name: string }[];
   initialClientId?: string;
-  initialBookingId?: string;
   onSuccess?: () => void;
 }) {
   const [state, formAction, isPending] = useActionState<CreateCleaningState, FormData>(
@@ -141,7 +139,6 @@ export function CreateCleaningForm({
 
   return (
     <form action={formAction} className="flex flex-1 flex-col overflow-hidden">
-      {initialBookingId && <input type="hidden" name="bookingId" value={initialBookingId} />}
       <div className="flex flex-1 flex-col gap-6 overflow-y-auto p-6">
         <DrawerSection label="1 · Client">
           {values.clientMode === "existing" ? (

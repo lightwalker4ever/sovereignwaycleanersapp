@@ -503,42 +503,6 @@ export type Database = {
         };
         Relationships: [];
       };
-      quote_bookings: {
-        Row: {
-          id: string;
-          service: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
-          client_id: string;
-          postcode: string;
-          selected_inputs: Json;
-          price_breakdown: Json;
-          status: "pending" | "converted" | "declined";
-          created_at: string;
-          updated_at: string;
-        };
-        Insert: {
-          id?: string;
-          service: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
-          client_id: string;
-          postcode: string;
-          selected_inputs: Json;
-          price_breakdown: Json;
-          status?: "pending" | "converted" | "declined";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Update: {
-          id?: string;
-          service?: "end_of_tenancy" | "deep_cleaning" | "office_cleaning";
-          client_id?: string;
-          postcode?: string;
-          selected_inputs?: Json;
-          price_breakdown?: Json;
-          status?: "pending" | "converted" | "declined";
-          created_at?: string;
-          updated_at?: string;
-        };
-        Relationships: [];
-      };
       quote_requests: {
         Row: {
           id: string;
