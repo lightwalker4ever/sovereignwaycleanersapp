@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import { Resend } from "resend";
 import { revalidatePath } from "next/cache";
@@ -10,7 +11,7 @@ import type { Json } from "@/lib/supabase/database.types";
 import { nameSchema, emailSchema, phoneSchema, requiredPhoneSchema } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
 import type { ArrivalWindowKey, AccessMethod } from "@/lib/quote-state";
-import { CONFIRMATION_WINDOW_HOURS } from "@/lib/quote-config";
+import { CONFIRMATION_WINDOW_HOURS, type TailoredServiceSlug } from "@/lib/quote-config";
 import {
   calculateEndOfTenancy,
   calculateDeepCleaning,
@@ -514,4 +515,171 @@ export async function submitInstantQuoteRequest(input: {
     cleaningId: cleaning.id,
     totalIncVat: breakdown.totalIncVat,
   };
+}
+
+const MAX_TAILORED_PHOTO_BYTES = 10 * 1024 * 1024;
+
+export type UploadTailoredPhotoResult =
+  | { success: true; storagePath: string }
+  | { success: false; error: string };
+
+/**
+ * Uploads one "About the job" photo immediately on selection, under a
+ * client-generated groupId (QuoteState.tailoredPhotoGroupId) rather than
+ * a quote_requests id that doesn't exist yet -- the tailored flow's File
+ * objects can't live in sessionStorage, so uploading eagerly and keeping
+ * only the small storage_path string is what survives a refresh.
+ * submitTailoredQuoteRequest() links these paths to the real row once
+ * it's created; an abandoned journey just leaves orphaned objects in a
+ * private bucket, never referenced by any photos row.
+ */
+export async function uploadTailoredPhoto(groupId: string, formData: FormData): Promise<UploadTailoredPhotoResult> {
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { success: false, error: "No file provided" };
+  if (file.size > MAX_TAILORED_PHOTO_BYTES) return { success: false, error: "Photo is too large (max 10MB)" };
+  if (!groupId) return { success: false, error: "Missing photo group" };
+
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "jpg";
+  const storagePath = `pending/${groupId}/${randomUUID()}.${ext}`;
+
+  const admin = createAdminClient();
+  const { error } = await admin.storage.from("quote-request-photos").upload(storagePath, file, {
+    contentType: file.type,
+  });
+  if (error) return { success: false, error: error.message };
+
+  return { success: true, storagePath };
+}
+
+export async function deleteTailoredPhoto(storagePath: string): Promise<void> {
+  const admin = createAdminClient();
+  await admin.storage.from("quote-request-photos").remove([storagePath]);
+}
+
+const tailoredContactSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  phone: z.string().transform(normalizeUkPhone).pipe(requiredPhoneSchema),
+});
+
+const TAILORED_SERVICE_TITLE: Record<TailoredServiceSlug, string> = {
+  domestic_cleaning: "Domestic Cleaning",
+  commercial_cleaning: "Commercial Cleaning",
+  carpet_cleaning: "Carpet Cleaning",
+  after_build_clean: "After Build Clean",
+  builders_sparkle_clean: "Builders & Sparkle Clean",
+  move_in_out: "Move In / Out Cleaning",
+};
+
+export type SubmitTailoredQuoteResult =
+  | { success: true; reference: string }
+  | { success: false; error: string };
+
+/**
+ * The tailored-quote path's step 4 submission -- no price or date, per
+ * quote-handoff QUOTE_HANDOFF.md. Creates a quote_requests row (status
+ * 'awaiting_quote'), links any already-uploaded photos to it, and emails
+ * the customer the "24 hours" copy. Admin's "Send quote" action (a later
+ * build step) is what eventually prices it.
+ */
+export async function submitTailoredQuoteRequest(input: {
+  service: TailoredServiceSlug;
+  answers: Record<string, string>;
+  notes: string;
+  photoStoragePaths: string[];
+  postcode: string;
+  name: string;
+  email: string;
+  phone: string;
+  addressLine: string;
+  marketingConsent: boolean;
+  honeypot?: string;
+}): Promise<SubmitTailoredQuoteResult> {
+  if (input.honeypot) {
+    return { success: true, reference: "SWC-0000" };
+  }
+
+  const parsedContact = tailoredContactSchema.safeParse({
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+  });
+  if (!parsedContact.success) {
+    return { success: false, error: parsedContact.error.issues[0].message };
+  }
+
+  const trimmedPostcode = input.postcode.trim();
+  if (!trimmedPostcode) return { success: false, error: "Postcode is required" };
+
+  const admin = createAdminClient();
+
+  const fullAddress = [input.addressLine.trim(), trimmedPostcode].filter(Boolean).join(", ");
+  const { data: client, error: clientError } = await admin
+    .from("clients")
+    .insert({
+      full_name: parsedContact.data.name,
+      email: parsedContact.data.email,
+      phone: parsedContact.data.phone,
+      address: fullAddress || null,
+    })
+    .select("id")
+    .single();
+  if (clientError || !client) {
+    console.error("Failed to create client for tailored quote request", clientError);
+    return { success: false, error: "Unable to process your request right now. Please try again." };
+  }
+
+  const { data: quoteRequest, error: requestError } = await admin
+    .from("quote_requests")
+    .insert({
+      service: input.service,
+      client_id: client.id,
+      postcode: trimmedPostcode,
+      answers: input.answers as unknown as Json,
+      notes: input.notes.trim() || null,
+      marketing_consent: input.marketingConsent,
+    })
+    .select("id")
+    .single();
+  if (requestError || !quoteRequest) {
+    console.error("Failed to create tailored quote request", requestError);
+    return { success: false, error: "Unable to process your request right now. Please try again." };
+  }
+
+  if (input.photoStoragePaths.length > 0) {
+    const { error: photosError } = await admin.from("quote_request_photos").insert(
+      input.photoStoragePaths.map((storagePath) => ({
+        quote_request_id: quoteRequest.id,
+        storage_path: storagePath,
+      }))
+    );
+    if (photosError) {
+      console.error("Failed to link photos to tailored quote request", photosError);
+    }
+  }
+
+  const reference = `SWC-${quoteRequest.id.slice(0, 4).toUpperCase()}`;
+
+  try {
+    await resend.emails.send({
+      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      to: parsedContact.data.email,
+      subject: `We've received your ${TAILORED_SERVICE_TITLE[input.service]} request (${reference})`,
+      html: `
+        <p>Hi ${parsedContact.data.name},</p>
+        <p>Thanks -- we've got your request. Reference <strong>${reference}</strong>.</p>
+        <p><strong>${TAILORED_SERVICE_TITLE[input.service]}</strong></p>
+        <p>We'll email your tailored price within 24 hours.</p>
+        <p>If you need to reach us in the meantime, you can call us on <strong>01732 711856</strong> or WhatsApp us on <strong>07445 109813</strong>.</p>
+        <br>
+        <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+      `,
+    });
+  } catch (e) {
+    console.error("Failed to send tailored quote confirmation email", e);
+  }
+
+  revalidatePath("/dashboard/admin/enquiries");
+
+  return { success: true, reference };
 }

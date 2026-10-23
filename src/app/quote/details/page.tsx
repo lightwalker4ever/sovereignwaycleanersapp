@@ -6,12 +6,13 @@ import { Loader2, AlertCircle } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
 import { DesktopPriceSidebar } from "@/components/quote-flow/PriceSummary";
 import { useQuoteState, type AccessMethod } from "@/lib/quote-state";
-import { getQuoteRateCard, submitInstantQuoteRequest } from "@/actions/quote";
+import { getQuoteRateCard, submitInstantQuoteRequest, submitTailoredQuoteRequest } from "@/actions/quote";
 import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
 import { nameSchema, emailSchema, requiredPhoneSchema, schemaFieldError } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
 import { ARRIVAL_WINDOWS, CONFIRMATION_WINDOW_HOURS } from "@/lib/quote-config";
 import { writeQuoteConfirmation } from "@/lib/quote-confirmation";
+import { services } from "@/components/Services";
 import type { RateCard } from "@/lib/rate-card";
 import { cn } from "@/lib/utils";
 
@@ -31,28 +32,32 @@ type Touched = { name: boolean; email: boolean; phone: boolean };
 
 export default function QuoteDetailsPage() {
   const router = useRouter();
-  const { state, update, clear, hydrated } = useQuoteState();
+  const { state, update, hydrated } = useQuoteState();
+  const isTailored = Boolean(state.tailoredService);
+  const hasAnyService = Boolean(state.service) || isTailored;
 
   const [rateCard, setRateCard] = useState<RateCard | null>(null);
   useEffect(() => {
+    if (isTailored) return;
     getQuoteRateCard().then((r) => {
       if (r.success) setRateCard(r.rateCard);
     });
-  }, []);
+  }, [isTailored]);
 
-  // Set synchronously (not state) right before clear() below, so the
-  // still-mounted page's own re-render from that state change doesn't
-  // race its "no service picked" redirect against the real navigation
-  // to /quote/confirmed -- clear() nulls state.service, which would
-  // otherwise re-trigger this guard a moment after a successful submit.
+  // Belt-and-braces: the quote state is no longer cleared on this page
+  // (that moved to /quote/confirmed's own mount, once this page has
+  // actually navigated away -- clearing it here raced the navigation
+  // itself, since it re-rendered this still-mounted page with no
+  // service selected). Kept as a cheap guard in case anything else
+  // ever nulls state.service while a submission is in flight.
   const submittedRef = useRef(false);
 
   useEffect(() => {
-    if (hydrated && !state.service && !submittedRef.current) router.replace("/quote/service");
-  }, [hydrated, state.service, router]);
+    if (hydrated && !hasAnyService && !submittedRef.current) router.replace("/quote/service");
+  }, [hydrated, hasAnyService, router]);
 
   const breakdown = useMemo(() => {
-    if (!rateCard || !state.service) return null;
+    if (isTailored || !rateCard || !state.service) return null;
     const location = state.location ?? { multiplier: 1, label: "Standard rate" };
     if (state.service === "end_of_tenancy") {
       return calculateEndOfTenancy(state.eot, rateCard, location.multiplier, location.label);
@@ -61,7 +66,7 @@ export default function QuoteDetailsPage() {
       return calculateDeepCleaning(state.deep, rateCard, location.multiplier, location.label);
     }
     return calculateOfficeCleaning(state.office, rateCard, location.multiplier, location.label);
-  }, [rateCard, state.service, state.eot, state.deep, state.office, state.location]);
+  }, [isTailored, rateCard, state.service, state.eot, state.deep, state.office, state.location]);
 
   const [touched, setTouched] = useState<Touched>({ name: false, email: false, phone: false });
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -79,11 +84,16 @@ export default function QuoteDetailsPage() {
     ? `${dayLabel}${state.flexible ? " · Flexible" : selectedWindow ? ` · ${selectedWindow.time}` : ""}`
     : "Not chosen";
 
-  function handleSubmit() {
-    setTouched({ name: true, email: true, phone: true });
-    setSubmitError(null);
-    if (nameError || emailError || phoneError || !state.service) return;
+  const tailoredServiceName = state.tailoredService
+    ? (services.find((s) => s.slug === state.tailoredService)?.name ?? "")
+    : "";
 
+  function accessLabel(): string {
+    const opt = ACCESS_OPTIONS.find((o) => o.value === state.accessMethod);
+    return opt ? opt.label : "";
+  }
+
+  function handleSubmitInstant() {
     startSubmitting(async () => {
       const result = await submitInstantQuoteRequest({
         service: state.service!,
@@ -108,6 +118,7 @@ export default function QuoteDetailsPage() {
       }
       submittedRef.current = true;
       writeQuoteConfirmation({
+        isTailored: false,
         reference: result.reference,
         cleaningId: result.cleaningId,
         firstName: state.contact.name.split(" ")[0] || "there",
@@ -119,15 +130,63 @@ export default function QuoteDetailsPage() {
         windowKey: state.flexible ? null : state.window,
         isFlexible: state.flexible,
       });
-      clear();
       router.push("/quote/confirmed");
     });
   }
 
-  if (!state.service || !breakdown) {
+  function handleSubmitTailored() {
+    startSubmitting(async () => {
+      const accessNote = state.accessMethod || state.accessNotes
+        ? `Access: ${accessLabel() || "Not specified"}.${state.accessNotes.trim() ? ` ${state.accessNotes.trim()}` : ""}`
+        : "";
+      const notes = [accessNote, state.tailoredNotes.trim()].filter(Boolean).join(" ");
+
+      const result = await submitTailoredQuoteRequest({
+        service: state.tailoredService!,
+        answers: state.tailoredAnswers,
+        notes,
+        photoStoragePaths: state.tailoredPhotos.map((p) => p.storagePath),
+        postcode: state.postcode,
+        name: state.contact.name,
+        email: state.contact.email,
+        phone: state.contact.phone,
+        addressLine: state.addressLine,
+        marketingConsent: state.marketingConsent,
+      });
+      if (!result.success) {
+        setSubmitError(result.error);
+        return;
+      }
+      submittedRef.current = true;
+      writeQuoteConfirmation({
+        isTailored: true,
+        reference: result.reference,
+        cleaningId: "",
+        firstName: state.contact.name.split(" ")[0] || "there",
+        email: state.contact.email,
+        serviceName: tailoredServiceName,
+        totalIncVat: 0,
+        postcode: state.postcode,
+        dateIso: null,
+        windowKey: null,
+        isFlexible: false,
+      });
+      router.push("/quote/confirmed");
+    });
+  }
+
+  function handleSubmit() {
+    setTouched({ name: true, email: true, phone: true });
+    setSubmitError(null);
+    if (nameError || emailError || phoneError) return;
+    if (isTailored) handleSubmitTailored();
+    else if (state.service) handleSubmitInstant();
+  }
+
+  if (!hasAnyService || (!isTailored && !breakdown)) {
     return (
       <>
-        <QuoteStepper tailored={false} mobileLeading={{ icon: "back", onClick: () => router.push("/quote/when") }} />
+        <QuoteStepper tailored={isTailored} mobileLeading={{ icon: "back", onClick: () => router.push(isTailored ? "/quote/about-job" : "/quote/when") }} />
         <div className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-dash-muted">
           <Loader2 className="size-4 animate-spin" /> Loading…
         </div>
@@ -137,16 +196,22 @@ export default function QuoteDetailsPage() {
 
   return (
     <>
-      <QuoteStepper tailored={false} mobileLeading={{ icon: "back", onClick: () => router.push("/quote/when") }} />
+      <QuoteStepper tailored={isTailored} mobileLeading={{ icon: "back", onClick: () => router.push(isTailored ? "/quote/about-job" : "/quote/when") }} />
 
       <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-8 sm:p-8">
         <main className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
           <div>
-            <button type="button" onClick={() => router.push("/quote/when")} className="text-sm font-semibold">
-              ← Back to date &amp; time
+            <button
+              type="button"
+              onClick={() => router.push(isTailored ? "/quote/about-job" : "/quote/when")}
+              className="text-sm font-semibold"
+            >
+              ← Back
             </button>
             <h1 className="mt-2 mb-0 text-[24px] font-extrabold tracking-tight sm:text-[30px]">Your details</h1>
-            <p className="mt-1.5 text-[15px] text-dash-muted">Last step. We&apos;ll use these to confirm your booking.</p>
+            <p className="mt-1.5 text-[15px] text-dash-muted">
+              {isTailored ? "Last step. We'll use these to send your tailored price." : "Last step. We'll use these to confirm your booking."}
+            </p>
           </div>
 
           <section aria-label="Contact" className="flex flex-col gap-3.5 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
@@ -258,18 +323,20 @@ export default function QuoteDetailsPage() {
           </section>
 
           <section className="flex flex-col gap-2.5 px-1">
-            <label className="flex items-start gap-2.5 text-sm">
-              <input
-                type="checkbox"
-                checked={state.trackOnline}
-                onChange={(e) => update({ trackOnline: e.target.checked })}
-                className="mt-0.5 h-5 w-5 shrink-0 accent-dash-brand-700"
-              />
-              <span>
-                <strong>Track this clean online.</strong> We&apos;ll email you a link to set a password and follow
-                progress, photos and results.
-              </span>
-            </label>
+            {!isTailored && (
+              <label className="flex items-start gap-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={state.trackOnline}
+                  onChange={(e) => update({ trackOnline: e.target.checked })}
+                  className="mt-0.5 h-5 w-5 shrink-0 accent-dash-brand-700"
+                />
+                <span>
+                  <strong>Track this clean online.</strong> We&apos;ll email you a link to set a password and follow
+                  progress, photos and results.
+                </span>
+              </label>
+            )}
             <label className="flex items-start gap-2.5 text-sm">
               <input
                 type="checkbox"
@@ -283,37 +350,64 @@ export default function QuoteDetailsPage() {
         </main>
 
         <aside aria-label="Booking summary" className="flex flex-[1_1_340px] flex-col gap-3 md:sticky md:top-6">
-          <DesktopPriceSidebar
-            serviceTitle="Booking summary"
-            recap=""
-            breakdown={breakdown}
-            primaryLabel="Request this booking"
-            onPrimary={handleSubmit}
-            primaryPending={submitting}
-            extraRows={
-              <div className="mb-1 flex flex-col gap-1.5 border-b border-dash-border pb-3">
+          {isTailored ? (
+            <div className="flex flex-col gap-3.5 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
+              <h2 className="m-0 text-[17px] font-extrabold">Request summary</h2>
+              <div className="flex flex-col gap-2 text-sm">
                 <div className="flex justify-between gap-2">
                   <span className="text-dash-muted">Service</span>
-                  <span className="text-right font-bold">{SERVICE_NAME[state.service]}</span>
-                </div>
-                <div className="flex justify-between gap-2">
-                  <span className="text-dash-muted">When</span>
-                  <span className="text-right font-bold">{whenLabel}</span>
+                  <span className="text-right font-bold">{tailoredServiceName}</span>
                 </div>
                 <div className="flex justify-between gap-2">
                   <span className="text-dash-muted">Where</span>
                   <span className="text-right font-bold">{state.postcode || "—"}</span>
                 </div>
               </div>
-            }
-          />
+              <button
+                type="button"
+                onClick={handleSubmit}
+                disabled={submitting}
+                className="flex h-13 items-center justify-center gap-2 rounded-xl bg-dash-brand-700 text-base font-extrabold text-white disabled:opacity-50"
+              >
+                {submitting && <Loader2 className="size-4 animate-spin" />}
+                Get my tailored quote
+              </button>
+            </div>
+          ) : (
+            <DesktopPriceSidebar
+              serviceTitle="Booking summary"
+              recap=""
+              breakdown={breakdown!}
+              primaryLabel="Request this booking"
+              onPrimary={handleSubmit}
+              primaryPending={submitting}
+              extraRows={
+                <div className="mb-1 flex flex-col gap-1.5 border-b border-dash-border pb-3">
+                  <div className="flex justify-between gap-2">
+                    <span className="text-dash-muted">Service</span>
+                    <span className="text-right font-bold">{SERVICE_NAME[state.service!]}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-dash-muted">When</span>
+                    <span className="text-right font-bold">{whenLabel}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-dash-muted">Where</span>
+                    <span className="text-right font-bold">{state.postcode || "—"}</span>
+                  </div>
+                </div>
+              }
+            />
+          )}
           {submitError && (
             <p className="flex items-start gap-1.5 text-sm text-dash-danger">
               <AlertCircle size={14} className="mt-px shrink-0" /> {submitError}
             </p>
           )}
           <p className="text-center text-[13px] leading-relaxed text-dash-muted">
-            No payment now. We&apos;ll confirm your date within {CONFIRMATION_WINDOW_HOURS} hours.
+            {isTailored
+              ? "We'll email your tailored price within 24 hours."
+              : `No payment now. We'll confirm your date within ${CONFIRMATION_WINDOW_HOURS} hours.`}
           </p>
         </aside>
       </div>

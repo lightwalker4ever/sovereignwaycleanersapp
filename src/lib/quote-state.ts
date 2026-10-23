@@ -34,6 +34,11 @@ export interface QuoteState {
   office: OfficeCleaningInput;
   tailoredAnswers: Record<string, string>;
   tailoredNotes: string;
+  /** Already-uploaded storage paths (quote-request-photos bucket, under
+   *  pending/{tailoredPhotoGroupId}/...) -- small enough to persist in
+   *  sessionStorage, unlike the File objects themselves. */
+  tailoredPhotos: { storagePath: string; name: string }[];
+  tailoredPhotoGroupId: string;
   date: string | null;
   window: ArrivalWindowKey | null;
   flexible: boolean;
@@ -56,6 +61,8 @@ export const DEFAULT_QUOTE_STATE: QuoteState = {
   office: { method: "hourly", hours: 2, sqm: 20, frequency: "weekly" },
   tailoredAnswers: {},
   tailoredNotes: "",
+  tailoredPhotos: [],
+  tailoredPhotoGroupId: "",
   date: null,
   window: null,
   flexible: false,

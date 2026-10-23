@@ -7,6 +7,7 @@ import type { ArrivalWindowKey } from "@/lib/quote-state";
  * immediately on submit per quote-handoff QUOTE_HANDOFF.md principle 4.
  */
 export interface QuoteConfirmationData {
+  isTailored: boolean;
   reference: string;
   cleaningId: string;
   firstName: string;

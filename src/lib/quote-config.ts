@@ -13,6 +13,50 @@ export type TailoredServiceSlug =
   | "builders_sparkle_clean"
   | "move_in_out";
 
+export interface TailoredQuestion {
+  key: string;
+  question: string;
+  options: string[];
+}
+
+/**
+ * Step 2-equivalent "About the job" chip questions for each tailored
+ * (non-instant-price) service -- quote-handoff QUOTE_HANDOFF.md:
+ * "Adapt the questions per service. For example, commercial asks
+ * premises type and size; carpet asks number of rooms and stairs."
+ * Purely descriptive lead-qualification data (stored as free-form
+ * answers on the quote_requests row), not fed into any pricing formula.
+ */
+export const TAILORED_QUESTIONS: Record<TailoredServiceSlug, TailoredQuestion[]> = {
+  domestic_cleaning: [
+    { key: "type", question: "Type of home", options: ["Flat", "House", "Other"] },
+    { key: "bedrooms", question: "Bedrooms", options: ["1", "2", "3", "4", "5+"] },
+    { key: "frequency", question: "How often?", options: ["One-off", "Weekly", "Fortnightly", "Monthly"] },
+  ],
+  commercial_cleaning: [
+    { key: "premises", question: "Premises type", options: ["Office", "Retail", "Other"] },
+    { key: "size", question: "Approximate size", options: ["Small", "Medium", "Large"] },
+    { key: "frequency", question: "How often?", options: ["One-off", "Weekly", "Fortnightly", "Monthly"] },
+  ],
+  carpet_cleaning: [
+    { key: "rooms", question: "Number of rooms", options: ["1", "2", "3", "4", "5+"] },
+    { key: "stairs", question: "Stairs?", options: ["Yes", "No"] },
+    { key: "stains", question: "Any stains or odours?", options: ["Yes", "No"] },
+  ],
+  after_build_clean: [
+    { key: "size", question: "Property size", options: ["Small", "Medium", "Large"] },
+    { key: "stage", question: "Stage of works", options: ["Mid-build", "Final clean"] },
+  ],
+  builders_sparkle_clean: [
+    { key: "size", question: "Property size", options: ["Small", "Medium", "Large"] },
+    { key: "type", question: "Type of job", options: ["New build", "Renovation"] },
+  ],
+  move_in_out: [
+    { key: "size", question: "Property size", options: ["Studio / 1 bed", "2-3 bed", "4+ bed"] },
+    { key: "direction", question: "Moving in or out?", options: ["Moving in", "Moving out"] },
+  ],
+};
+
 export interface ArrivalWindowConfig {
   key: "morning" | "midday" | "afternoon";
   label: string;

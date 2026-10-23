@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Check, Calendar } from "lucide-react";
 import { StatusPill } from "@/components/ui/StatusPill";
+import { useQuoteState } from "@/lib/quote-state";
 import { readQuoteConfirmation, type QuoteConfirmationData } from "@/lib/quote-confirmation";
 import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
 import { buildQuoteIcs, downloadIcs } from "@/lib/quote-ics";
@@ -30,6 +31,7 @@ const NEXT_STEPS = [
 
 export default function QuoteConfirmedPage() {
   const router = useRouter();
+  const { clear } = useQuoteState();
   const [data, setData] = useState<QuoteConfirmationData | null | undefined>(undefined);
 
   useEffect(() => {
@@ -40,9 +42,16 @@ export default function QuoteConfirmedPage() {
       router.replace("/quote/service");
       return;
     }
+    // The in-progress quote state is cleared *here*, once the
+    // destination page has mounted, rather than on step 4 right before
+    // navigating away -- clearing there re-rendered the still-mounted
+    // step 4 page with no service selected, which raced (and sometimes
+    // lost to) the navigation itself. Nothing on this page depends on
+    // the old quote state, so clearing on arrival is race-free.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setData(confirmation);
-  }, [router]);
+    clear();
+  }, [router, clear]);
 
   if (!data) return null;
 
@@ -76,51 +85,77 @@ export default function QuoteConfirmedPage() {
           Thanks, {data.firstName}. Your request is in.
         </h1>
         <p className="m-0 max-w-[560px] text-[15px] leading-relaxed text-dash-muted sm:text-base">
-          We&apos;ve emailed your quote and booking details to <strong className="text-dash-ink">{data.email}</strong>.
-          Reference <strong className="text-dash-ink">{data.reference}</strong>.
+          {data.isTailored ? (
+            <>
+              We&apos;ll email your tailored price within 24 hours to <strong className="text-dash-ink">{data.email}</strong>.
+              Reference <strong className="text-dash-ink">{data.reference}</strong>.
+            </>
+          ) : (
+            <>
+              We&apos;ve emailed your quote and booking details to <strong className="text-dash-ink">{data.email}</strong>.
+              Reference <strong className="text-dash-ink">{data.reference}</strong>.
+            </>
+          )}
         </p>
       </div>
 
-      <section aria-label="Your booking" className="flex flex-wrap items-center gap-4 rounded-2xl border border-dash-border bg-dash-surface px-5.5 py-5">
-        <div className="flex flex-1 basis-[180px] flex-col gap-0.5">
-          <span className="text-[13px] font-semibold text-dash-muted">Service</span>
-          <span className="font-extrabold">{data.serviceName}</span>
-        </div>
-        <div className="flex flex-1 basis-[160px] flex-col gap-0.5">
-          <span className="text-[13px] font-semibold text-dash-muted">Requested for</span>
-          <span className="font-extrabold">{whenLabel}</span>
-        </div>
-        <div className="flex basis-[110px] flex-col gap-0.5">
-          <span className="text-[13px] font-semibold text-dash-muted">Total</span>
-          <span className="font-extrabold">£{data.totalIncVat.toFixed(2)}</span>
-        </div>
-        <StatusPill status="awaiting_confirmation" />
-      </section>
+      {data.isTailored ? (
+        <section aria-label="Your request" className="flex flex-wrap items-center gap-4 rounded-2xl border border-dash-border bg-dash-surface px-5.5 py-5">
+          <div className="flex flex-1 basis-[180px] flex-col gap-0.5">
+            <span className="text-[13px] font-semibold text-dash-muted">Service</span>
+            <span className="font-extrabold">{data.serviceName}</span>
+          </div>
+          <span
+            className="rounded-full px-2.5 py-1 text-xs font-bold"
+            style={{ background: "#FFF1D1", color: "#7A4B00" }}
+          >
+            Awaiting quote
+          </span>
+        </section>
+      ) : (
+        <>
+          <section aria-label="Your booking" className="flex flex-wrap items-center gap-4 rounded-2xl border border-dash-border bg-dash-surface px-5.5 py-5">
+            <div className="flex flex-1 basis-[180px] flex-col gap-0.5">
+              <span className="text-[13px] font-semibold text-dash-muted">Service</span>
+              <span className="font-extrabold">{data.serviceName}</span>
+            </div>
+            <div className="flex flex-1 basis-[160px] flex-col gap-0.5">
+              <span className="text-[13px] font-semibold text-dash-muted">Requested for</span>
+              <span className="font-extrabold">{whenLabel}</span>
+            </div>
+            <div className="flex basis-[110px] flex-col gap-0.5">
+              <span className="text-[13px] font-semibold text-dash-muted">Total</span>
+              <span className="font-extrabold">£{data.totalIncVat.toFixed(2)}</span>
+            </div>
+            <StatusPill status="awaiting_confirmation" />
+          </section>
 
-      <section aria-label="What happens next" className="flex flex-col gap-1 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
-        <h2 className="m-0 mb-3 text-[17px] font-extrabold">What happens next</h2>
-        <ol className="m-0 flex list-none flex-col p-0">
-          {NEXT_STEPS.map((step, i) => (
-            <li key={step.title} className="flex gap-3.5">
-              <div className="flex flex-col items-center">
-                <span
-                  className={
-                    "flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold " +
-                    (i === 0 ? "bg-dash-brand-700 text-white" : "bg-dash-brand-100 text-[#155B33]")
-                  }
-                >
-                  {i + 1}
-                </span>
-                {i < NEXT_STEPS.length - 1 && <span className="min-h-3 w-0.5 flex-1 bg-dash-border" />}
-              </div>
-              <div className="flex flex-col gap-0.5 pb-4.5">
-                <span className="text-[15px] font-bold">{step.title}</span>
-                <span className="text-sm text-dash-muted">{step.body}</span>
-              </div>
-            </li>
-          ))}
-        </ol>
-      </section>
+          <section aria-label="What happens next" className="flex flex-col gap-1 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
+            <h2 className="m-0 mb-3 text-[17px] font-extrabold">What happens next</h2>
+            <ol className="m-0 flex list-none flex-col p-0">
+              {NEXT_STEPS.map((step, i) => (
+                <li key={step.title} className="flex gap-3.5">
+                  <div className="flex flex-col items-center">
+                    <span
+                      className={
+                        "flex h-7.5 w-7.5 shrink-0 items-center justify-center rounded-full text-[13px] font-extrabold " +
+                        (i === 0 ? "bg-dash-brand-700 text-white" : "bg-dash-brand-100 text-[#155B33]")
+                      }
+                    >
+                      {i + 1}
+                    </span>
+                    {i < NEXT_STEPS.length - 1 && <span className="min-h-3 w-0.5 flex-1 bg-dash-border" />}
+                  </div>
+                  <div className="flex flex-col gap-0.5 pb-4.5">
+                    <span className="text-[15px] font-bold">{step.title}</span>
+                    <span className="text-sm text-dash-muted">{step.body}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+          </section>
+        </>
+      )}
 
       <div className="flex flex-wrap gap-3">
         <Link
@@ -129,14 +164,16 @@ export default function QuoteConfirmedPage() {
         >
           Set a password to track it
         </Link>
-        <button
-          type="button"
-          onClick={handleAddToCalendar}
-          className="flex h-13.5 flex-[1_1_180px] items-center justify-center gap-2 rounded-xl border-[1.5px] border-dash-input-border bg-white text-[15px] font-bold text-dash-ink"
-        >
-          <Calendar size={18} aria-hidden="true" />
-          Add to calendar
-        </button>
+        {!data.isTailored && (
+          <button
+            type="button"
+            onClick={handleAddToCalendar}
+            className="flex h-13.5 flex-[1_1_180px] items-center justify-center gap-2 rounded-xl border-[1.5px] border-dash-input-border bg-white text-[15px] font-bold text-dash-ink"
+          >
+            <Calendar size={18} aria-hidden="true" />
+            Add to calendar
+          </button>
+        )}
       </div>
       <Link href="/" className="text-center text-sm font-semibold">
         Back to the home page
