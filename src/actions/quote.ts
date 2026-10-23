@@ -7,7 +7,10 @@ import { getRateCard, type RateCard } from "@/lib/rate-card";
 import { lookupPostcode } from "@/lib/postcode-lookup";
 import { createAdminClient } from "@/lib/supabase/admin";
 import type { Json } from "@/lib/supabase/database.types";
-import { nameSchema, emailSchema, phoneSchema } from "@/lib/validation";
+import { nameSchema, emailSchema, phoneSchema, requiredPhoneSchema } from "@/lib/validation";
+import { normalizeUkPhone } from "@/lib/quote-phone";
+import type { ArrivalWindowKey, AccessMethod } from "@/lib/quote-state";
+import { CONFIRMATION_WINDOW_HOURS } from "@/lib/quote-config";
 import {
   calculateEndOfTenancy,
   calculateDeepCleaning,
@@ -314,4 +317,201 @@ export async function submitBooking(input: {
 
   revalidatePath("/dashboard/admin/bookings");
   return { success: true };
+}
+
+const WINDOW_START_TIME: Record<ArrivalWindowKey, string> = {
+  morning: "08:00",
+  midday: "11:00",
+  afternoon: "14:00",
+};
+
+const instantContactSchema = z.object({
+  name: nameSchema,
+  email: emailSchema,
+  phone: z.string().transform(normalizeUkPhone).pipe(requiredPhoneSchema),
+});
+
+export type SubmitInstantQuoteResult =
+  | {
+      success: true;
+      reference: string;
+      cleaningId: string;
+      totalIncVat: number;
+    }
+  | { success: false; error: string };
+
+/**
+ * Step 4's "Request this booking" for an instant-price service. Unlike
+ * the old quote_bookings flow, this creates the Cleaning row directly
+ * in 'awaiting_confirmation' (quote-handoff QUOTE_HANDOFF.md's
+ * "Integration with the existing app") -- admin's "Confirm & schedule"
+ * fills in cleaner_id/supervisor_id/the checklist later, it doesn't
+ * create a second row. The price is recomputed server-side from a
+ * fresh rate card and location resolution, never trusted from the
+ * client, and stored as price_breakdown exactly as quoted -- it's
+ * never recalculated again after this point.
+ */
+export async function submitInstantQuoteRequest(input: {
+  service: QuoteServiceKey;
+  selectedInputs: EndOfTenancyInput | DeepCleaningInput | OfficeCleaningInput;
+  postcode: string;
+  requestedDate: string;
+  requestedWindow: ArrivalWindowKey | null;
+  isFlexible: boolean;
+  name: string;
+  email: string;
+  phone: string;
+  addressLine: string;
+  accessMethod: AccessMethod | null;
+  accessNotes: string;
+  marketingConsent: boolean;
+  trackOnline: boolean;
+  honeypot?: string;
+}): Promise<SubmitInstantQuoteResult> {
+  if (input.honeypot) {
+    return { success: true, reference: "SWC-0000", cleaningId: "", totalIncVat: 0 };
+  }
+
+  const parsedContact = instantContactSchema.safeParse({
+    name: input.name,
+    email: input.email,
+    phone: input.phone,
+  });
+  if (!parsedContact.success) {
+    return { success: false, error: parsedContact.error.issues[0].message };
+  }
+
+  const trimmedPostcode = input.postcode.trim();
+  if (!trimmedPostcode) return { success: false, error: "Postcode is required" };
+  if (!input.requestedDate) return { success: false, error: "Pick a date" };
+  if (!input.requestedWindow && !input.isFlexible) {
+    return { success: false, error: "Pick an arrival window, or tell us you're flexible" };
+  }
+
+  let rateCard: RateCard;
+  try {
+    rateCard = await getRateCard();
+  } catch (e) {
+    console.error("Failed to load rate card for instant quote submission", e);
+    return { success: false, error: "Unable to process your request right now. Please try again." };
+  }
+
+  const location = await resolveLocationMultiplier(trimmedPostcode);
+
+  let breakdown: QuoteBreakdown;
+  if (input.service === "end_of_tenancy") {
+    breakdown = calculateEndOfTenancy(
+      input.selectedInputs as EndOfTenancyInput,
+      rateCard,
+      location.multiplier,
+      location.label
+    );
+  } else if (input.service === "deep_cleaning") {
+    breakdown = calculateDeepCleaning(
+      input.selectedInputs as DeepCleaningInput,
+      rateCard,
+      location.multiplier,
+      location.label
+    );
+  } else {
+    breakdown = calculateOfficeCleaning(
+      input.selectedInputs as OfficeCleaningInput,
+      rateCard,
+      location.multiplier,
+      location.label
+    );
+  }
+
+  const admin = createAdminClient();
+
+  const fullAddress = [input.addressLine.trim(), trimmedPostcode].filter(Boolean).join(", ");
+  const { data: client, error: clientError } = await admin
+    .from("clients")
+    .insert({
+      full_name: parsedContact.data.name,
+      email: parsedContact.data.email,
+      phone: parsedContact.data.phone,
+      address: fullAddress || null,
+    })
+    .select("id")
+    .single();
+  if (clientError || !client) {
+    console.error("Failed to create client for instant quote request", clientError);
+    return { success: false, error: "Unable to process your request right now. Please try again." };
+  }
+
+  const startTime = input.requestedWindow ? WINDOW_START_TIME[input.requestedWindow] : "09:00";
+  const scheduledAt = new Date(`${input.requestedDate}T${startTime}:00`);
+
+  const { data: cleaning, error: cleaningError } = await admin
+    .from("cleanings")
+    .insert({
+      client_id: client.id,
+      status: "awaiting_confirmation",
+      scheduled_at: scheduledAt.toISOString(),
+      requested_date: input.requestedDate,
+      requested_window: input.requestedWindow,
+      is_flexible: input.isFlexible,
+      access_method: input.accessMethod,
+      access_notes: input.accessNotes.trim() || null,
+      marketing_consent: input.marketingConsent,
+      source: "website_quote",
+      property_answers: input.selectedInputs as unknown as Json,
+      price_breakdown: breakdown as unknown as Json,
+      notes: `Booked via the website quote journey (${input.service}).`,
+    })
+    .select("id, created_at")
+    .single();
+  if (cleaningError || !cleaning) {
+    console.error("Failed to create cleaning for instant quote request", cleaningError);
+    return { success: false, error: "Unable to process your request right now. Please try again." };
+  }
+
+  const reference = `SWC-${cleaning.id.slice(0, 4).toUpperCase()}`;
+  const dateLabel = new Date(`${input.requestedDate}T00:00:00`).toLocaleDateString("en-GB", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+  });
+  const windowLabel = input.isFlexible
+    ? "Any time that day"
+    : input.requestedWindow
+      ? `${input.requestedWindow[0].toUpperCase()}${input.requestedWindow.slice(1)}, ${WINDOW_START_TIME[input.requestedWindow]}`
+      : "";
+
+  try {
+    await resend.emails.send({
+      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      to: parsedContact.data.email,
+      subject: `We've received your booking request (${reference})`,
+      html: `
+        <p>Hi ${parsedContact.data.name},</p>
+        <p>Thanks -- your request is in. Reference <strong>${reference}</strong>.</p>
+        <p><strong>${SERVICE_TITLE[input.service]}</strong><br>
+        Requested for: ${dateLabel}${windowLabel ? ` · ${windowLabel}` : ""}<br>
+        Total: £${breakdown.totalIncVat.toFixed(2)} (inc. VAT)</p>
+        <p>We'll confirm your date within ${CONFIRMATION_WINDOW_HOURS} hours. No payment is needed now.</p>
+        ${
+          input.trackOnline
+            ? `<p>Want to track this clean online? <a href="https://sovereignwaycleaners.co.uk/login">Set a password</a> using this email address to follow progress, photos and results.</p>`
+            : ""
+        }
+        <p>If you need to reach us in the meantime, you can call us on <strong>01732 711856</strong> or WhatsApp us on <strong>07445 109813</strong>.</p>
+        <br>
+        <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+      `,
+    });
+  } catch (e) {
+    console.error("Failed to send instant quote confirmation email", e);
+  }
+
+  revalidatePath("/dashboard/admin/cleanings");
+  revalidatePath("/dashboard/admin");
+
+  return {
+    success: true,
+    reference,
+    cleaningId: cleaning.id,
+    totalIncVat: breakdown.totalIncVat,
+  };
 }

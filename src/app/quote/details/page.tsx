@@ -1,0 +1,327 @@
+"use client";
+
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, AlertCircle } from "lucide-react";
+import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
+import { DesktopPriceSidebar } from "@/components/quote-flow/PriceSummary";
+import { useQuoteState, type AccessMethod } from "@/lib/quote-state";
+import { getQuoteRateCard, submitInstantQuoteRequest } from "@/actions/quote";
+import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
+import { nameSchema, emailSchema, requiredPhoneSchema, schemaFieldError } from "@/lib/validation";
+import { normalizeUkPhone } from "@/lib/quote-phone";
+import { ARRIVAL_WINDOWS, CONFIRMATION_WINDOW_HOURS } from "@/lib/quote-config";
+import type { RateCard } from "@/lib/rate-card";
+import { cn } from "@/lib/utils";
+
+const SERVICE_NAME: Record<string, string> = {
+  end_of_tenancy: "End of Tenancy",
+  deep_cleaning: "Deep Cleaning",
+  office_cleaning: "Office Cleaning",
+};
+
+const ACCESS_OPTIONS: { value: AccessMethod; label: string }[] = [
+  { value: "present", label: "I'll be there" },
+  { value: "key_safe", label: "Key safe / lockbox" },
+  { value: "agent_keys", label: "Collect keys from agent" },
+];
+
+type Touched = { name: boolean; email: boolean; phone: boolean };
+
+export default function QuoteDetailsPage() {
+  const router = useRouter();
+  const { state, update, clear, hydrated } = useQuoteState();
+
+  const [rateCard, setRateCard] = useState<RateCard | null>(null);
+  useEffect(() => {
+    getQuoteRateCard().then((r) => {
+      if (r.success) setRateCard(r.rateCard);
+    });
+  }, []);
+
+  useEffect(() => {
+    if (hydrated && !state.service) router.replace("/quote/service");
+  }, [hydrated, state.service, router]);
+
+  const breakdown = useMemo(() => {
+    if (!rateCard || !state.service) return null;
+    const location = state.location ?? { multiplier: 1, label: "Standard rate" };
+    if (state.service === "end_of_tenancy") {
+      return calculateEndOfTenancy(state.eot, rateCard, location.multiplier, location.label);
+    }
+    if (state.service === "deep_cleaning") {
+      return calculateDeepCleaning(state.deep, rateCard, location.multiplier, location.label);
+    }
+    return calculateOfficeCleaning(state.office, rateCard, location.multiplier, location.label);
+  }, [rateCard, state.service, state.eot, state.deep, state.office, state.location]);
+
+  const [touched, setTouched] = useState<Touched>({ name: false, email: false, phone: false });
+  const [submitError, setSubmitError] = useState<string | null>(null);
+  const [submitting, startSubmitting] = useTransition();
+
+  const nameError = schemaFieldError(nameSchema, state.contact.name);
+  const emailError = schemaFieldError(emailSchema, state.contact.email);
+  const phoneError = schemaFieldError(requiredPhoneSchema, normalizeUkPhone(state.contact.phone));
+
+  const dayLabel = state.date
+    ? new Date(`${state.date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
+    : null;
+  const selectedWindow = ARRIVAL_WINDOWS.find((w) => w.key === state.window);
+  const whenLabel = dayLabel
+    ? `${dayLabel}${state.flexible ? " · Flexible" : selectedWindow ? ` · ${selectedWindow.time}` : ""}`
+    : "Not chosen";
+
+  function handleSubmit() {
+    setTouched({ name: true, email: true, phone: true });
+    setSubmitError(null);
+    if (nameError || emailError || phoneError || !state.service) return;
+
+    startSubmitting(async () => {
+      const result = await submitInstantQuoteRequest({
+        service: state.service!,
+        selectedInputs:
+          state.service === "end_of_tenancy" ? state.eot : state.service === "deep_cleaning" ? state.deep : state.office,
+        postcode: state.postcode,
+        requestedDate: state.date ?? "",
+        requestedWindow: state.flexible ? null : state.window,
+        isFlexible: state.flexible,
+        name: state.contact.name,
+        email: state.contact.email,
+        phone: state.contact.phone,
+        addressLine: state.addressLine,
+        accessMethod: state.accessMethod,
+        accessNotes: state.accessNotes,
+        marketingConsent: state.marketingConsent,
+        trackOnline: state.trackOnline,
+      });
+      if (!result.success) {
+        setSubmitError(result.error);
+        return;
+      }
+      try {
+        sessionStorage.setItem(
+          "swc:quote:confirmation:v1",
+          JSON.stringify({
+            reference: result.reference,
+            cleaningId: result.cleaningId,
+            firstName: state.contact.name.split(" ")[0] || "there",
+            email: state.contact.email,
+            serviceName: SERVICE_NAME[state.service!],
+            whenLabel,
+            totalIncVat: result.totalIncVat,
+            dateIso: state.date,
+            windowLabel: state.flexible ? "Any time that day" : selectedWindow ? `${selectedWindow.label}, ${selectedWindow.time}` : "",
+          })
+        );
+      } catch {
+        // Private browsing / storage disabled -- confirmation page falls back to generic copy.
+      }
+      clear();
+      router.push("/quote/confirmed");
+    });
+  }
+
+  if (!state.service || !breakdown) {
+    return (
+      <>
+        <QuoteStepper tailored={false} mobileLeading={{ icon: "back", onClick: () => router.push("/quote/when") }} />
+        <div className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-dash-muted">
+          <Loader2 className="size-4 animate-spin" /> Loading…
+        </div>
+      </>
+    );
+  }
+
+  return (
+    <>
+      <QuoteStepper tailored={false} mobileLeading={{ icon: "back", onClick: () => router.push("/quote/when") }} />
+
+      <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-8 sm:p-8">
+        <main className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
+          <div>
+            <button type="button" onClick={() => router.push("/quote/when")} className="text-sm font-semibold">
+              ← Back to date &amp; time
+            </button>
+            <h1 className="mt-2 mb-0 text-[24px] font-extrabold tracking-tight sm:text-[30px]">Your details</h1>
+            <p className="mt-1.5 text-[15px] text-dash-muted">Last step. We&apos;ll use these to confirm your booking.</p>
+          </div>
+
+          <section aria-label="Contact" className="flex flex-col gap-3.5 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
+            <h2 className="m-0 text-[15px] font-extrabold">Contact</h2>
+            <label className="flex flex-col gap-1.5 text-sm font-semibold">
+              Full name
+              <input
+                autoComplete="name"
+                value={state.contact.name}
+                onChange={(e) => update({ contact: { ...state.contact, name: e.target.value } })}
+                onBlur={() => setTouched((t) => ({ ...t, name: true }))}
+                className={cn(
+                  "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
+                  touched.name && nameError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
+                )}
+              />
+              {touched.name && nameError && <FieldError message={nameError} />}
+            </label>
+            <div className="grid grid-cols-1 gap-3.5 sm:grid-cols-2">
+              <label className="flex flex-col gap-1.5 text-sm font-semibold">
+                Email
+                <input
+                  type="email"
+                  autoComplete="email"
+                  value={state.contact.email}
+                  onChange={(e) => update({ contact: { ...state.contact, email: e.target.value } })}
+                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                  className={cn(
+                    "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
+                    touched.email && emailError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
+                  )}
+                />
+                {touched.email && emailError && <FieldError message={emailError} />}
+              </label>
+              <label className="flex flex-col gap-1.5 text-sm font-semibold">
+                Mobile number
+                <input
+                  type="tel"
+                  autoComplete="tel"
+                  value={state.contact.phone}
+                  onChange={(e) => update({ contact: { ...state.contact, phone: e.target.value } })}
+                  onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
+                  placeholder="07… or +44…"
+                  aria-invalid={touched.phone && Boolean(phoneError)}
+                  className={cn(
+                    "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
+                    touched.phone && phoneError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
+                  )}
+                />
+                {touched.phone && phoneError && (
+                  <FieldError message="That doesn't look like a UK number. Try 07… or +44…" />
+                )}
+              </label>
+            </div>
+          </section>
+
+          <section aria-label="Property address" className="flex flex-col gap-3.5 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
+            <h2 className="m-0 text-[15px] font-extrabold">Property address</h2>
+            <label className="flex flex-col gap-1.5 text-sm font-semibold">
+              Address
+              <input
+                autoComplete="address-line1"
+                placeholder="Start typing your address"
+                value={state.addressLine}
+                onChange={(e) => update({ addressLine: e.target.value })}
+                className="h-12 rounded-[10px] border border-dash-input-border px-3.5 text-[15px] font-normal outline-none focus:border-dash-brand-700"
+              />
+            </label>
+            <div className="flex items-center gap-2.5 text-sm">
+              <span className="font-semibold text-dash-muted">Postcode</span>
+              <span className="font-extrabold">{state.postcode || "—"}</span>
+              <button type="button" onClick={() => router.push("/quote/service")} className="text-[13px] font-semibold">
+                Change
+              </button>
+            </div>
+            <fieldset className="m-0 mt-1 flex flex-col gap-2.5 border-0 p-0">
+              <legend className="mb-2.5 p-0 text-sm font-semibold">How will we get in?</legend>
+              <div className="flex flex-wrap gap-2">
+                {ACCESS_OPTIONS.map((opt) => {
+                  const on = state.accessMethod === opt.value;
+                  return (
+                    <button
+                      key={opt.value}
+                      type="button"
+                      aria-pressed={on}
+                      onClick={() => update({ accessMethod: opt.value })}
+                      className={cn(
+                        "h-11 rounded-full px-4 text-sm font-bold",
+                        on
+                          ? "border-2 border-dash-brand-700 bg-dash-brand-700 text-white"
+                          : "border-[1.5px] border-dash-input-border bg-white text-dash-ink"
+                      )}
+                    >
+                      {opt.label}
+                    </button>
+                  );
+                })}
+              </div>
+            </fieldset>
+            <label className="flex flex-col gap-1.5 text-sm font-semibold">
+              Anything we should know? <span className="font-normal text-dash-muted">Optional: parking, pets, areas to focus on</span>
+              <textarea
+                rows={2}
+                value={state.accessNotes}
+                onChange={(e) => update({ accessNotes: e.target.value })}
+                className="resize-y rounded-[10px] border border-dash-input-border px-3.5 py-2.5 text-[15px] font-normal outline-none focus:border-dash-brand-700"
+              />
+            </label>
+          </section>
+
+          <section className="flex flex-col gap-2.5 px-1">
+            <label className="flex items-start gap-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={state.trackOnline}
+                onChange={(e) => update({ trackOnline: e.target.checked })}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-dash-brand-700"
+              />
+              <span>
+                <strong>Track this clean online.</strong> We&apos;ll email you a link to set a password and follow
+                progress, photos and results.
+              </span>
+            </label>
+            <label className="flex items-start gap-2.5 text-sm">
+              <input
+                type="checkbox"
+                checked={state.marketingConsent}
+                onChange={(e) => update({ marketingConsent: e.target.checked })}
+                className="mt-0.5 h-5 w-5 shrink-0 accent-dash-brand-700"
+              />
+              <span>Send me occasional offers. You can unsubscribe at any time.</span>
+            </label>
+          </section>
+        </main>
+
+        <aside aria-label="Booking summary" className="flex flex-[1_1_340px] flex-col gap-3 md:sticky md:top-6">
+          <DesktopPriceSidebar
+            serviceTitle="Booking summary"
+            recap=""
+            breakdown={breakdown}
+            primaryLabel="Request this booking"
+            onPrimary={handleSubmit}
+            primaryPending={submitting}
+            extraRows={
+              <div className="mb-1 flex flex-col gap-1.5 border-b border-dash-border pb-3">
+                <div className="flex justify-between gap-2">
+                  <span className="text-dash-muted">Service</span>
+                  <span className="text-right font-bold">{SERVICE_NAME[state.service]}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-dash-muted">When</span>
+                  <span className="text-right font-bold">{whenLabel}</span>
+                </div>
+                <div className="flex justify-between gap-2">
+                  <span className="text-dash-muted">Where</span>
+                  <span className="text-right font-bold">{state.postcode || "—"}</span>
+                </div>
+              </div>
+            }
+          />
+          {submitError && (
+            <p className="flex items-start gap-1.5 text-sm text-dash-danger">
+              <AlertCircle size={14} className="mt-px shrink-0" /> {submitError}
+            </p>
+          )}
+          <p className="text-center text-[13px] leading-relaxed text-dash-muted">
+            No payment now. We&apos;ll confirm your date within {CONFIRMATION_WINDOW_HOURS} hours.
+          </p>
+        </aside>
+      </div>
+    </>
+  );
+}
+
+function FieldError({ message }: { message: string }) {
+  return (
+    <span className="flex items-center gap-1 text-[13px] font-semibold text-dash-danger">
+      <AlertCircle size={13} className="shrink-0" /> {message}
+    </span>
+  );
+}
