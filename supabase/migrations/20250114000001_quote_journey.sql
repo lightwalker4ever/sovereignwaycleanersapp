@@ -49,7 +49,10 @@ comment on column public.cleanings.property_answers is
 
 create table public.quote_requests (
   id                uuid primary key default gen_random_uuid(),
-  service           text not null check (service in ('domestic', 'commercial', 'carpet', 'after_build', 'builders_sparkle', 'move_in_out')),
+  -- Matches src/components/Services.tsx's existing `slug` values for
+  -- the 6 non-instant-price services exactly, so no translation layer
+  -- is needed between the service picker and this table.
+  service           text not null check (service in ('domestic_cleaning', 'commercial_cleaning', 'carpet_cleaning', 'after_build_clean', 'builders_sparkle_clean', 'move_in_out')),
   client_id         uuid not null references public.clients (id) on delete cascade,
   postcode          text not null,
   answers           jsonb not null,
@@ -91,3 +94,16 @@ alter table public.quote_request_photos enable row level security;
 -- No policies -- same reasoning as above; reads go through a
 -- getSignedPhotoUrls()-style admin-only accessor, mirroring
 -- cleaning-photos.
+
+-- Step 1's "don't dead-end" email capture for a postcode the coverage
+-- check didn't recognize. No admin UI reads this yet -- captured so
+-- it isn't lost, surfaced later if it turns out to be worth building.
+create table public.coverage_waitlist (
+  id          uuid primary key default gen_random_uuid(),
+  postcode    text not null,
+  email       text not null,
+  created_at  timestamptz not null default now()
+);
+
+alter table public.coverage_waitlist enable row level security;
+-- No policies -- same reasoning as quote_requests/contact_requests.

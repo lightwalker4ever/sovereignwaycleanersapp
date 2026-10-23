@@ -539,7 +539,7 @@ export type Database = {
       quote_requests: {
         Row: {
           id: string;
-          service: "domestic" | "commercial" | "carpet" | "after_build" | "builders_sparkle" | "move_in_out";
+          service: "domestic_cleaning" | "commercial_cleaning" | "carpet_cleaning" | "after_build_clean" | "builders_sparkle_clean" | "move_in_out";
           client_id: string;
           postcode: string;
           answers: Json;
@@ -554,7 +554,7 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          service: "domestic" | "commercial" | "carpet" | "after_build" | "builders_sparkle" | "move_in_out";
+          service: "domestic_cleaning" | "commercial_cleaning" | "carpet_cleaning" | "after_build_clean" | "builders_sparkle_clean" | "move_in_out";
           client_id: string;
           postcode: string;
           answers: Json;
@@ -569,7 +569,7 @@ export type Database = {
         };
         Update: {
           id?: string;
-          service?: "domestic" | "commercial" | "carpet" | "after_build" | "builders_sparkle" | "move_in_out";
+          service?: "domestic_cleaning" | "commercial_cleaning" | "carpet_cleaning" | "after_build_clean" | "builders_sparkle_clean" | "move_in_out";
           client_id?: string;
           postcode?: string;
           answers?: Json;
@@ -601,6 +601,27 @@ export type Database = {
           id?: string;
           quote_request_id?: string;
           storage_path?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      coverage_waitlist: {
+        Row: {
+          id: string;
+          postcode: string;
+          email: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          postcode: string;
+          email: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          postcode?: string;
+          email?: string;
           created_at?: string;
         };
         Relationships: [];

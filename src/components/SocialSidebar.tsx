@@ -75,8 +75,9 @@ export default function SocialSidebar() {
 
   // Not rendered on auth/dashboard pages — the dark/light logic above
   // watches marketing-page landmarks (#hero, #affiliations, footer)
-  // that don't exist there.
-  if (pathname.startsWith("/dashboard") || pathname.startsWith("/login")) {
+  // that don't exist there. Also not on /quote, whose own phone sticky
+  // price bar occupies the same bottom-of-screen real estate on mobile.
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/login") || pathname.startsWith("/quote")) {
     return null;
   }
 

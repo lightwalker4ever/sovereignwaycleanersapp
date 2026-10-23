@@ -35,6 +35,57 @@ export async function getQuoteRateCard(): Promise<GetQuoteRateCardResult> {
   }
 }
 
+export interface PostcodeCoverageResult {
+  covered: boolean;
+  /** The recognized outward code (e.g. "N12"), shown in the "we clean in ..." message. */
+  area: string | null;
+}
+
+/**
+ * Step 1's coverage check. There's no real "do we serve this area"
+ * business rule anywhere in the app today -- every postcode already
+ * resolves to a price via resolveLocationMultiplier()'s default-rate
+ * fallback. So "covered" here just means "this is a valid, recognized
+ * UK postcode" (via the same postcodes.io lookup already used for
+ * pricing) -- it's purely an informational, non-blocking message, not
+ * a gate. Swap this for a real allow/deny table if the business ever
+ * wants one.
+ */
+export async function checkPostcodeCoverage(postcode: string): Promise<PostcodeCoverageResult> {
+  const trimmed = postcode.trim();
+  if (!trimmed) return { covered: false, area: null };
+
+  const geo = await lookupPostcode(trimmed);
+  if (!geo) return { covered: false, area: null };
+
+  // A UK postcode's inward code (the part after the space) is always
+  // exactly 3 characters -- everything before that is the outward code
+  // (e.g. "N12", "SE1", "SW1A") shown in the "we clean in ..." message.
+  const compact = trimmed.toUpperCase().replace(/\s+/g, "");
+  const outwardCode = compact.length > 3 ? compact.slice(0, -3) : geo.postcodeArea;
+  return { covered: true, area: outwardCode };
+}
+
+/**
+ * Captures an email for a postcode the coverage check didn't recognize,
+ * per the spec's "don't dead-end" instruction. Best-effort: a failed
+ * insert never blocks the visitor from continuing with the quote.
+ */
+export async function submitCoverageWaitlist(postcode: string, email: string): Promise<{ success: boolean }> {
+  const parsedEmail = emailSchema.safeParse(email.trim());
+  if (!parsedEmail.success) return { success: false };
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("coverage_waitlist")
+    .insert({ postcode: postcode.trim(), email: parsedEmail.data });
+  if (error) {
+    console.error("Failed to save coverage waitlist entry", error);
+    return { success: false };
+  }
+  return { success: true };
+}
+
 export interface ResolvedLocation {
   multiplier: number;
   label: string;
