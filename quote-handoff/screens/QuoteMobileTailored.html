@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quote on mobile: tailored request</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; box-sizing: border-box; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column; overflow: hidden">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 12px 16px 14px 8px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 6px">
+<a href="QuoteMobileService.html" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #15211B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5 M12 19l-7-7 7-7"></path></svg></a>
+<span style="flex: 1; font-size: 13px; font-weight: 700; color: #55615A">Step 2 of 3 · About the job</span>
+</div>
+<div style="height: 6px; border-radius: 99px; background: #E8ECE9; overflow: hidden; margin-left: 8px"><div style="height: 100%; width: 66%; background: #1B5E3B"></div></div>
+</header>
+
+<div style="flex: 1; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 16px">
+<div>
+<h1 style="margin: 0; font-size: 22px; font-weight: 800">Domestic cleaning</h1>
+<p style="margin: 4px 0 0; font-size: 14px; color: #55615A; line-height: 1.45">A few quick taps and we'll email a tailored price within 24 hours.</p>
+</div>
+
+<sc-for list="{{groups}}" as="g" hint-placeholder-count="3">
+<fieldset style="border: 0; margin: 0; padding: 0">
+<legend style="font-size: 15px; font-weight: 800; padding: 0; margin-bottom: 8px">{{g.q}}</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{g.opts}}" as="o" hint-placeholder-count="4">
+<button onClick="{{o.pick}}" aria-pressed="{{o.pressed}}" style="{{o.style}}">{{o.t}}</button>
+</sc-for>
+</div>
+</fieldset>
+</sc-for>
+
+<div style="display: flex; flex-direction: column; gap: 8px">
+<span style="font-size: 15px; font-weight: 800">Photos <span style="font-weight: 500; color: #55615A; font-size: 13px">Optional, helps us price accurately</span></span>
+<div style="display: flex; gap: 8px">
+<span style="width: 72px; height: 72px; border-radius: 12px; background: #DCE5DF; display: flex; align-items: center; justify-content: center; color: #55615A; font-size: 11px; font-weight: 700">Kitchen</span>
+<button style="width: 72px; height: 72px; border-radius: 12px; border: 1.5px dashed #A9B6AE; background: #FFFFFF; color: #1B5E3B; font: inherit; font-size: 12px; font-weight: 700; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M12 5v14 M5 12h14"></path></svg>Add</button>
+</div>
+</div>
+
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 15px; font-weight: 800">Anything else? <span style="font-weight: 500; color: #55615A; font-size: 13px">Optional</span>
+<textarea rows="2" placeholder="e.g. focus on the kitchen, we have a dog" style="border: 1px solid #C9D1CC; border-radius: 10px; padding: 10px 12px; font: inherit; font-size: 15px; font-weight: 400; resize: none"></textarea></label>
+</div>
+
+<footer style="background: #FFFFFF; border-top: 1px solid #E2E7E3; padding: 12px 16px 22px">
+<a href="#" style="height: 54px; border-radius: 14px; background: #1B5E3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px">Continue to your details</a>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { type: 'House', beds: '3', freq: 'Fortnightly' }; }
+  renderVals() {
+    var self = this, st = this.state;
+    var group = function (key, q, opts) {
+      return { q: q, opts: opts.map(function (t) {
+        var on = st[key] === t;
+        return { t: t, pressed: on ? 'true' : 'false', pick: function () { var o = {}; o[key] = t; self.setState(o); },
+          style: 'height:44px;min-width:52px;padding:0 14px;border-radius:999px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;' + (on ? 'background:#1B5E3B;color:#FFFFFF;border:2px solid #1B5E3B' : 'background:#FFFFFF;color:#15211B;border:1.5px solid #C9D1CC') };
+      }) };
+    };
+    return { groups: [
+      group('type', 'Type of home', ['Flat', 'House', 'Other']),
+      group('beds', 'Bedrooms', ['1', '2', '3', '4', '5+']),
+      group('freq', 'How often?', ['One-off', 'Weekly', 'Fortnightly', 'Monthly'])
+    ] };
+  }
+}
+</script>
+</body>
+</html>

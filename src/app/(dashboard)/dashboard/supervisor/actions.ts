@@ -31,7 +31,7 @@ export async function listAllMyCleanings(): Promise<SupervisorCleaningRow[]> {
 
   const ids = (cleanings ?? []).map((c) => c.id);
   const clientIds = [...new Set((cleanings ?? []).map((c) => c.client_id))];
-  const cleanerIds = [...new Set((cleanings ?? []).map((c) => c.cleaner_id))];
+  const cleanerIds = [...new Set((cleanings ?? []).map((c) => c.cleaner_id).filter((id): id is string => id !== null))];
 
   const [{ data: checklist }, { data: clients }, { data: cleaners }] = await Promise.all([
     ids.length
@@ -55,7 +55,7 @@ export async function listAllMyCleanings(): Promise<SupervisorCleaningRow[]> {
       id: c.id,
       scheduledAt: c.scheduled_at,
       clientName: clientNameById.get(c.client_id) ?? null,
-      cleanerName: cleanerNameById.get(c.cleaner_id) ?? null,
+      cleanerName: c.cleaner_id ? cleanerNameById.get(c.cleaner_id) ?? null : null,
       checklistDone: a?.done ?? 0,
       checklistTotal: a?.total ?? 0,
       displayStatus: toDisplayCleaningStatus(c.status, a?.hasNotMet ?? false),

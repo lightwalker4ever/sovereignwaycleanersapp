@@ -186,8 +186,8 @@ export type Database = {
         Row: {
           id: string;
           client_id: string;
-          cleaner_id: string;
-          supervisor_id: string;
+          cleaner_id: string | null;
+          supervisor_id: string | null;
           status: Database["public"]["Enums"]["cleaning_status"];
           notes: string | null;
           scheduled_at: string;
@@ -197,14 +197,24 @@ export type Database = {
           started_at: string | null;
           submitted_at: string | null;
           completed_at: string | null;
+          requested_date: string | null;
+          requested_window: string | null;
+          is_flexible: boolean;
+          access_method: string | null;
+          access_notes: string | null;
+          marketing_consent: boolean;
+          source: string;
+          property_answers: Json | null;
+          price_breakdown: Json | null;
+          decline_reason: string | null;
           created_at: string;
           updated_at: string;
         };
         Insert: {
           id?: string;
           client_id: string;
-          cleaner_id: string;
-          supervisor_id: string;
+          cleaner_id?: string | null;
+          supervisor_id?: string | null;
           status?: Database["public"]["Enums"]["cleaning_status"];
           notes?: string | null;
           scheduled_at?: string;
@@ -214,14 +224,24 @@ export type Database = {
           started_at?: string | null;
           submitted_at?: string | null;
           completed_at?: string | null;
+          requested_date?: string | null;
+          requested_window?: string | null;
+          is_flexible?: boolean;
+          access_method?: string | null;
+          access_notes?: string | null;
+          marketing_consent?: boolean;
+          source?: string;
+          property_answers?: Json | null;
+          price_breakdown?: Json | null;
+          decline_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
         Update: {
           id?: string;
           client_id?: string;
-          cleaner_id?: string;
-          supervisor_id?: string;
+          cleaner_id?: string | null;
+          supervisor_id?: string | null;
           status?: Database["public"]["Enums"]["cleaning_status"];
           notes?: string | null;
           scheduled_at?: string;
@@ -231,6 +251,16 @@ export type Database = {
           started_at?: string | null;
           submitted_at?: string | null;
           completed_at?: string | null;
+          requested_date?: string | null;
+          requested_window?: string | null;
+          is_flexible?: boolean;
+          access_method?: string | null;
+          access_notes?: string | null;
+          marketing_consent?: boolean;
+          source?: string;
+          property_answers?: Json | null;
+          price_breakdown?: Json | null;
+          decline_reason?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -506,6 +536,75 @@ export type Database = {
         };
         Relationships: [];
       };
+      quote_requests: {
+        Row: {
+          id: string;
+          service: "domestic" | "commercial" | "carpet" | "after_build" | "builders_sparkle" | "move_in_out";
+          client_id: string;
+          postcode: string;
+          answers: Json;
+          notes: string | null;
+          marketing_consent: boolean;
+          status: "awaiting_quote" | "quoted" | "declined";
+          quoted_price: number | null;
+          quoted_at: string | null;
+          decline_reason: string | null;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          service: "domestic" | "commercial" | "carpet" | "after_build" | "builders_sparkle" | "move_in_out";
+          client_id: string;
+          postcode: string;
+          answers: Json;
+          notes?: string | null;
+          marketing_consent?: boolean;
+          status?: "awaiting_quote" | "quoted" | "declined";
+          quoted_price?: number | null;
+          quoted_at?: string | null;
+          decline_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          service?: "domestic" | "commercial" | "carpet" | "after_build" | "builders_sparkle" | "move_in_out";
+          client_id?: string;
+          postcode?: string;
+          answers?: Json;
+          notes?: string | null;
+          marketing_consent?: boolean;
+          status?: "awaiting_quote" | "quoted" | "declined";
+          quoted_price?: number | null;
+          quoted_at?: string | null;
+          decline_reason?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      quote_request_photos: {
+        Row: {
+          id: string;
+          quote_request_id: string;
+          storage_path: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          quote_request_id: string;
+          storage_path: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          quote_request_id?: string;
+          storage_path?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
     };
     Views: Record<string, never>;
     Functions: {
@@ -520,7 +619,13 @@ export type Database = {
     };
     Enums: {
       app_role: "client" | "cleaner" | "supervisor" | "manager" | "admin" | "sales";
-      cleaning_status: "assigned" | "in_progress" | "in_review" | "completed";
+      cleaning_status:
+        | "awaiting_confirmation"
+        | "assigned"
+        | "in_progress"
+        | "in_review"
+        | "completed"
+        | "declined";
     };
     CompositeTypes: Record<string, never>;
   };

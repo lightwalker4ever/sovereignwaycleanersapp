@@ -76,7 +76,7 @@ export async function getSupervisorQueueData(supervisorId: string): Promise<Supe
   const all = cleanings ?? [];
   const ids = all.map((c) => c.id);
   const clientIds = [...new Set(all.map((c) => c.client_id))];
-  const cleanerIds = [...new Set(all.map((c) => c.cleaner_id))];
+  const cleanerIds = [...new Set(all.map((c) => c.cleaner_id).filter((id): id is string => id !== null))];
 
   const [
     { data: checklist, error: checklistError },
@@ -140,7 +140,7 @@ export async function getSupervisorQueueData(supervisorId: string): Promise<Supe
     return {
       id: c.id,
       clientName: clientNameById.get(c.client_id) ?? null,
-      meta: `${new Date(c.scheduled_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${cleanerNameById.get(c.cleaner_id) ?? "Unassigned"}`,
+      meta: `${new Date(c.scheduled_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${(c.cleaner_id ? cleanerNameById.get(c.cleaner_id) : null) ?? "Unassigned"}`,
       ageLabel: label,
       isOld,
       thumbs: items.slice(0, 4).map((i) => ({
@@ -161,7 +161,7 @@ export async function getSupervisorQueueData(supervisorId: string): Promise<Supe
     return {
       id: c.id,
       clientName: clientNameById.get(c.client_id) ?? null,
-      meta: `${cleanerNameById.get(c.cleaner_id) ?? "Unassigned"} · ${agg?.hasNotMet ? "redo requested" : `started ${c.started_at ? new Date(c.started_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""}`}`,
+      meta: `${(c.cleaner_id ? cleanerNameById.get(c.cleaner_id) : null) ?? "Unassigned"} · ${agg?.hasNotMet ? "redo requested" : `started ${c.started_at ? new Date(c.started_at).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" }) : ""}`}`,
       done: agg?.done ?? 0,
       total: agg?.total ?? 0,
       displayStatus: agg?.hasNotMet ? "changes_requested" : "in_progress",
@@ -179,7 +179,7 @@ export async function getSupervisorQueueData(supervisorId: string): Promise<Supe
     return {
       id: c.id,
       clientName: clientNameById.get(c.client_id) ?? null,
-      meta: `${new Date(c.completed_at ?? c.scheduled_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${cleanerNameById.get(c.cleaner_id) ?? "Unassigned"}`,
+      meta: `${new Date(c.completed_at ?? c.scheduled_at).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })} · ${(c.cleaner_id ? cleanerNameById.get(c.cleaner_id) : null) ?? "Unassigned"}`,
       resultLabel: `${total} of ${total} met${redoNote}`,
     };
   });

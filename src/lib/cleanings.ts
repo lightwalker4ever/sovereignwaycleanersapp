@@ -88,8 +88,12 @@ export async function getCleaningDetailForParty(
     { data: comments, error: commentsError },
   ] = await Promise.all([
     admin.from("clients").select("full_name, address").eq("id", cleaning.client_id).single(),
-    admin.from("profiles").select("full_name").eq("id", cleaning.cleaner_id).single(),
-    admin.from("profiles").select("full_name").eq("id", cleaning.supervisor_id).single(),
+    cleaning.cleaner_id
+      ? admin.from("profiles").select("full_name").eq("id", cleaning.cleaner_id).single()
+      : Promise.resolve({ data: null }),
+    cleaning.supervisor_id
+      ? admin.from("profiles").select("full_name").eq("id", cleaning.supervisor_id).single()
+      : Promise.resolve({ data: null }),
     admin
       .from("cleaning_standards")
       .select("id, title, description, area, review_status, supervisor_comment")

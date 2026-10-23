@@ -31,7 +31,7 @@ export async function listAllFeedback(): Promise<FeedbackEntry[]> {
   if (cleaningsError) throw new Error(cleaningsError.message);
 
   const clientIds = [...new Set((cleanings ?? []).map((c) => c.client_id))];
-  const cleanerIds = [...new Set((cleanings ?? []).map((c) => c.cleaner_id))];
+  const cleanerIds = [...new Set((cleanings ?? []).map((c) => c.cleaner_id).filter((id): id is string => id !== null))];
 
   const [{ data: clients, error: clientsError }, { data: cleaners, error: cleanersError }] = await Promise.all([
     clientIds.length
@@ -55,7 +55,7 @@ export async function listAllFeedback(): Promise<FeedbackEntry[]> {
       cleaningId: c.cleaning_id,
       clientName: cleaning ? (clientNameById.get(cleaning.client_id) ?? null) : null,
       cleanerId: cleaning?.cleaner_id ?? null,
-      cleanerName: cleaning ? (cleanerNameById.get(cleaning.cleaner_id) ?? null) : null,
+      cleanerName: cleaning?.cleaner_id ? (cleanerNameById.get(cleaning.cleaner_id) ?? null) : null,
       rating: c.rating,
       body: c.body,
       createdAt: c.created_at,

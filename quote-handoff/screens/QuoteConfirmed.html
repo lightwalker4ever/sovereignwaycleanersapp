@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Booking request received</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 0 32px; min-height: 68px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+<a href="#" style="display: flex; align-items: center; gap: 10px; color: #15211B"><span style="width: 36px; height: 36px; border-radius: 9px; background: #0F3B26; color: #E9C46A; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">SW</span><span style="font-weight: 800; font-size: 16px">Sovereign Way Cleaners</span></a>
+<span style="flex: 1"></span>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Services</a>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Sign in</a>
+</header>
+
+<main style="flex: 1; width: 100%; max-width: 760px; margin: 0 auto; padding: 48px 24px; box-sizing: border-box; display: flex; flex-direction: column; gap: 22px">
+
+<div style="display: flex; flex-direction: column; align-items: center; text-align: center; gap: 12px">
+<span style="width: 64px; height: 64px; border-radius: 999px; background: #1B5E3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center"><svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5L20 7"></path></svg></span>
+<h1 style="margin: 0; font-size: 32px; font-weight: 800; letter-spacing: -0.02em">Thanks, Testy. Your request is in.</h1>
+<p style="margin: 0; font-size: 16px; color: #55615A; max-width: 560px; line-height: 1.5">We've emailed your quote and booking details to <strong style="color: #15211B">n@test.com</strong>. Reference <strong style="color: #15211B">SWC-[ref]</strong>.</p>
+</div>
+
+<section aria-label="Your booking" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 20px 22px; display: flex; flex-wrap: wrap; gap: 16px 28px; align-items: center">
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 200px"><span style="font-size: 13px; color: #55615A; font-weight: 600">Service</span><span style="font-weight: 800">End of Tenancy · 3 bed</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 1 1 160px"><span style="font-size: 13px; color: #55615A; font-weight: 600">Requested for</span><span style="font-weight: 800">Wed 4 Nov, 08:00–10:00</span></div>
+<div style="display: flex; flex-direction: column; gap: 2px; flex: 0 1 120px"><span style="font-size: 13px; color: #55615A; font-weight: 600">Total</span><span style="font-weight: 800">£773.28</span></div>
+<span style="font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; background: #FFF1D1; color: #7A4B00">Awaiting confirmation</span>
+</section>
+
+<section aria-label="What happens next" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 4px">
+<h2 style="margin: 0 0 12px; font-size: 17px; font-weight: 800">What happens next</h2>
+<ol style="list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column">
+<sc-for list="{{next}}" as="n" hint-placeholder-count="4">
+<li style="display: flex; gap: 14px">
+<div style="display: flex; flex-direction: column; align-items: center"><span style="{{n.dot}}">{{n.i}}</span><span style="{{n.line}}"></span></div>
+<div style="padding-bottom: 18px; display: flex; flex-direction: column; gap: 2px"><span style="font-weight: 700; font-size: 15px">{{n.t}}</span><span style="font-size: 14px; color: #55615A">{{n.d}}</span></div>
+</li>
+</sc-for>
+</ol>
+</section>
+
+<div style="display: flex; flex-wrap: wrap; gap: 12px">
+<a href="ClientHome.html" style="flex: 2 1 260px; height: 54px; border-radius: 12px; background: #1B5E3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px">Set a password to track it</a>
+<a href="#" style="flex: 1 1 180px; height: 54px; border-radius: 12px; border: 1.5px solid #C9D1CC; background: #FFFFFF; color: #15211B; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 700; font-size: 15px"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" aria-hidden="true"><path d="M3 5h18v16H3z M3 10h18 M8 3v4 M16 3v4"></path></svg>Add to calendar</a>
+</div>
+<a href="#" style="text-align: center; font-size: 14px; font-weight: 600">Back to the home page</a>
+</main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":900}}'>
+class Component extends DCLogic {
+  renderVals() {
+    var items = [
+      ['We confirm your date', 'A member of our team checks availability and confirms by phone or email.'],
+      ['Reminder the day before', 'With your cleaner’s name and arrival window.'],
+      ['Every standard photographed', 'Your cleaner photographs each item on the checklist and a supervisor checks it.'],
+      ['See the results', 'Photos and sign-off appear in your account, then you can rate the clean.']
+    ];
+    return { next: items.map(function (x, i) {
+      return { i: i + 1, t: x[0], d: x[1],
+        dot: 'width:30px;height:30px;border-radius:999px;flex:none;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;' + (i === 0 ? 'background:#1B5E3B;color:#FFFFFF' : 'background:#DFF1E5;color:#155B33'),
+        line: 'flex:1;width:2px;min-height:12px;background:' + (i < items.length - 1 ? '#E2E7E3' : 'transparent') };
+    }) };
+  }
+}
+</script>
+</body>
+</html>

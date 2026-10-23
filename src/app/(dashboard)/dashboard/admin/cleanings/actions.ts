@@ -55,7 +55,11 @@ export async function listAssignableStaff(): Promise<{
   return {
     cleaners: (cleaners ?? []).map((c) => ({ id: c.id, fullName: c.full_name, email: c.email })),
     supervisors: (supervisors ?? []).map((s) => ({ id: s.id, fullName: s.full_name, email: s.email })),
-    cleanerSchedule: (upcoming ?? []).map((u) => ({ cleanerId: u.cleaner_id, scheduledAt: u.scheduled_at })),
+    // Awaiting-confirmation requests have no cleaner yet -- they aren't
+    // "booked" availability for anyone, so they're excluded here.
+    cleanerSchedule: (upcoming ?? [])
+      .filter((u): u is { cleaner_id: string; scheduled_at: string } => u.cleaner_id !== null)
+      .map((u) => ({ cleanerId: u.cleaner_id, scheduledAt: u.scheduled_at })),
   };
 }
 
@@ -221,7 +225,7 @@ export interface CleaningRow {
   scheduledAt: string;
   clientName: string | null;
   address: string | null;
-  cleanerId: string;
+  cleanerId: string | null;
   cleanerName: string | null;
   supervisorName: string | null;
   checklistDone: number;
@@ -268,8 +272,8 @@ export async function listCleanings(): Promise<CleaningRow[]> {
       clientName: client?.full_name ?? null,
       address: client?.address ?? null,
       cleanerId: c.cleaner_id,
-      cleanerName: profileNameById.get(c.cleaner_id) ?? null,
-      supervisorName: profileNameById.get(c.supervisor_id) ?? null,
+      cleanerName: c.cleaner_id ? profileNameById.get(c.cleaner_id) ?? null : null,
+      supervisorName: c.supervisor_id ? profileNameById.get(c.supervisor_id) ?? null : null,
       checklistDone: agg?.done ?? 0,
       checklistTotal: agg?.total ?? 0,
       displayStatus: toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false),

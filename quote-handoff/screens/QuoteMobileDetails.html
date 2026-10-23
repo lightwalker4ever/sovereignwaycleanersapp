@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quote on mobile: deep clean with sticky price</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="width: 390px; height: 900px; box-sizing: border-box; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column; overflow: hidden; position: relative">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 12px 16px 14px 8px; display: flex; flex-direction: column; gap: 10px">
+<div style="display: flex; align-items: center; gap: 6px">
+<a href="QuoteMobileService.html" aria-label="Back" style="width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; color: #15211B"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5 M12 19l-7-7 7-7"></path></svg></a>
+<span style="flex: 1; font-size: 13px; font-weight: 700; color: #55615A">Step 2 of 4 · Your property</span>
+</div>
+<div style="height: 6px; border-radius: 99px; background: #E8ECE9; overflow: hidden; margin-left: 8px"><div style="height: 100%; width: 50%; background: #1B5E3B"></div></div>
+</header>
+
+<div style="flex: 1; overflow: hidden; padding: 16px; display: flex; flex-direction: column; gap: 12px">
+<h1 style="margin: 0; font-size: 22px; font-weight: 800">Deep clean: which rooms?</h1>
+
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow: hidden">
+<sc-for list="{{rooms}}" as="r" hint-placeholder-count="5">
+<div style="display: flex; align-items: center; gap: 10px; padding: 8px 10px 8px 14px; border-bottom: 1px solid #EEF1EF">
+<span style="flex: 1; display: flex; flex-direction: column"><span style="font-weight: 700; font-size: 15px">{{r.name}}</span><span style="font-size: 12px; color: #55615A">£{{r.price}} each</span></span>
+<button aria-label="{{r.downLabel}}" onClick="{{r.down}}" style="{{r.downStyle}}">−</button>
+<span aria-live="polite" style="width: 30px; text-align: center; font-size: 17px; font-weight: 800">{{r.n}}</span>
+<button aria-label="{{r.upLabel}}" onClick="{{r.up}}" style="width: 44px; height: 44px; border: 0; border-radius: 10px; background: #1B5E3B; color: #FFFFFF; font: inherit; font-size: 20px; font-weight: 700; cursor: pointer">+</button>
+</div>
+</sc-for>
+</div>
+
+<h2 style="margin: 4px 0 0; font-size: 15px; font-weight: 800">Appliances</h2>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{apps}}" as="a" hint-placeholder-count="5">
+<button onClick="{{a.toggle}}" aria-pressed="{{a.pressed}}" style="{{a.style}}">{{a.mark}}{{a.name}} <span style="font-weight: 600; opacity: 0.8">+£{{a.price}}</span></button>
+</sc-for>
+</div>
+</div>
+
+<sc-if value="{{open}}" hint-placeholder-val="{{false}}">
+<div role="dialog" aria-label="Price breakdown" style="position: absolute; left: 0; right: 0; bottom: 108px; background: #FFFFFF; border-top: 1px solid #E2E7E3; border-radius: 20px 20px 0 0; box-shadow: 0 -12px 32px rgba(15,59,38,0.16); padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+<div style="font-weight: 800; font-size: 15px; margin-bottom: 4px">Price breakdown</div>
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="6">
+<div style="display: flex; justify-content: space-between"><span style="color: #34403A">{{l.a}}</span><span style="font-weight: 600">£{{l.b}}</span></div>
+</sc-for>
+<div style="border-top: 1px solid #E2E7E3; padding-top: 8px; display: flex; justify-content: space-between; color: #55615A"><span>Subtotal (ex. VAT)</span><span>£{{sub}}</span></div>
+<div style="display: flex; justify-content: space-between; color: #55615A"><span>VAT (20%)</span><span>£{{vat}}</span></div>
+</div>
+</sc-if>
+
+<footer style="background: #0F3B26; color: #FFFFFF; padding: 12px 16px 22px; display: flex; align-items: center; gap: 12px; position: relative; z-index: 2">
+<button onClick="{{toggleOpen}}" aria-expanded="{{openStr}}" style="flex: 1; background: none; border: 0; color: #FFFFFF; text-align: left; font: inherit; padding: 4px 0; cursor: pointer; display: flex; flex-direction: column; gap: 2px">
+<span style="font-size: 24px; font-weight: 800; letter-spacing: -0.01em">£{{total}}</span>
+<span style="font-size: 12px; color: #D7E7DD; font-weight: 600">inc. VAT · {{openLabel}}</span>
+</button>
+<a href="#" style="height: 52px; padding: 0 22px; border-radius: 14px; background: #E9C46A; color: #0F3B26; display: flex; align-items: center; font-weight: 800; font-size: 16px">Choose date</a>
+</footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":390,"height":900}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { n: { bed: 3, bath: 1, wc: 1, kit: 1, lounge: 1 }, on: { fridge: true }, open: false };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var money = function (v) { return v.toFixed(2); };
+    // Callout, room prices, fridge and microwave are from the current site. Oven, washing machine and dishwasher are SAMPLE prices.
+    var CALLOUT = 40;
+    var ROOMS = [['bed', 'Bedrooms', 22], ['bath', 'Bathrooms / toilets', 18], ['wc', 'Separate WCs', 10], ['kit', 'Kitchens', 30], ['lounge', 'Lounges', 18]];
+    var APPS = [['fridge', 'Fridge', 30], ['micro', 'Microwave', 10], ['oven', 'Oven', 40], ['washer', 'Washing machine', 20], ['dish', 'Dishwasher', 20]];
+    var setN = function (k, v) { var o = Object.assign({}, st.n); o[k] = Math.max(0, Math.min(12, v)); self.setState({ n: o }); };
+    var rooms = ROOMS.map(function (r) {
+      var n = st.n[r[0]];
+      return { name: r[1], price: r[2], n: n, upLabel: 'Add one to ' + r[1], downLabel: 'Remove one from ' + r[1],
+        up: function () { setN(r[0], n + 1); }, down: function () { setN(r[0], n - 1); },
+        downStyle: 'width:44px;height:44px;border:0;border-radius:10px;font:inherit;font-size:20px;font-weight:700;cursor:pointer;' + (n === 0 ? 'background:#F1F3F1;color:#9AA59F' : 'background:#EEF1EF;color:#15211B') };
+    });
+    var apps = APPS.map(function (a) {
+      var on = !!st.on[a[0]];
+      return { name: a[1], price: a[2], pressed: on ? 'true' : 'false', mark: on ? '✓ ' : '',
+        toggle: function () { var o = Object.assign({}, st.on); o[a[0]] = !on; self.setState({ on: o }); },
+        style: 'height:44px;padding:0 14px;border-radius:999px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;' + (on ? 'background:#1B5E3B;color:#FFFFFF;border:2px solid #1B5E3B' : 'background:#FFFFFF;color:#15211B;border:1.5px solid #C9D1CC') };
+    });
+    var lines = [{ a: 'Callout / first hour', b: money(CALLOUT) }], sub = CALLOUT;
+    ROOMS.forEach(function (r) { var n = st.n[r[0]]; if (n) { sub += n * r[2]; lines.push({ a: r[1] + ' (' + n + ')', b: money(n * r[2]) }); } });
+    APPS.forEach(function (a) { if (st.on[a[0]]) { sub += a[2]; lines.push({ a: a[1], b: money(a[2]) }); } });
+    var vat = sub * 0.2;
+    return { rooms: rooms, apps: apps, lines: lines, sub: money(sub), vat: money(vat), total: money(sub + vat),
+      open: st.open, openStr: st.open ? 'true' : 'false', openLabel: st.open ? 'Hide breakdown ▾' : 'See breakdown ▴',
+      toggleOpen: function () { self.setState({ open: !st.open }); } };
+  }
+}
+</script>
+</body>
+</html>

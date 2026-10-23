@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quote step 3: date and time</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 0 32px; min-height: 68px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+<a href="#" style="display: flex; align-items: center; gap: 10px; color: #15211B"><span style="width: 36px; height: 36px; border-radius: 9px; background: #0F3B26; color: #E9C46A; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">SW</span><span style="font-weight: 800; font-size: 16px">Sovereign Way Cleaners</span></a>
+<span style="flex: 1"></span>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Services</a>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Gallery</a>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Sign in</a>
+</header>
+
+<nav aria-label="Quote steps" style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 14px 32px">
+<ol style="list-style: none; margin: 0 auto; padding: 0; max-width: 1200px; display: flex; flex-wrap: wrap; gap: 8px 24px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+<li style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="{{s.dot}}">{{s.n}}</span><span style="{{s.label}}">{{s.t}}</span></li>
+</sc-for>
+</ol>
+</nav>
+
+<div style="flex: 1; width: 100%; max-width: 1264px; margin: 0 auto; padding: 32px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<div>
+<a href="QuoteDetails.html" style="font-size: 14px; font-weight: 600">← Back to your property</a>
+<h1 style="margin: 8px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -0.02em">When would you like us?</h1>
+<p style="margin: 6px 0 0; font-size: 15px; color: #55615A">Pick a day and an arrival window. We'll confirm it with you before it's booked.</p>
+</div>
+
+<section aria-label="Choose a day" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div style="display: flex; align-items: center; justify-content: space-between">
+<button aria-label="Previous month" style="width: 44px; height: 44px; border: 1px solid #E2E7E3; border-radius: 10px; background: #FFFFFF; color: #15211B"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M15 6l-6 6 6 6"></path></svg></button>
+<h2 style="margin: 0; font-size: 17px; font-weight: 800">November 2026</h2>
+<button aria-label="Next month" style="width: 44px; height: 44px; border: 1px solid #E2E7E3; border-radius: 10px; background: #FFFFFF; color: #15211B"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" aria-hidden="true"><path d="M9 6l6 6-6 6"></path></svg></button>
+</div>
+<div style="display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 6px">
+<sc-for list="{{dows}}" as="d" hint-placeholder-count="7"><span style="text-align: center; font-size: 12px; font-weight: 700; color: #55615A; padding: 4px 0">{{d}}</span></sc-for>
+<sc-for list="{{days}}" as="d" hint-placeholder-count="35">
+<button onClick="{{d.pick}}" disabled="{{d.disabled}}" aria-pressed="{{d.pressed}}" aria-label="{{d.aria}}" style="{{d.style}}">{{d.n}}</button>
+</sc-for>
+</div>
+<div style="display: flex; flex-wrap: wrap; gap: 16px; font-size: 12px; color: #55615A">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 4px; background: #FFFFFF; border: 1.5px solid #C9D1CC"></span>Available</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 4px; background: #F1F3F1"></span>Fully booked</span>
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 12px; height: 12px; border-radius: 4px; background: #1B5E3B"></span>Your choice</span>
+</div>
+</section>
+
+<section aria-label="Arrival window" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 800">Arrival window on {{dayLabel}}</h2>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 10px">
+<sc-for list="{{slots}}" as="s" hint-placeholder-count="3">
+<button onClick="{{s.pick}}" aria-pressed="{{s.pressed}}" style="{{s.style}}"><span style="font-size: 15px; font-weight: 800">{{s.name}}</span><span style="font-size: 13px; color: inherit; opacity: 0.85">{{s.time}}</span></button>
+</sc-for>
+</div>
+<label style="display: flex; align-items: center; gap: 10px; font-size: 14px; margin-top: 4px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #1B5E3B">I'm flexible: any time that day is fine</label>
+</section>
+</main>
+
+<aside aria-label="Your quote" style="flex: 1 1 340px; position: sticky; top: 24px">
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow: hidden">
+<div style="background: #0F3B26; color: #FFFFFF; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; color: #A9C7B5">Your price · End of Tenancy</div>
+<div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px"><span style="font-size: 38px; font-weight: 800; letter-spacing: -0.02em">£773.28</span><span style="font-size: 13px; color: #D7E7DD">inc. VAT</span></div>
+<div style="font-size: 13px; color: #D7E7DD">3 bed · 4 bathrooms · 4 add-ons</div>
+</div>
+<div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 10px; font-size: 14px">
+<div style="display: flex; justify-content: space-between"><span style="color: #55615A">Postcode</span><span style="font-weight: 700">N12 0ES</span></div>
+<div style="display: flex; justify-content: space-between"><span style="color: #55615A">Date</span><span style="font-weight: 700">{{dayLabel}}</span></div>
+<div style="display: flex; justify-content: space-between"><span style="color: #55615A">Arrival</span><span style="font-weight: 700">{{slotLabel}}</span></div>
+<a href="QuoteDetails.html" style="font-size: 13px; font-weight: 600">See full breakdown</a>
+</div>
+<div style="padding: 0 20px 20px">
+<a href="QuoteReview.html" style="height: 52px; border-radius: 12px; background: #1B5E3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 16px">Add your details<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></a>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { day: 4, slot: 0 }; }
+  renderVals() {
+    var self = this, st = this.state;
+    var names = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    var steps = ['Service', 'Your property', 'Date & time', 'Your details'].map(function (t, i) {
+      var state = i < 2 ? 'done' : i === 2 ? 'cur' : 'todo';
+      return { n: state === 'done' ? '✓' : i + 1, t: t,
+        dot: 'width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;' + (state === 'todo' ? 'background:#FFFFFF;color:#55615A;border:1.5px solid #C9D1CC' : 'background:#1B5E3B;color:#FFFFFF'),
+        label: state === 'cur' ? 'font-weight:800;color:#15211B' : 'font-weight:600;color:#55615A' };
+    });
+    // 1 Nov 2026 is a Sunday; grid starts on Monday, so 6 blanks first.
+    var full = [6, 13, 19];
+    var days = [];
+    for (var b = 0; b < 6; b++) days.push({ n: '', disabled: true, pressed: 'false', aria: 'blank', pick: null, style: 'height:48px;border:0;background:transparent' });
+    for (var d = 1; d <= 30; d++) {
+      (function (d) {
+        var dow = (d - 1) % 7; // 0 = Sunday
+        var off = dow === 0 || full.indexOf(d) >= 0;
+        var on = st.day === d;
+        days.push({ n: d, disabled: off, pressed: on ? 'true' : 'false', aria: names[dow] + ' ' + d + ' November' + (off ? ', unavailable' : ''),
+          pick: function () { if (!off) self.setState({ day: d }); },
+          style: 'height:48px;border-radius:10px;font:inherit;font-size:15px;font-weight:700;' + (on ? 'background:#1B5E3B;color:#FFFFFF;border:2px solid #1B5E3B;cursor:pointer' : off ? 'background:#F1F3F1;color:#9AA59F;border:0;text-decoration:line-through' : 'background:#FFFFFF;color:#15211B;border:1.5px solid #C9D1CC;cursor:pointer') });
+      })(d);
+    }
+    var SLOTS = [['Morning', '08:00–10:00 arrival'], ['Midday', '11:00–13:00 arrival'], ['Afternoon', '14:00–16:00 arrival']];
+    var slots = SLOTS.map(function (s, i) {
+      var on = st.slot === i;
+      return { name: s[0], time: s[1], pressed: on ? 'true' : 'false', pick: function () { self.setState({ slot: i }); },
+        style: 'min-height:64px;padding:10px 14px;border-radius:12px;font:inherit;cursor:pointer;display:flex;flex-direction:column;align-items:flex-start;gap:2px;' + (on ? 'background:#1B5E3B;color:#FFFFFF;border:2px solid #1B5E3B' : 'background:#FFFFFF;color:#15211B;border:1.5px solid #C9D1CC') };
+    });
+    var dow = (st.day - 1) % 7;
+    return { steps: steps, days: days, slots: slots, dows: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      dayLabel: names[dow] + ' ' + st.day + ' Nov', slotLabel: SLOTS[st.slot][0] + ', ' + SLOTS[st.slot][1].replace(' arrival', '') };
+  }
+}
+</script>
+</body>
+</html>

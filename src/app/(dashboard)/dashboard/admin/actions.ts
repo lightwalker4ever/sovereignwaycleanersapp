@@ -241,8 +241,10 @@ export async function listUsers(): Promise<AdminUserRow[]> {
   const cleanerJobCount = new Map<string, number>();
   const supervisorReviewedCount = new Map<string, number>();
   for (const c of cleaningsThisMonth ?? []) {
-    cleanerJobCount.set(c.cleaner_id, (cleanerJobCount.get(c.cleaner_id) ?? 0) + 1);
-    if (c.status === "completed" && c.completed_at && new Date(c.completed_at) >= monthStart) {
+    if (c.cleaner_id) {
+      cleanerJobCount.set(c.cleaner_id, (cleanerJobCount.get(c.cleaner_id) ?? 0) + 1);
+    }
+    if (c.supervisor_id && c.status === "completed" && c.completed_at && new Date(c.completed_at) >= monthStart) {
       supervisorReviewedCount.set(c.supervisor_id, (supervisorReviewedCount.get(c.supervisor_id) ?? 0) + 1);
     }
   }

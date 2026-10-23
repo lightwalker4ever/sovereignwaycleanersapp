@@ -1,0 +1,125 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quote step 4: your details and review</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 0 32px; min-height: 68px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+<a href="#" style="display: flex; align-items: center; gap: 10px; color: #15211B"><span style="width: 36px; height: 36px; border-radius: 9px; background: #0F3B26; color: #E9C46A; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">SW</span><span style="font-weight: 800; font-size: 16px">Sovereign Way Cleaners</span></a>
+<span style="flex: 1"></span>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Services</a>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Gallery</a>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Sign in</a>
+</header>
+
+<nav aria-label="Quote steps" style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 14px 32px">
+<ol style="list-style: none; margin: 0 auto; padding: 0; max-width: 1200px; display: flex; flex-wrap: wrap; gap: 8px 24px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+<li style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="{{s.dot}}">{{s.n}}</span><span style="{{s.label}}">{{s.t}}</span></li>
+</sc-for>
+</ol>
+</nav>
+
+<div style="flex: 1; width: 100%; max-width: 1264px; margin: 0 auto; padding: 32px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<div>
+<a href="QuoteWhen.html" style="font-size: 14px; font-weight: 600">← Back to date &amp; time</a>
+<h1 style="margin: 8px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -0.02em">Your details</h1>
+<p style="margin: 6px 0 0; font-size: 15px; color: #55615A">Last step. We'll use these to confirm your booking.</p>
+</div>
+
+<section aria-label="Contact" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 800">Contact</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Full name<input autocomplete="name" value="Testy McTest" style="height: 48px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 14px; font: inherit; font-size: 15px"></label>
+<div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 14px">
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Email<input type="email" autocomplete="email" value="n@test.com" style="height: 48px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 14px; font: inherit; font-size: 15px"></label>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Mobile number<input type="tel" autocomplete="tel" value="0000000000" aria-invalid="true" aria-describedby="phone-err" style="height: 48px; border: 2px solid #B42318; border-radius: 10px; padding: 0 13px; font: inherit; font-size: 15px"><span id="phone-err" style="font-size: 13px; font-weight: 600; color: #B42318">That doesn't look like a UK number. Try 07… or +44…</span></label>
+</div>
+</section>
+
+<section aria-label="Property address" style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<h2 style="margin: 0; font-size: 15px; font-weight: 800">Property address</h2>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Address<input autocomplete="address-line1" placeholder="Start typing your address" style="height: 48px; border: 1px solid #C9D1CC; border-radius: 10px; padding: 0 14px; font: inherit; font-size: 15px"></label>
+<div style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="font-weight: 600; color: #55615A">Postcode</span><span style="font-weight: 800">N12 0ES</span><a href="QuoteStart.html" style="font-size: 13px; font-weight: 600">Change</a></div>
+<fieldset style="border: 0; margin: 4px 0 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<legend style="font-size: 14px; font-weight: 600; padding: 0; margin-bottom: 10px">How will we get in?</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{access}}" as="a" hint-placeholder-count="3">
+<button onClick="{{a.pick}}" aria-pressed="{{a.pressed}}" style="{{a.style}}">{{a.t}}</button>
+</sc-for>
+</div>
+</fieldset>
+<label style="display: flex; flex-direction: column; gap: 6px; font-size: 14px; font-weight: 600">Anything we should know? <span style="font-weight: 400; color: #55615A; font-size: 13px">Optional: parking, pets, areas to focus on</span>
+<textarea rows="2" style="border: 1px solid #C9D1CC; border-radius: 10px; padding: 10px 14px; font: inherit; font-size: 15px; resize: vertical"></textarea></label>
+</section>
+
+<section style="display: flex; flex-direction: column; gap: 10px; padding: 0 4px">
+<label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px"><input type="checkbox" checked style="width: 20px; height: 20px; accent-color: #1B5E3B; margin: 0; flex: none"><span><strong>Track this clean online.</strong> We'll email you a link to set a password and follow progress, photos and results.</span></label>
+<label style="display: flex; align-items: flex-start; gap: 10px; font-size: 14px"><input type="checkbox" style="width: 20px; height: 20px; accent-color: #1B5E3B; margin: 0; flex: none"><span>Send me occasional offers. You can unsubscribe at any time.</span></label>
+</section>
+</main>
+
+<aside aria-label="Booking summary" style="flex: 1 1 340px; position: sticky; top: 24px">
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow: hidden">
+<div style="padding: 20px; border-bottom: 1px solid #E2E7E3; display: flex; flex-direction: column; gap: 12px">
+<h2 style="margin: 0; font-size: 17px; font-weight: 800">Booking summary</h2>
+<div style="display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+<div style="display: flex; justify-content: space-between; gap: 10px"><span style="color: #55615A">Service</span><span style="font-weight: 700; text-align: right">End of Tenancy</span></div>
+<div style="display: flex; justify-content: space-between; gap: 10px"><span style="color: #55615A">When</span><span style="font-weight: 700; text-align: right">Wed 4 Nov · 08:00–10:00</span></div>
+<div style="display: flex; justify-content: space-between; gap: 10px"><span style="color: #55615A">Where</span><span style="font-weight: 700; text-align: right">N12 0ES</span></div>
+</div>
+</div>
+<div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="6">
+<div style="display: flex; justify-content: space-between"><span style="color: #34403A">{{l.a}}</span><span style="font-weight: 600">{{l.b}}</span></div>
+</sc-for>
+<div style="border-top: 1px solid #E2E7E3; margin-top: 4px; padding-top: 10px; display: flex; justify-content: space-between; color: #55615A"><span>Subtotal (ex. VAT)</span><span>£644.40</span></div>
+<div style="display: flex; justify-content: space-between; color: #55615A"><span>VAT (20%)</span><span>£128.88</span></div>
+<div style="display: flex; justify-content: space-between; align-items: baseline; margin-top: 4px"><span style="font-weight: 800; font-size: 16px">Total</span><span style="font-weight: 800; font-size: 26px">£773.28</span></div>
+</div>
+<div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 10px">
+<a href="QuoteConfirmed.html" style="height: 54px; border-radius: 12px; background: #1B5E3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 16px">Request this booking</a>
+<p style="margin: 0; font-size: 13px; color: #55615A; text-align: center; line-height: 1.5">No payment now. We'll confirm your date by phone or email within [X hours].</p>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) { super(props); this.state = { access: 0 }; }
+  renderVals() {
+    var self = this, st = this.state;
+    var steps = ['Service', 'Your property', 'Date & time', 'Your details'].map(function (t, i) {
+      var state = i < 3 ? 'done' : 'cur';
+      return { n: state === 'done' ? '✓' : i + 1, t: t,
+        dot: 'width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;background:#1B5E3B;color:#FFFFFF',
+        label: state === 'cur' ? 'font-weight:800;color:#15211B' : 'font-weight:600;color:#55615A' };
+    });
+    var access = ['I’ll be there', 'Key safe / lockbox', 'Collect keys from agent'].map(function (t, i) {
+      var on = st.access === i;
+      return { t: t, pressed: on ? 'true' : 'false', pick: function () { self.setState({ access: i }); },
+        style: 'height:44px;padding:0 16px;border-radius:999px;font:inherit;font-size:14px;font-weight:700;cursor:pointer;' + (on ? 'background:#1B5E3B;color:#FFFFFF;border:2px solid #1B5E3B' : 'background:#FFFFFF;color:#15211B;border:1.5px solid #C9D1CC') };
+    });
+    return { steps: steps, access: access,
+      lines: [{ a: '3 bed property', b: '£305.00' }, { a: 'Extra bathrooms (3)', b: '£105.00' }, { a: 'Carpet cleaning', b: '£65.00' }, { a: 'Fridge / freezer', b: '£30.00' }, { a: 'Washing machine', b: '£20.00' }, { a: 'Microwave', b: '£12.00' }] };
+  }
+}
+</script>
+</body>
+</html>

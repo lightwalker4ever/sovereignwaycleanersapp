@@ -146,8 +146,11 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     return toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false);
   }
 
-  // Today's schedule
+  // Today's schedule -- awaiting-confirmation/declined requests aren't
+  // committed jobs yet (and may have a placeholder scheduled_at), so
+  // they're surfaced via the "new booking requests" alert below instead.
   const todayCleanings = allCleanings.filter((c) => {
+    if (c.status === "awaiting_confirmation" || c.status === "declined") return false;
     const t = new Date(c.scheduled_at);
     return t >= todayStart && t < todayEnd;
   });
@@ -231,7 +234,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
           new Date(a.submitted_at ?? a.scheduled_at).getTime() -
           new Date(b.submitted_at ?? b.scheduled_at).getTime()
       )[0];
-    const supName = profileNameById.get(oldestInReview.supervisor_id) ?? "Supervisor";
+    const supName = (oldestInReview.supervisor_id ? profileNameById.get(oldestInReview.supervisor_id) : null) ?? "Supervisor";
     const oldestTime = new Date(oldestInReview.submitted_at ?? oldestInReview.scheduled_at).toLocaleTimeString(
       "en-GB",
       { hour: "2-digit", minute: "2-digit" }
@@ -248,7 +251,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
   if (changesRequested.length > 0) {
     const c = changesRequested[0];
     const client = clientById.get(c.client_id);
-    const cleanerName = profileNameById.get(c.cleaner_id) ?? "the cleaner";
+    const cleanerName = (c.cleaner_id ? profileNameById.get(c.cleaner_id) : null) ?? "the cleaner";
     alerts.push({
       key: "changes-requested",
       title: `${client?.full_name ?? "A client"}: standards not met`,
@@ -266,6 +269,16 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       body: "Assign one so future checklists are complete",
       href: "/dashboard/admin/standards",
       dotColor: "#55615A",
+    });
+  }
+  const bookingRequests = allCleanings.filter((c) => c.status === "awaiting_confirmation");
+  if (bookingRequests.length > 0) {
+    alerts.push({
+      key: "booking-requests",
+      title: `${bookingRequests.length} new booking request${bookingRequests.length === 1 ? "" : "s"}`,
+      body: "From the website -- confirm, propose another date, or decline",
+      href: "/dashboard/admin/cleanings?status=awaiting_confirmation",
+      dotColor: "#7A4B00",
     });
   }
 

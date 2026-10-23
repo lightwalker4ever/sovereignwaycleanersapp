@@ -1,0 +1,149 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Quote step 2: property and live price</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&amp;display=swap" rel="stylesheet">
+<style>
+body{margin:0}
+a{color:#1B5E3B;text-decoration:none}a:hover{color:#0F3B26}
+</style>
+</helmet>
+<div style="min-height: 100vh; background: #F5F7F5; font-family: 'Plus Jakarta Sans', system-ui, sans-serif; color: #15211B; display: flex; flex-direction: column">
+
+<header style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 0 32px; min-height: 68px; display: flex; flex-wrap: wrap; align-items: center; gap: 20px">
+<a href="#" style="display: flex; align-items: center; gap: 10px; color: #15211B"><span style="width: 36px; height: 36px; border-radius: 9px; background: #0F3B26; color: #E9C46A; display: flex; align-items: center; justify-content: center; font-weight: 800; font-size: 13px">SW</span><span style="font-weight: 800; font-size: 16px">Sovereign Way Cleaners</span></a>
+<span style="flex: 1"></span>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Services</a>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Gallery</a>
+<a href="#" style="font-size: 14px; font-weight: 600; color: #34403A">Sign in</a>
+</header>
+
+<nav aria-label="Quote steps" style="background: #FFFFFF; border-bottom: 1px solid #E2E7E3; padding: 14px 32px">
+<ol style="list-style: none; margin: 0 auto; padding: 0; max-width: 1200px; display: flex; flex-wrap: wrap; gap: 8px 24px">
+<sc-for list="{{steps}}" as="s" hint-placeholder-count="4">
+<li style="display: flex; align-items: center; gap: 10px; font-size: 14px"><span style="{{s.dot}}">{{s.n}}</span><span style="{{s.label}}">{{s.t}}</span></li>
+</sc-for>
+</ol>
+</nav>
+
+<div style="flex: 1; width: 100%; max-width: 1264px; margin: 0 auto; padding: 32px; box-sizing: border-box; display: flex; flex-wrap: wrap; gap: 28px; align-items: flex-start">
+
+<main style="flex: 999 1 560px; min-width: 0; display: flex; flex-direction: column; gap: 20px">
+<div>
+<a href="QuoteStart.html" style="font-size: 14px; font-weight: 600">← Change service</a>
+<h1 style="margin: 8px 0 0; font-size: 30px; font-weight: 800; letter-spacing: -0.02em">End of Tenancy clean</h1>
+<p style="margin: 6px 0 0; font-size: 15px; color: #55615A">Tell us about the property. Your price updates as you go.</p>
+</div>
+
+<section style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 22px">
+<fieldset style="border: 0; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px">
+<legend style="font-size: 15px; font-weight: 800; padding: 0; margin-bottom: 10px">Property size</legend>
+<div style="display: flex; flex-wrap: wrap; gap: 8px">
+<sc-for list="{{sizes}}" as="z" hint-placeholder-count="6">
+<button onClick="{{z.pick}}" aria-pressed="{{z.pressed}}" style="{{z.style}}">{{z.label}}</button>
+</sc-for>
+</div>
+</fieldset>
+
+<div style="display: flex; flex-wrap: wrap; align-items: center; gap: 16px; border-top: 1px solid #EEF1EF; padding-top: 20px">
+<div style="flex: 1 1 200px"><div style="font-size: 15px; font-weight: 800">Bathrooms</div><div style="font-size: 13px; color: #55615A">First one included, then £35 each</div></div>
+<div style="display: flex; align-items: center; gap: 4px; border: 1px solid #C9D1CC; border-radius: 12px; padding: 4px">
+<button aria-label="Fewer bathrooms" onClick="{{bathDown}}" style="width: 44px; height: 44px; border: 0; border-radius: 9px; background: #EEF1EF; font: inherit; font-size: 22px; font-weight: 700; color: #15211B; cursor: pointer">−</button>
+<span aria-live="polite" style="width: 48px; text-align: center; font-size: 18px; font-weight: 800">{{baths}}</span>
+<button aria-label="More bathrooms" onClick="{{bathUp}}" style="width: 44px; height: 44px; border: 0; border-radius: 9px; background: #1B5E3B; color: #FFFFFF; font: inherit; font-size: 22px; font-weight: 700; cursor: pointer">+</button>
+</div>
+</div>
+</section>
+
+<section style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; padding: 22px; display: flex; flex-direction: column; gap: 14px">
+<div><h2 style="margin: 0; font-size: 15px; font-weight: 800">Add-ons</h2><p style="margin: 2px 0 0; font-size: 13px; color: #55615A">Tap to add. Prices shown are added to your total.</p></div>
+<div style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px">
+<sc-for list="{{addons}}" as="a" hint-placeholder-count="7">
+<button onClick="{{a.toggle}}" aria-pressed="{{a.pressed}}" style="{{a.style}}">
+<span style="{{a.check}}">{{a.mark}}</span>
+<span style="flex: 1; text-align: left; font-size: 14px; font-weight: 700">{{a.name}}</span>
+<span style="font-size: 14px; font-weight: 700; color: #1B5E3B">+£{{a.price}}</span>
+</button>
+</sc-for>
+</div>
+</section>
+</main>
+
+<aside aria-label="Your quote" style="flex: 1 1 340px; position: sticky; top: 24px; display: flex; flex-direction: column; gap: 12px">
+<div style="background: #FFFFFF; border: 1px solid #E2E7E3; border-radius: 16px; overflow: hidden">
+<div style="background: #0F3B26; color: #FFFFFF; padding: 20px">
+<div style="font-size: 13px; font-weight: 700; color: #A9C7B5">Your price · End of Tenancy</div>
+<div style="display: flex; align-items: baseline; gap: 8px; margin-top: 4px"><span style="font-size: 38px; font-weight: 800; letter-spacing: -0.02em">£{{total}}</span><span style="font-size: 13px; color: #D7E7DD">inc. VAT</span></div>
+<div style="font-size: 13px; color: #D7E7DD">N12 0ES · {{sizeLabel}} · {{baths}} bathrooms</div>
+</div>
+<div style="padding: 16px 20px; display: flex; flex-direction: column; gap: 8px; font-size: 14px">
+<sc-for list="{{lines}}" as="l" hint-placeholder-count="5">
+<div style="display: flex; justify-content: space-between; gap: 12px"><span style="color: #34403A">{{l.label}}</span><span style="font-weight: 600">£{{l.amt}}</span></div>
+</sc-for>
+<div style="border-top: 1px solid #E2E7E3; margin-top: 4px; padding-top: 10px; display: flex; justify-content: space-between; color: #55615A"><span>Subtotal (ex. VAT)</span><span>£{{sub}}</span></div>
+<div style="display: flex; justify-content: space-between; color: #55615A"><span>VAT (20%)</span><span>£{{vat}}</span></div>
+</div>
+<div style="padding: 0 20px 20px; display: flex; flex-direction: column; gap: 10px">
+<a href="QuoteWhen.html" style="height: 52px; border-radius: 12px; background: #1B5E3B; color: #FFFFFF; display: flex; align-items: center; justify-content: center; gap: 8px; font-weight: 800; font-size: 16px">Choose a date<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14 M13 6l6 6-6 6"></path></svg></a>
+<a href="#" style="text-align: center; font-size: 14px; font-weight: 600; padding: 8px">Not ready? Email me this quote</a>
+</div>
+</div>
+</aside>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1440,"height":1000}}'>
+class Component extends DCLogic {
+  constructor(props) {
+    super(props);
+    this.state = { size: 3, baths: 4, on: { carpet: true, fridge: true, washer: true, micro: true } };
+  }
+  renderVals() {
+    var self = this, st = this.state;
+    var money = function (n) { return n.toFixed(2).replace(/\B(?=(\d{3})+(?!\d))/g, ','); };
+    // From the current site: 3 bedroom £305, extra bathroom £35, carpet £65, fridge/freezer £30, washing machine £20, microwave £12.
+    // Other property sizes and the oven / dishwasher / window prices are SAMPLE values: replace with real ones.
+    var SIZES = [['Studio', 185], ['1 bed', 225], ['2 bed', 265], ['3 bed', 305], ['4 bed', 355], ['5+ bed', 405]];
+    var ADDONS = [['carpet', 'Carpet cleaning', 65], ['fridge', 'Fridge / freezer', 30], ['washer', 'Washing machine', 20], ['micro', 'Microwave', 12], ['oven', 'Oven deep clean', 45], ['dish', 'Dishwasher', 25], ['windows', 'Exterior windows', 40]];
+    var steps = ['Service', 'Your property', 'Date & time', 'Your details'].map(function (t, i) {
+      var state = i < 1 ? 'done' : i === 1 ? 'cur' : 'todo';
+      return { n: state === 'done' ? '✓' : i + 1, t: t,
+        dot: 'width:28px;height:28px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:13px;' + (state === 'todo' ? 'background:#FFFFFF;color:#55615A;border:1.5px solid #C9D1CC' : 'background:#1B5E3B;color:#FFFFFF'),
+        label: state === 'cur' ? 'font-weight:800;color:#15211B' : 'font-weight:600;color:#55615A' };
+    });
+    var sizes = SIZES.map(function (s, i) {
+      var on = st.size === i;
+      return { label: s[0], pressed: on ? 'true' : 'false', pick: function () { self.setState({ size: i }); },
+        style: 'height:48px;min-width:84px;padding:0 16px;border-radius:12px;font:inherit;font-size:15px;font-weight:700;cursor:pointer;' + (on ? 'background:#1B5E3B;color:#FFFFFF;border:2px solid #1B5E3B' : 'background:#FFFFFF;color:#15211B;border:1.5px solid #C9D1CC') };
+    });
+    var addons = ADDONS.map(function (a) {
+      var on = !!st.on[a[0]];
+      return { name: a[1], price: a[2], pressed: on ? 'true' : 'false', mark: on ? '✓' : '',
+        toggle: function () { var o = Object.assign({}, st.on); o[a[0]] = !on; self.setState({ on: o }); },
+        check: 'width:22px;height:22px;border-radius:6px;flex:none;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:800;' + (on ? 'background:#1B5E3B;color:#FFFFFF' : 'background:#FFFFFF;border:1.5px solid #A9B6AE;color:transparent'),
+        style: 'min-height:56px;padding:0 14px;border-radius:12px;font:inherit;color:#15211B;cursor:pointer;display:flex;align-items:center;gap:10px;' + (on ? 'background:#F1F8F3;border:2px solid #1B5E3B' : 'background:#FFFFFF;border:1.5px solid #E2E7E3') };
+    });
+    var lines = [{ label: SIZES[st.size][0] + ' property', amt: money(SIZES[st.size][1]) }];
+    var sub = SIZES[st.size][1];
+    if (st.baths > 1) { var x = (st.baths - 1) * 35; sub += x; lines.push({ label: 'Extra bathrooms (' + (st.baths - 1) + ')', amt: money(x) }); }
+    ADDONS.forEach(function (a) { if (st.on[a[0]]) { sub += a[2]; lines.push({ label: a[1], amt: money(a[2]) }); } });
+    var vat = sub * 0.2;
+    return {
+      steps: steps, sizes: sizes, addons: addons, lines: lines,
+      baths: st.baths, sizeLabel: SIZES[st.size][0],
+      bathUp: function () { self.setState({ baths: Math.min(8, st.baths + 1) }); },
+      bathDown: function () { self.setState({ baths: Math.max(1, st.baths - 1) }); },
+      sub: money(sub), vat: money(vat), total: money(sub + vat)
+    };
+  }
+}
+</script>
+</body>
+</html>

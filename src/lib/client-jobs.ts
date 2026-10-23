@@ -36,7 +36,13 @@ export async function listClientJobCards(clientId: string, profileId: string): P
 
   const all = cleanings ?? [];
   const ids = all.map((c) => c.id);
-  const profileIds = [...new Set([...all.map((c) => c.cleaner_id), ...all.map((c) => c.supervisor_id)])];
+  const profileIds = [
+    ...new Set(
+      [...all.map((c) => c.cleaner_id), ...all.map((c) => c.supervisor_id)].filter(
+        (id): id is string => id !== null
+      )
+    ),
+  ];
 
   const [{ data: profiles, error: profilesError }, { data: checklist, error: checklistError }, { data: myComments, error: commentsError }] =
     await Promise.all([
@@ -67,8 +73,8 @@ export async function listClientJobCards(clientId: string, profileId: string): P
     const a = agg.get(c.id);
     return {
       id: c.id,
-      cleanerName: nameById.get(c.cleaner_id) ?? null,
-      supervisorName: nameById.get(c.supervisor_id) ?? null,
+      cleanerName: (c.cleaner_id ? nameById.get(c.cleaner_id) : null) ?? null,
+      supervisorName: (c.supervisor_id ? nameById.get(c.supervisor_id) : null) ?? null,
       scheduledAt: c.scheduled_at,
       endsAt: c.ends_at,
       startedAt: c.started_at,
