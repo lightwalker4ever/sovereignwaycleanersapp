@@ -8,6 +8,7 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { PhotoTile } from "@/components/ui/PhotoTile";
 import { Textarea } from "@/components/ui/textarea";
 import { toDisplayCleaningStatus } from "@/lib/cleaning-status";
+import { compressImage } from "@/lib/image-compress";
 import {
   startCleaning,
   uploadCleaningPhoto,
@@ -67,13 +68,15 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
     const standardId = openId;
     if (!standardId) return;
     setUploadError(null);
-    const formData = new FormData();
-    formData.append("cleaningStandardId", standardId);
-    formData.append("file", file);
-    if (noteOpenId === standardId && noteDraft.trim()) {
-      formData.append("comment", noteDraft.trim());
-    }
+    const comment = noteOpenId === standardId ? noteDraft.trim() : "";
     startUploading(async () => {
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append("cleaningStandardId", standardId);
+      formData.append("file", compressed);
+      if (comment) {
+        formData.append("comment", comment);
+      }
       const result = await uploadCleaningPhoto(null, formData);
       if (result?.success) {
         setNoteOpenId(null);

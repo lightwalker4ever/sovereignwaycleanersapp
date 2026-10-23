@@ -7,6 +7,7 @@ import { ArrowLeft, Check, Loader2, Plus, Undo2, X } from "lucide-react";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { PhotoTile } from "@/components/ui/PhotoTile";
 import { Textarea } from "@/components/ui/textarea";
+import { compressImage } from "@/lib/image-compress";
 import {
   setStandardReview,
   uploadSupervisorPhoto,
@@ -101,10 +102,12 @@ export function ReviewWorkspace({ cleaning }: { cleaning: CleaningDetailForParty
   function handleAddPhoto(file: File) {
     if (!current) return;
     setPhotoError(null);
-    const formData = new FormData();
-    formData.append("cleaningStandardId", current.id);
-    formData.append("file", file);
+    const standardId = current.id;
     startPhotoBusy(async () => {
+      const compressed = await compressImage(file);
+      const formData = new FormData();
+      formData.append("cleaningStandardId", standardId);
+      formData.append("file", compressed);
       const result = await uploadSupervisorPhoto(null, formData);
       if (result?.success) {
         router.refresh();
