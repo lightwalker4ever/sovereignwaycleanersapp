@@ -220,6 +220,45 @@ function computeInstantBreakdown(
   return calculateOfficeCleaning(selectedInputs as OfficeCleaningInput, rateCard, location.multiplier, location.label);
 }
 
+const SITE_URL = "https://sovereignwaycleaners.co.uk";
+
+/**
+ * Phase C's "here's your quote" email -- sent exactly once, when a
+ * draft is first created (never on a later edit, so tweaking an
+ * option repeatedly doesn't spam the customer). The magic link embeds
+ * resumeToken only; resolveQuoteDraftByToken still requires the
+ * customer to re-enter their postcode before anything is restored, so
+ * the token alone isn't enough to pull up someone else's quote from a
+ * forwarded/leaked email. Best-effort -- a failed send never blocks
+ * the draft save itself.
+ */
+async function sendDraftSavedEmail(input: {
+  email: string;
+  reference: string;
+  resumeToken: string;
+  subject: string;
+  bodyHtml: string;
+}) {
+  const resumeUrl = `${SITE_URL}/quote/resume?token=${input.resumeToken}`;
+  try {
+    await resend.emails.send({
+      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      to: input.email,
+      subject: input.subject,
+      html: `
+        ${input.bodyHtml}
+        <p><a href="${resumeUrl}" style="display:inline-block;padding:10px 18px;background:#1B5E3B;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold">Continue my quote</a></p>
+        <p style="font-size:13px;color:#667">Or go to ${resumeUrl} and enter your postcode to confirm it's you.</p>
+        <p>If you need to reach us in the meantime, you can call us on <strong>01732 711856</strong> or WhatsApp us on <strong>07445 109813</strong>.</p>
+        <br>
+        <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+      `,
+    });
+  } catch (e) {
+    console.error("Failed to send draft-saved email", e);
+  }
+}
+
 export type SaveQuoteDraftResult =
   | { success: true; draftId: string; totalIncVat: number }
   | { success: false; error: string };
@@ -299,6 +338,11 @@ export async function saveInstantQuoteDraft(input: {
     return { success: false, error: "Unable to save your quote right now." };
   }
 
+  // Generated only here, on a fresh draft, and never regenerated on an
+  // update -- the one magic link already emailed below must keep
+  // working for the life of this draft.
+  const resumeToken = randomUUID();
+
   const { data: cleaning, error: cleaningError } = await admin
     .from("cleanings")
     .insert({
@@ -309,13 +353,27 @@ export async function saveInstantQuoteDraft(input: {
       property_answers: input.selectedInputs as unknown as Json,
       price_breakdown: breakdown as unknown as Json,
       source: "website_quote",
+      resume_token: resumeToken,
     })
-    .select("id")
+    .select("id, reference")
     .single();
   if (cleaningError || !cleaning) {
     console.error("Failed to create quote draft", cleaningError);
     return { success: false, error: "Unable to save your quote right now." };
   }
+
+  await sendDraftSavedEmail({
+    email: parsedEmail.data,
+    reference: cleaning.reference,
+    resumeToken,
+    subject: `Your ${SERVICE_TITLE[input.service]} quote is saved (${cleaning.reference})`,
+    bodyHtml: `
+      <p>Hi,</p>
+      <p>We've saved your <strong>${SERVICE_TITLE[input.service]}</strong> quote. Reference <strong>${cleaning.reference}</strong>.</p>
+      <p style="font-size:20px;font-weight:bold">£${breakdown.totalIncVat.toFixed(2)} inc. VAT</p>
+      <p>No payment or booking yet -- pick up where you left off whenever you're ready.</p>
+    `,
+  });
 
   return { success: true, draftId: cleaning.id, totalIncVat: breakdown.totalIncVat };
 }
@@ -375,6 +433,8 @@ export async function saveTailoredQuoteDraft(input: {
     return { success: false, error: "Unable to save your quote right now." };
   }
 
+  const resumeToken = randomUUID();
+
   const { data: quoteRequest, error: requestError } = await admin
     .from("quote_requests")
     .insert({
@@ -383,15 +443,116 @@ export async function saveTailoredQuoteDraft(input: {
       service: input.service,
       postcode: trimmedPostcode,
       answers: input.answers as unknown as Json,
+      resume_token: resumeToken,
     })
-    .select("id")
+    .select("id, reference")
     .single();
   if (requestError || !quoteRequest) {
     console.error("Failed to create tailored quote draft", requestError);
     return { success: false, error: "Unable to save your quote right now." };
   }
 
+  await sendDraftSavedEmail({
+    email: parsedEmail.data,
+    reference: quoteRequest.reference,
+    resumeToken,
+    subject: `Your ${TAILORED_SERVICE_TITLE[input.service]} request is saved (${quoteRequest.reference})`,
+    bodyHtml: `
+      <p>Hi,</p>
+      <p>We've saved your <strong>${TAILORED_SERVICE_TITLE[input.service]}</strong> request so far. Reference <strong>${quoteRequest.reference}</strong>.</p>
+      <p>Nothing's been sent to us yet -- pick up where you left off whenever you're ready to finish and send it.</p>
+    `,
+  });
+
   return { success: true, draftId: quoteRequest.id, totalIncVat: 0 };
+}
+
+const DRAFT_EXPIRY_MS = 14 * 24 * 60 * 60 * 1000;
+
+export type ResolveQuoteDraftResult =
+  | {
+      success: true;
+      draftId: string;
+      email: string;
+      postcode: string;
+      instant: { service: QuoteServiceKey; selectedInputs: Json } | null;
+      tailored: { service: TailoredServiceSlug; answers: Json } | null;
+    }
+  | { success: false; error: string };
+
+/**
+ * Phase C's magic-link landing page calls this once the customer has
+ * re-entered their postcode -- the token alone (from the email link)
+ * isn't trusted to restore anything; it has to match this specific
+ * draft's postcode too, so a forwarded/leaked email can't be used by
+ * someone who doesn't actually know the property's postcode. Checks
+ * both tables since the link doesn't encode which kind of draft it is.
+ * Same 14-day window as the client dashboard's "your quotes" will use
+ * (Phase D) -- a draft this old is treated as expired here too, even
+ * though nothing currently sweeps/deletes it at that point.
+ */
+export async function resolveQuoteDraftByToken(token: string, postcode: string): Promise<ResolveQuoteDraftResult> {
+  const trimmedToken = token.trim();
+  const trimmedPostcode = postcode.trim();
+  if (!trimmedToken) return { success: false, error: "That link looks incomplete." };
+  if (!trimmedPostcode) return { success: false, error: "Enter the postcode on your quote." };
+
+  const admin = createAdminClient();
+  const postcodeMatches = (a: string, b: string) => a.replace(/\s+/g, "").toUpperCase() === b.replace(/\s+/g, "").toUpperCase();
+
+  const { data: cleaning } = await admin
+    .from("cleanings")
+    .select("id, client_id, status, service, postcode, property_answers, created_at")
+    .eq("resume_token", trimmedToken)
+    .maybeSingle();
+  if (cleaning) {
+    if (cleaning.status !== "quoted") {
+      return { success: false, error: "This quote has already moved on -- sign in to your account to see it, or start a new one." };
+    }
+    if (Date.now() - new Date(cleaning.created_at).getTime() > DRAFT_EXPIRY_MS) {
+      return { success: false, error: "This quote has expired. Please start a new one." };
+    }
+    if (!cleaning.postcode || !postcodeMatches(cleaning.postcode, trimmedPostcode)) {
+      return { success: false, error: "That postcode doesn't match this quote." };
+    }
+    const { data: client } = await admin.from("clients").select("email").eq("id", cleaning.client_id).single();
+    return {
+      success: true,
+      draftId: cleaning.id,
+      email: client?.email ?? "",
+      postcode: cleaning.postcode,
+      instant: { service: cleaning.service as QuoteServiceKey, selectedInputs: cleaning.property_answers as Json },
+      tailored: null,
+    };
+  }
+
+  const { data: quoteRequest } = await admin
+    .from("quote_requests")
+    .select("id, client_id, status, service, postcode, answers, created_at")
+    .eq("resume_token", trimmedToken)
+    .maybeSingle();
+  if (quoteRequest) {
+    if (quoteRequest.status !== "draft") {
+      return { success: false, error: "This request has already moved on -- sign in to your account to see it, or start a new one." };
+    }
+    if (Date.now() - new Date(quoteRequest.created_at).getTime() > DRAFT_EXPIRY_MS) {
+      return { success: false, error: "This request has expired. Please start a new one." };
+    }
+    if (!postcodeMatches(quoteRequest.postcode, trimmedPostcode)) {
+      return { success: false, error: "That postcode doesn't match this request." };
+    }
+    const { data: client } = await admin.from("clients").select("email").eq("id", quoteRequest.client_id).single();
+    return {
+      success: true,
+      draftId: quoteRequest.id,
+      email: client?.email ?? "",
+      postcode: quoteRequest.postcode,
+      instant: null,
+      tailored: { service: quoteRequest.service as TailoredServiceSlug, answers: quoteRequest.answers as Json },
+    };
+  }
+
+  return { success: false, error: "We couldn't find that quote." };
 }
 
 export type SubmitInstantQuoteResult =

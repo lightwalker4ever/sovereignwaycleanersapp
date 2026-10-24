@@ -206,6 +206,7 @@ export type Database = {
           source: string;
           service: string | null;
           postcode: string | null;
+          resume_token: string | null;
           property_answers: Json | null;
           price_breakdown: Json | null;
           decline_reason: string | null;
@@ -236,6 +237,7 @@ export type Database = {
           source?: string;
           service?: string | null;
           postcode?: string | null;
+          resume_token?: string | null;
           property_answers?: Json | null;
           price_breakdown?: Json | null;
           decline_reason?: string | null;
@@ -265,6 +267,7 @@ export type Database = {
           source?: string;
           service?: string | null;
           postcode?: string | null;
+          resume_token?: string | null;
           property_answers?: Json | null;
           price_breakdown?: Json | null;
           decline_reason?: string | null;
@@ -521,6 +524,7 @@ export type Database = {
           quoted_at: string | null;
           decline_reason: string | null;
           reference: string;
+          resume_token: string | null;
           created_at: string;
           updated_at: string;
         };
@@ -536,6 +540,7 @@ export type Database = {
           quoted_price?: number | null;
           quoted_at?: string | null;
           decline_reason?: string | null;
+          resume_token?: string | null;
           created_at?: string;
           updated_at?: string;
         };
@@ -551,6 +556,7 @@ export type Database = {
           quoted_price?: number | null;
           quoted_at?: string | null;
           decline_reason?: string | null;
+          resume_token?: string | null;
           created_at?: string;
           updated_at?: string;
         };
