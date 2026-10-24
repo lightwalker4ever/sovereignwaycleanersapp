@@ -17,12 +17,6 @@ function Lines({ breakdown }: { breakdown: QuoteBreakdown }) {
           <span className="font-semibold">£{money(line.amount)}</span>
         </div>
       ))}
-      {breakdown.locationMultiplier !== 1 && (
-        <div className="flex justify-between gap-3">
-          <span className="text-dash-ink-2">Location adjustment ({breakdown.locationLabel})</span>
-          <span className="font-semibold">included</span>
-        </div>
-      )}
       <div className="mt-1 flex justify-between border-t border-dash-border pt-2.5 text-dash-muted">
         <span>Subtotal (ex. VAT)</span>
         <span>£{money(breakdown.subtotalExVat)}</span>

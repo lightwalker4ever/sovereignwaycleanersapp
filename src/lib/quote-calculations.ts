@@ -8,10 +8,16 @@ export interface QuoteLineItem {
 }
 
 export interface QuoteBreakdown {
-  /** Raw itemized components only (base fee, dimensions, selected add-ons) -- no VAT/location/total rows. */
+  /** Itemized components (base fee, dimensions, selected add-ons), each
+   *  already carrying the location multiplier and rounded for display --
+   *  there's no separate "location adjustment" line; a London customer's
+   *  "2 Bedroom" line simply already reads £240 instead of £200. */
   lineItems: QuoteLineItem[];
-  /** lineItems summed, with locationMultiplier already applied. */
+  /** The exact sum of lineItems' (already-rounded) amounts, so the
+   *  displayed total always foots against the displayed lines. */
   subtotalExVat: number;
+  /** Kept for internal/admin records even though it's never shown to
+   *  the customer as its own line -- see lineItems above. */
   locationMultiplier: number;
   locationLabel: string;
   vatAmount: number;
@@ -25,24 +31,24 @@ function round2(value: number): number {
 }
 
 function finalizeBreakdown(
-  lineItems: QuoteLineItem[],
-  rawSubtotal: number,
+  rawLineItems: QuoteLineItem[],
   rateCard: RateCard,
   locationMultiplier: number,
   locationLabel: string,
   visitsPerMonth?: number
 ): QuoteBreakdown {
-  const subtotalExVat = rawSubtotal * locationMultiplier;
-  const vatAmount = subtotalExVat * rateCard.vatRate;
-  const totalIncVat = subtotalExVat + vatAmount;
+  const lineItems = rawLineItems.map((item) => ({ ...item, amount: round2(item.amount * locationMultiplier) }));
+  const subtotalExVat = round2(lineItems.reduce((sum, item) => sum + item.amount, 0));
+  const vatAmount = round2(subtotalExVat * rateCard.vatRate);
+  const totalIncVat = round2(subtotalExVat + vatAmount);
 
   return {
     lineItems,
-    subtotalExVat: round2(subtotalExVat),
+    subtotalExVat,
     locationMultiplier,
     locationLabel,
-    vatAmount: round2(vatAmount),
-    totalIncVat: round2(totalIncVat),
+    vatAmount,
+    totalIncVat,
     estMonthlyCost: visitsPerMonth !== undefined ? round2(totalIncVat * visitsPerMonth) : undefined,
   };
 }
@@ -100,8 +106,7 @@ export function calculateEndOfTenancy(
     }
   }
 
-  const rawSubtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  return finalizeBreakdown(lineItems, rawSubtotal, rateCard, locationMultiplier, locationLabel);
+  return finalizeBreakdown(lineItems, rateCard, locationMultiplier, locationLabel);
 }
 
 // ── Deep Cleaning ───────────────────────────────────────────────────────────
@@ -146,8 +151,7 @@ export function calculateDeepCleaning(
     }
   }
 
-  const rawSubtotal = lineItems.reduce((sum, item) => sum + item.amount, 0);
-  return finalizeBreakdown(lineItems, rawSubtotal, rateCard, locationMultiplier, locationLabel);
+  return finalizeBreakdown(lineItems, rateCard, locationMultiplier, locationLabel);
 }
 
 // ── Office Cleaning ─────────────────────────────────────────────────────────
@@ -182,7 +186,6 @@ export function calculateOfficeCleaning(
   const frequencyLabel = OFFICE_FREQUENCY_LABEL[input.frequency];
 
   let lineItems: QuoteLineItem[];
-  let rawSubtotal: number;
 
   if (input.method === "hourly") {
     const billableHours = Math.max(input.hours ?? 0, minHours);
@@ -190,7 +193,6 @@ export function calculateOfficeCleaning(
     lineItems = [
       { label: `${billableHours} hour${billableHours === 1 ? "" : "s"} @ ${frequencyLabel}`, amount: rateExVat },
     ];
-    rawSubtotal = rateExVat;
   } else {
     const sqm = input.sqm ?? 0;
     const rateBeforeMinimum = sqm * ratePerSqm;
@@ -198,8 +200,7 @@ export function calculateOfficeCleaning(
     lineItems = [
       { label: `${sqm} sqm @ ${frequencyLabel}`, amount: rateExVat },
     ];
-    rawSubtotal = rateExVat;
   }
 
-  return finalizeBreakdown(lineItems, rawSubtotal, rateCard, locationMultiplier, locationLabel, visitsPerMonth);
+  return finalizeBreakdown(lineItems, rateCard, locationMultiplier, locationLabel, visitsPerMonth);
 }
