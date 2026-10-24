@@ -205,6 +205,7 @@ export type Database = {
           marketing_consent: boolean;
           source: string;
           service: string | null;
+          postcode: string | null;
           property_answers: Json | null;
           price_breakdown: Json | null;
           decline_reason: string | null;
@@ -234,6 +235,7 @@ export type Database = {
           marketing_consent?: boolean;
           source?: string;
           service?: string | null;
+          postcode?: string | null;
           property_answers?: Json | null;
           price_breakdown?: Json | null;
           decline_reason?: string | null;
@@ -262,6 +264,7 @@ export type Database = {
           marketing_consent?: boolean;
           source?: string;
           service?: string | null;
+          postcode?: string | null;
           property_answers?: Json | null;
           price_breakdown?: Json | null;
           decline_reason?: string | null;
@@ -513,7 +516,7 @@ export type Database = {
           answers: Json;
           notes: string | null;
           marketing_consent: boolean;
-          status: "awaiting_quote" | "quoted" | "declined";
+          status: "draft" | "awaiting_quote" | "quoted" | "declined";
           quoted_price: number | null;
           quoted_at: string | null;
           decline_reason: string | null;
@@ -529,7 +532,7 @@ export type Database = {
           answers: Json;
           notes?: string | null;
           marketing_consent?: boolean;
-          status?: "awaiting_quote" | "quoted" | "declined";
+          status?: "draft" | "awaiting_quote" | "quoted" | "declined";
           quoted_price?: number | null;
           quoted_at?: string | null;
           decline_reason?: string | null;
@@ -544,7 +547,7 @@ export type Database = {
           answers?: Json;
           notes?: string | null;
           marketing_consent?: boolean;
-          status?: "awaiting_quote" | "quoted" | "declined";
+          status?: "draft" | "awaiting_quote" | "quoted" | "declined";
           quoted_price?: number | null;
           quoted_at?: string | null;
           decline_reason?: string | null;
@@ -610,6 +613,7 @@ export type Database = {
     Enums: {
       app_role: "client" | "cleaner" | "supervisor" | "manager" | "admin" | "sales";
       cleaning_status:
+        | "quoted"
         | "awaiting_confirmation"
         | "assigned"
         | "in_progress"

@@ -9,7 +9,7 @@ import { EndOfTenancyQuestions } from "@/components/quote-flow/EndOfTenancyQuest
 import { DeepCleaningQuestions } from "@/components/quote-flow/DeepCleaningQuestions";
 import { OfficeCleaningQuestions } from "@/components/quote-flow/OfficeCleaningQuestions";
 import { useQuoteState } from "@/lib/quote-state";
-import { getQuoteRateCard, resolveLocationMultiplier, emailQuoteToSelf } from "@/actions/quote";
+import { getQuoteRateCard, resolveLocationMultiplier, emailQuoteToSelf, saveInstantQuoteDraft } from "@/actions/quote";
 import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
 import type { RateCard } from "@/lib/rate-card";
 
@@ -72,6 +72,7 @@ export default function QuotePropertyPage() {
   const [emailValue, setEmailValue] = useState("");
   const [emailResult, setEmailResult] = useState<"idle" | "sent" | "error">("idle");
   const [sendingEmail, startSendingEmail] = useTransition();
+  const [savingDraft, startSavingDraft] = useTransition();
 
   function handleSendQuoteEmail() {
     if (!state.service || !breakdown || !emailValue.trim()) return;
@@ -82,7 +83,30 @@ export default function QuotePropertyPage() {
   }
 
   function handleContinue() {
-    router.push("/quote/when");
+    // Phase B: save (or update) a 'quoted' draft the moment the
+    // customer is done configuring and moves on, rather than waiting
+    // for final submission. Awaited (and update() called) before
+    // navigating -- this page unmounts on router.push, and a state
+    // update queued after that point from a still-pending promise is
+    // dropped by React, so the sessionStorage write must land first.
+    // Fails soft: a failed save never blocks navigation.
+    if (!state.service) {
+      router.push("/quote/when");
+      return;
+    }
+    const selectedInputs = state.service === "end_of_tenancy" ? state.eot : state.service === "deep_cleaning" ? state.deep : state.office;
+    startSavingDraft(async () => {
+      const result = await saveInstantQuoteDraft({
+        draftId: state.draftId,
+        service: state.service!,
+        selectedInputs,
+        postcode: state.postcode,
+        email: state.contact.email,
+      });
+      if (result.success) update({ draftId: result.draftId });
+      else console.error("Failed to save quote draft", result.error);
+      router.push("/quote/when");
+    });
   }
 
   if (!state.service || !breakdown) {
@@ -139,6 +163,7 @@ export default function QuotePropertyPage() {
             breakdown={breakdown}
             primaryLabel="Choose a date"
             onPrimary={handleContinue}
+            primaryPending={savingDraft}
             emailQuoteSlot={
               <div className="flex flex-col gap-2">
                 {!emailOpen ? (
@@ -180,7 +205,7 @@ export default function QuotePropertyPage() {
         </aside>
       </div>
 
-      <MobilePriceBar breakdown={breakdown} primaryLabel="Choose date" onPrimary={handleContinue} />
+      <MobilePriceBar breakdown={breakdown} primaryLabel="Choose date" onPrimary={handleContinue} primaryDisabled={savingDraft} />
     </>
   );
 }

@@ -10,6 +10,7 @@ import type { TailoredServiceSlug } from "@/lib/quote-config";
 import type { QuoteServiceKey } from "@/lib/quote-calculations";
 import { getQuoteRateCard, checkPostcodeCoverage, submitCoverageWaitlist } from "@/actions/quote";
 import { fromPriceFor } from "@/lib/quote-from-price";
+import { emailSchema, schemaFieldError } from "@/lib/validation";
 import type { RateCard } from "@/lib/rate-card";
 import { cn } from "@/lib/utils";
 
@@ -42,9 +43,10 @@ function QuoteServicePageInner() {
 
   const [postcodeInput, setPostcodeInput] = useState("");
   const [checking, startChecking] = useTransition();
-  const [waitlistEmail, setWaitlistEmail] = useState("");
-  const [waitlistSubmitted, setWaitlistSubmitted] = useState(false);
-  const [submittingWaitlist, startSubmittingWaitlist] = useTransition();
+
+  const [emailInput, setEmailInput] = useState("");
+  const [emailTouched, setEmailTouched] = useState(false);
+  const emailError = schemaFieldError(emailSchema, emailInput);
 
   // Seed from ?service=&postcode= once, after hydration -- a deep link
   // takes priority over whatever sessionStorage already had.
@@ -77,6 +79,7 @@ function QuoteServicePageInner() {
 
   useEffect(() => {
     if (hydrated && !postcodeInput && state.postcode) setPostcodeInput(state.postcode);
+    if (hydrated && !emailInput && state.contact.email) setEmailInput(state.contact.email);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
@@ -89,16 +92,25 @@ function QuoteServicePageInner() {
         postcode: trimmed,
         coverage: { checked: true, covered: result.covered, area: result.area },
       });
-      setWaitlistSubmitted(false);
+      // Email is already mandatory on this page now, so an uncovered
+      // postcode no longer needs its own separate "notify me" capture --
+      // if we already have a valid email, just log the interest silently.
+      const trimmedEmail = emailInput.trim();
+      if (!result.covered && trimmedEmail && !schemaFieldError(emailSchema, trimmedEmail)) {
+        submitCoverageWaitlist(trimmed, trimmedEmail);
+      }
     });
   }
 
-  function handleWaitlistSubmit() {
-    if (!waitlistEmail.trim()) return;
-    startSubmittingWaitlist(async () => {
-      await submitCoverageWaitlist(postcodeInput, waitlistEmail);
-      setWaitlistSubmitted(true);
-    });
+  function handleEmailBlur() {
+    setEmailTouched(true);
+    const trimmed = emailInput.trim();
+    if (trimmed && !schemaFieldError(emailSchema, trimmed)) {
+      update((prev) => ({ contact: { ...prev.contact, email: trimmed } }));
+      if (state.coverage?.checked && !state.coverage.covered) {
+        submitCoverageWaitlist(state.postcode, trimmed);
+      }
+    }
   }
 
   function selectInstant(quoteService: QuoteServiceKey) {
@@ -111,8 +123,12 @@ function QuoteServicePageInner() {
   const selectedInstant = instantServices.find((s) => s.quoteService === state.service);
   const selectedTailored = tailoredServices.find((s) => s.slug === state.tailoredService);
   const hasSelection = Boolean(selectedInstant || selectedTailored);
+  const hasValidEmail = Boolean(emailInput.trim()) && !schemaFieldError(emailSchema, emailInput.trim());
+  const canContinue = hasSelection && Boolean(state.coverage?.checked) && hasValidEmail;
 
   function handleContinue() {
+    if (!canContinue) return;
+    update((prev) => ({ contact: { ...prev.contact, email: emailInput.trim() } }));
     if (selectedInstant) router.push("/quote/property");
     else if (selectedTailored) router.push("/quote/about-job");
   }
@@ -126,71 +142,75 @@ function QuoteServicePageInner() {
           <div>
             <h1 className="m-0 text-[26px] font-extrabold tracking-tight sm:text-[32px]">Get a price for your clean</h1>
             <p className="mt-1.5 text-[15px] text-dash-muted sm:text-base">
-              Start with your postcode so we can check we cover your area.
+              Start with your postcode and email so we can check your area and save your quote.
             </p>
           </div>
 
-          <section aria-label="Postcode" className="flex flex-col gap-3 rounded-2xl border border-dash-border bg-dash-surface p-5">
-            <label htmlFor="pc" className="text-sm font-bold">
-              Postcode
-            </label>
-            <div className="flex flex-wrap gap-2.5">
-              <input
-                id="pc"
-                value={postcodeInput}
-                onChange={(e) => setPostcodeInput(e.target.value)}
-                onKeyDown={(e) => e.key === "Enter" && handleCheck()}
-                placeholder="e.g. TN9 1AB"
-                className="h-12 min-w-[180px] flex-[1_1_220px] rounded-[10px] border border-dash-input-border px-3.5 text-base font-semibold uppercase outline-none focus:border-dash-brand-700"
-              />
-              <button
-                type="button"
-                onClick={handleCheck}
-                disabled={checking || !postcodeInput.trim()}
-                className="flex h-12 items-center gap-2 rounded-[10px] border border-dash-brand-700 bg-white px-5 text-[15px] font-bold text-dash-brand-700 disabled:opacity-50"
-              >
-                {checking && <Loader2 className="size-4 animate-spin" />}
-                Check
-              </button>
+          <section aria-label="Postcode and email" className="flex flex-col gap-4 rounded-2xl border border-dash-border bg-dash-surface p-5">
+            <div className="flex flex-col gap-3">
+              <label htmlFor="pc" className="text-sm font-bold">
+                Postcode
+              </label>
+              <div className="flex flex-wrap gap-2.5">
+                <input
+                  id="pc"
+                  value={postcodeInput}
+                  onChange={(e) => setPostcodeInput(e.target.value)}
+                  onKeyDown={(e) => e.key === "Enter" && handleCheck()}
+                  placeholder="e.g. TN9 1AB"
+                  className="h-12 min-w-[180px] flex-[1_1_220px] rounded-[10px] border border-dash-input-border px-3.5 text-base font-semibold uppercase outline-none focus:border-dash-brand-700"
+                />
+                <button
+                  type="button"
+                  onClick={handleCheck}
+                  disabled={checking || !postcodeInput.trim()}
+                  className="flex h-12 items-center gap-2 rounded-[10px] border border-dash-brand-700 bg-white px-5 text-[15px] font-bold text-dash-brand-700 disabled:opacity-50"
+                >
+                  {checking && <Loader2 className="size-4 animate-spin" />}
+                  Check
+                </button>
+              </div>
+              {state.coverage?.checked && (
+                <>
+                  {state.coverage.covered ? (
+                    <div className="flex items-center gap-2 text-sm font-semibold text-[#155B33]">
+                      <Check size={18} aria-hidden="true" />
+                      Good news, we clean in {state.coverage.area}.
+                    </div>
+                  ) : (
+                    <div className="flex flex-col gap-2.5 rounded-xl bg-dash-bg p-3.5">
+                      <p className="text-sm text-dash-ink-2">
+                        We couldn&apos;t confirm that postcode right now, but we don&apos;t want to turn you away --
+                        you can still carry on below.
+                      </p>
+                    </div>
+                  )}
+                </>
+              )}
             </div>
-            {state.coverage?.checked && (
-              <>
-                {state.coverage.covered ? (
-                  <div className="flex items-center gap-2 text-sm font-semibold text-[#155B33]">
-                    <Check size={18} aria-hidden="true" />
-                    Good news, we clean in {state.coverage.area}.
-                  </div>
-                ) : (
-                  <div className="flex flex-col gap-2.5 rounded-xl bg-dash-bg p-3.5">
-                    <p className="text-sm text-dash-ink-2">
-                      We couldn&apos;t confirm that postcode right now, but we don&apos;t want to turn you away --
-                      you can still carry on below, or leave your email and we&apos;ll follow up.
-                    </p>
-                    {!waitlistSubmitted ? (
-                      <div className="flex flex-wrap gap-2">
-                        <input
-                          type="email"
-                          value={waitlistEmail}
-                          onChange={(e) => setWaitlistEmail(e.target.value)}
-                          placeholder="you@example.com"
-                          className="h-10 min-w-[180px] flex-[1_1_200px] rounded-lg border border-dash-input-border px-3 text-sm outline-none focus:border-dash-brand-700"
-                        />
-                        <button
-                          type="button"
-                          onClick={handleWaitlistSubmit}
-                          disabled={submittingWaitlist || !waitlistEmail.trim()}
-                          className="h-10 rounded-lg bg-dash-brand-700 px-4 text-sm font-bold text-white disabled:opacity-50"
-                        >
-                          Tell me if you start covering my area
-                        </button>
-                      </div>
-                    ) : (
-                      <p className="text-sm font-semibold text-[#155B33]">Thanks -- we&apos;ll be in touch.</p>
-                    )}
-                  </div>
+
+            <div className="flex flex-col gap-2">
+              <label htmlFor="quote-email" className="text-sm font-bold">
+                Email
+              </label>
+              <input
+                id="quote-email"
+                type="email"
+                autoComplete="email"
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                onBlur={handleEmailBlur}
+                placeholder="you@example.com"
+                className={cn(
+                  "h-12 rounded-[10px] border px-3.5 text-base font-normal outline-none",
+                  emailTouched && emailError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
                 )}
-              </>
-            )}
+              />
+              {emailTouched && emailError && <p className="text-[13px] font-semibold text-dash-danger">{emailError}</p>}
+              <p className="text-[13px] text-dash-muted">
+                So we can save your quote and email it to you if you&apos;re not ready to book today.
+              </p>
+            </div>
           </section>
 
           <section aria-label="Instant price services" className="flex flex-col gap-3">
@@ -287,16 +307,20 @@ function QuoteServicePageInner() {
               </div>
             </div>
             <div className="rounded-xl bg-dash-bg p-3.5 text-sm leading-relaxed text-dash-ink-2">
-              {selectedInstant
-                ? "Next, tell us about the property. Your price updates as you go, and we won't ask for contact details until the end."
-                : selectedTailored
-                  ? "Next, a few quick questions about the job. We'll email your tailored price within 24 hours."
-                  : "Pick a service to continue."}
+              {!state.coverage?.checked
+                ? "Check your postcode to continue."
+                : !hasValidEmail
+                  ? "Add your email to continue."
+                  : selectedInstant
+                    ? "Next, tell us about the property. Your price updates as you go, and we won't ask for contact details until the end."
+                    : selectedTailored
+                      ? "Next, a few quick questions about the job. We'll email your tailored price within 24 hours."
+                      : "Pick a service to continue."}
             </div>
             <button
               type="button"
               onClick={handleContinue}
-              disabled={!hasSelection}
+              disabled={!canContinue}
               className="flex h-13 items-center justify-center gap-2 rounded-xl bg-dash-brand-700 text-base font-extrabold text-white disabled:opacity-50"
             >
               Continue

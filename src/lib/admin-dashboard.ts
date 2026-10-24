@@ -146,11 +146,11 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     return toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false);
   }
 
-  // Today's schedule -- awaiting-confirmation/declined requests aren't
-  // committed jobs yet (and may have a placeholder scheduled_at), so
-  // they're surfaced via the "new booking requests" alert below instead.
+  // Today's schedule -- quoted/awaiting-confirmation/declined requests
+  // aren't committed jobs yet (and may have a placeholder scheduled_at),
+  // so they're surfaced via the "new booking requests" alert below instead.
   const todayCleanings = allCleanings.filter((c) => {
-    if (c.status === "awaiting_confirmation" || c.status === "declined") return false;
+    if (c.status === "quoted" || c.status === "awaiting_confirmation" || c.status === "declined") return false;
     const t = new Date(c.scheduled_at);
     return t >= todayStart && t < todayEnd;
   });

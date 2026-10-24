@@ -96,6 +96,7 @@ export default function QuoteDetailsPage() {
   function handleSubmitInstant() {
     startSubmitting(async () => {
       const result = await submitInstantQuoteRequest({
+        draftId: state.draftId,
         service: state.service!,
         selectedInputs:
           state.service === "end_of_tenancy" ? state.eot : state.service === "deep_cleaning" ? state.deep : state.office,
@@ -142,6 +143,7 @@ export default function QuoteDetailsPage() {
       const notes = [accessNote, state.tailoredNotes.trim()].filter(Boolean).join(" ");
 
       const result = await submitTailoredQuoteRequest({
+        draftId: state.draftId,
         service: state.tailoredService!,
         answers: state.tailoredAnswers,
         notes,

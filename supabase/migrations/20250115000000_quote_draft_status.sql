@@ -1,0 +1,11 @@
+-- Phase B of the persisted-quote work: the quote journey will save a
+-- draft as soon as the customer finishes configuring an instant-price
+-- job and moves on to pick a date, instead of waiting until final
+-- submission. 'quoted' sits ahead of the existing
+-- 'awaiting_confirmation' in the lifecycle.
+--
+-- Must be its own migration, committed before any DML references the
+-- new value -- ALTER TYPE ... ADD VALUE can't be used in the same
+-- transaction it's added in (same reasoning as
+-- 20250114000000_cleaning_statuses.sql).
+alter type public.cleaning_status add value 'quoted';

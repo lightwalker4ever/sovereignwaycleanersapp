@@ -1,18 +1,23 @@
 /**
- * The 7 cleaning statuses used everywhere in the redesigned UI (admin,
+ * The 8 cleaning statuses used everywhere in the redesigned UI (admin,
  * supervisor, cleaner, client) -- see design-handoff/DESIGN_HANDOFF.md's
  * "Status system" and quote-handoff/QUOTE_HANDOFF.md's "Integration with
- * the existing app". The database's cleanings.status enum has 6 values
- * (awaiting_confirmation/assigned/in_progress/in_review/completed/
+ * the existing app". The database's cleanings.status enum has 7 values
+ * (quoted/awaiting_confirmation/assigned/in_progress/in_review/completed/
  * declined); "changes_requested" is derived here rather than stored,
  * since it's fully reconstructable from existing data: a cleaning is
  * "in_progress" *because* it was sent back only when at least one of its
  * checklist items is still marked "not_met" (the only way a not_met row
  * can exist is via the supervisor's send-back flow, which is the only
  * thing that sets cleanings.status back to "in_progress" after it ever
- * reached "in_review").
+ * reached "in_review"). "quoted" is Phase B of the persisted-quote work:
+ * an instant price computed and saved before the customer has given a
+ * date or full contact details -- not a committed booking yet, so it's
+ * excluded from a client's own job list (listClientJobCards) until the
+ * customer actually submits.
  */
 export const DISPLAY_CLEANING_STATUSES = [
+  "quoted",
   "awaiting_confirmation",
   "scheduled",
   "in_progress",
@@ -28,6 +33,7 @@ export const CLEANING_STATUS_INFO: Record<
   DisplayCleaningStatus,
   { label: string; bg: string; text: string }
 > = {
+  quoted: { label: "Quoted", bg: "#E3EEFB", text: "#1C4F8F" },
   awaiting_confirmation: { label: "Awaiting confirmation", bg: "#FFF1D1", text: "#7A4B00" },
   scheduled: { label: "Scheduled", bg: "#EEF1EF", text: "#3F4B44" },
   in_progress: { label: "In progress", bg: "#FFF1D1", text: "#7A4B00" },
@@ -38,6 +44,7 @@ export const CLEANING_STATUS_INFO: Record<
 };
 
 const DB_STATUS_TO_DISPLAY: Record<string, DisplayCleaningStatus> = {
+  quoted: "quoted",
   awaiting_confirmation: "awaiting_confirmation",
   assigned: "scheduled",
   in_progress: "in_progress",

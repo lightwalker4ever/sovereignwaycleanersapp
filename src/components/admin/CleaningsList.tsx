@@ -12,7 +12,7 @@ import { RequestDrawer } from "@/components/admin/RequestDrawer";
 import { DISPLAY_CLEANING_STATUSES, CLEANING_STATUS_INFO } from "@/lib/cleaning-status";
 import type { CleaningRow, AssignableStaff } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
 
-const REQUEST_STATUSES = new Set(["awaiting_confirmation", "declined"]);
+const REQUEST_STATUSES = new Set(["quoted", "awaiting_confirmation", "declined"]);
 
 export function CleaningsList({
   rows,

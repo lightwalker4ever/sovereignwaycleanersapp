@@ -27,6 +27,10 @@ export interface QuoteState {
   postcode: string;
   coverage: { checked: boolean; covered: boolean; area: string | null } | null;
   location: { multiplier: number; label: string } | null;
+  /** The in-progress 'quoted'/'draft' row this session is saving to
+   *  (Phase B persist-at-quote-time) -- null until the customer leaves
+   *  the property/about-job step for the first time. */
+  draftId: string | null;
   service: QuoteServiceKey | null;
   tailoredService: TailoredServiceSlug | null;
   eot: EndOfTenancyInput;
@@ -54,6 +58,7 @@ export const DEFAULT_QUOTE_STATE: QuoteState = {
   postcode: "",
   coverage: null,
   location: null,
+  draftId: null,
   service: null,
   tailoredService: null,
   eot: { propertySize: "bed2", bathrooms: 1, addons: {} },

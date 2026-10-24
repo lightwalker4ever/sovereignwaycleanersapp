@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, X, Loader2 } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
 import { useQuoteState } from "@/lib/quote-state";
-import { uploadTailoredPhoto, deleteTailoredPhoto } from "@/actions/quote";
+import { uploadTailoredPhoto, deleteTailoredPhoto, saveTailoredQuoteDraft } from "@/actions/quote";
 import { compressImage } from "@/lib/image-compress";
 import { TAILORED_QUESTIONS } from "@/lib/quote-config";
 import { services } from "@/components/Services";
@@ -17,6 +17,7 @@ export default function QuoteAboutJobPage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploading, startUploading] = useTransition();
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [savingDraft, startSavingDraft] = useTransition();
 
   useEffect(() => {
     if (hydrated && !state.tailoredService) router.replace("/quote/service");
@@ -56,6 +57,28 @@ export default function QuoteAboutJobPage() {
   function handleRemovePhoto(storagePath: string) {
     update((prev) => ({ tailoredPhotos: prev.tailoredPhotos.filter((p) => p.storagePath !== storagePath) }));
     deleteTailoredPhoto(storagePath);
+  }
+
+  function handleContinue() {
+    // Phase B: same early-draft save as the instant path's property
+    // step -- awaited before navigating, since this page unmounts on
+    // router.push.
+    if (!state.tailoredService) {
+      router.push("/quote/details");
+      return;
+    }
+    startSavingDraft(async () => {
+      const result = await saveTailoredQuoteDraft({
+        draftId: state.draftId,
+        service: state.tailoredService!,
+        answers: state.tailoredAnswers,
+        postcode: state.postcode,
+        email: state.contact.email,
+      });
+      if (result.success) update({ draftId: result.draftId });
+      else console.error("Failed to save tailored quote draft", result.error);
+      router.push("/quote/details");
+    });
   }
 
   return (
@@ -162,9 +185,11 @@ export default function QuoteAboutJobPage() {
 
         <button
           type="button"
-          onClick={() => router.push("/quote/details")}
-          className="flex h-13.5 items-center justify-center rounded-xl bg-dash-brand-700 text-base font-extrabold text-white"
+          onClick={handleContinue}
+          disabled={savingDraft}
+          className="flex h-13.5 items-center justify-center gap-2 rounded-xl bg-dash-brand-700 text-base font-extrabold text-white disabled:opacity-50"
         >
+          {savingDraft && <Loader2 className="size-4 animate-spin" />}
           Continue to your details
         </button>
       </div>

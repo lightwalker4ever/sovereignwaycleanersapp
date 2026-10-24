@@ -31,6 +31,10 @@ export async function listClientJobCards(clientId: string, profileId: string): P
     .from("cleanings")
     .select("id, cleaner_id, supervisor_id, status, scheduled_at, ends_at, started_at, submitted_at, completed_at")
     .eq("client_id", clientId)
+    // A 'quoted' row is a saved-but-not-yet-submitted draft (Phase B of
+    // the persisted-quote work), not a job -- excluded until there's a
+    // real "your quotes" surface for it (a later phase).
+    .neq("status", "quoted")
     .order("scheduled_at", { ascending: false });
   if (error) throw new Error(error.message);
 

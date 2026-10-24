@@ -205,6 +205,195 @@ const instantContactSchema = z.object({
   phone: z.string().transform(normalizeUkPhone).pipe(requiredPhoneSchema),
 });
 
+function computeInstantBreakdown(
+  service: QuoteServiceKey,
+  selectedInputs: EndOfTenancyInput | DeepCleaningInput | OfficeCleaningInput,
+  rateCard: RateCard,
+  location: ResolvedLocation
+): QuoteBreakdown {
+  if (service === "end_of_tenancy") {
+    return calculateEndOfTenancy(selectedInputs as EndOfTenancyInput, rateCard, location.multiplier, location.label);
+  }
+  if (service === "deep_cleaning") {
+    return calculateDeepCleaning(selectedInputs as DeepCleaningInput, rateCard, location.multiplier, location.label);
+  }
+  return calculateOfficeCleaning(selectedInputs as OfficeCleaningInput, rateCard, location.multiplier, location.label);
+}
+
+export type SaveQuoteDraftResult =
+  | { success: true; draftId: string; totalIncVat: number }
+  | { success: false; error: string };
+
+/**
+ * Phase B of the persisted-quote work: called as soon as the customer
+ * finishes configuring an instant-price service and moves on to pick
+ * a date -- saves a 'quoted' cleanings row (email + postcode + the
+ * computed price, no date or full contact details yet) instead of
+ * waiting for final submission. Price is recomputed server-side, same
+ * trust model as submitInstantQuoteRequest below.
+ *
+ * Reuses the existing draft row for this browser session (draftId,
+ * kept in sessionStorage) rather than creating a new one every time
+ * the customer tweaks an option and moves on again. Falls back to
+ * creating a fresh draft if the given draftId can't be reused (not
+ * found, or already past the 'quoted' stage) -- never blocks the
+ * customer from continuing.
+ */
+export async function saveInstantQuoteDraft(input: {
+  draftId: string | null;
+  service: QuoteServiceKey;
+  selectedInputs: EndOfTenancyInput | DeepCleaningInput | OfficeCleaningInput;
+  postcode: string;
+  email: string;
+}): Promise<SaveQuoteDraftResult> {
+  const trimmedPostcode = input.postcode.trim();
+  if (!trimmedPostcode) return { success: false, error: "Postcode is required" };
+  const parsedEmail = emailSchema.safeParse(input.email.trim());
+  if (!parsedEmail.success) return { success: false, error: "A valid email is required" };
+
+  let rateCard: RateCard;
+  try {
+    rateCard = await getRateCard();
+  } catch (e) {
+    console.error("Failed to load rate card for quote draft", e);
+    return { success: false, error: "Unable to save your quote right now." };
+  }
+
+  const location = await resolveLocationMultiplier(trimmedPostcode);
+  const breakdown = computeInstantBreakdown(input.service, input.selectedInputs, rateCard, location);
+
+  const admin = createAdminClient();
+
+  if (input.draftId) {
+    const { data: existing } = await admin
+      .from("cleanings")
+      .select("id, client_id")
+      .eq("id", input.draftId)
+      .eq("status", "quoted")
+      .maybeSingle();
+    if (existing) {
+      await admin.from("clients").update({ email: parsedEmail.data }).eq("id", existing.client_id);
+      const { error: updateError } = await admin
+        .from("cleanings")
+        .update({
+          service: input.service,
+          postcode: trimmedPostcode,
+          property_answers: input.selectedInputs as unknown as Json,
+          price_breakdown: breakdown as unknown as Json,
+        })
+        .eq("id", input.draftId);
+      if (!updateError) {
+        return { success: true, draftId: input.draftId, totalIncVat: breakdown.totalIncVat };
+      }
+      console.error("Failed to update quote draft, creating a fresh one instead", updateError);
+    }
+  }
+
+  const { data: client, error: clientError } = await admin
+    .from("clients")
+    .insert({ email: parsedEmail.data })
+    .select("id")
+    .single();
+  if (clientError || !client) {
+    console.error("Failed to create client for quote draft", clientError);
+    return { success: false, error: "Unable to save your quote right now." };
+  }
+
+  const { data: cleaning, error: cleaningError } = await admin
+    .from("cleanings")
+    .insert({
+      client_id: client.id,
+      status: "quoted",
+      service: input.service,
+      postcode: trimmedPostcode,
+      property_answers: input.selectedInputs as unknown as Json,
+      price_breakdown: breakdown as unknown as Json,
+      source: "website_quote",
+    })
+    .select("id")
+    .single();
+  if (cleaningError || !cleaning) {
+    console.error("Failed to create quote draft", cleaningError);
+    return { success: false, error: "Unable to save your quote right now." };
+  }
+
+  return { success: true, draftId: cleaning.id, totalIncVat: breakdown.totalIncVat };
+}
+
+/**
+ * Tailored-service equivalent of saveInstantQuoteDraft -- saved as
+ * soon as the customer finishes the "About the job" step, well before
+ * step 4 collects contact details. No price yet (tailored services
+ * are priced manually by staff), so this is just answers + postcode +
+ * email on a 'draft' quote_requests row.
+ */
+export async function saveTailoredQuoteDraft(input: {
+  draftId: string | null;
+  service: TailoredServiceSlug;
+  answers: Record<string, string>;
+  postcode: string;
+  email: string;
+}): Promise<SaveQuoteDraftResult> {
+  const trimmedPostcode = input.postcode.trim();
+  if (!trimmedPostcode) return { success: false, error: "Postcode is required" };
+  const parsedEmail = emailSchema.safeParse(input.email.trim());
+  if (!parsedEmail.success) return { success: false, error: "A valid email is required" };
+
+  const admin = createAdminClient();
+
+  if (input.draftId) {
+    const { data: existing } = await admin
+      .from("quote_requests")
+      .select("id, client_id")
+      .eq("id", input.draftId)
+      .eq("status", "draft")
+      .maybeSingle();
+    if (existing) {
+      await admin.from("clients").update({ email: parsedEmail.data }).eq("id", existing.client_id);
+      const { error: updateError } = await admin
+        .from("quote_requests")
+        .update({
+          service: input.service,
+          postcode: trimmedPostcode,
+          answers: input.answers as unknown as Json,
+        })
+        .eq("id", input.draftId);
+      if (!updateError) {
+        return { success: true, draftId: input.draftId, totalIncVat: 0 };
+      }
+      console.error("Failed to update tailored quote draft, creating a fresh one instead", updateError);
+    }
+  }
+
+  const { data: client, error: clientError } = await admin
+    .from("clients")
+    .insert({ email: parsedEmail.data })
+    .select("id")
+    .single();
+  if (clientError || !client) {
+    console.error("Failed to create client for tailored quote draft", clientError);
+    return { success: false, error: "Unable to save your quote right now." };
+  }
+
+  const { data: quoteRequest, error: requestError } = await admin
+    .from("quote_requests")
+    .insert({
+      client_id: client.id,
+      status: "draft",
+      service: input.service,
+      postcode: trimmedPostcode,
+      answers: input.answers as unknown as Json,
+    })
+    .select("id")
+    .single();
+  if (requestError || !quoteRequest) {
+    console.error("Failed to create tailored quote draft", requestError);
+    return { success: false, error: "Unable to save your quote right now." };
+  }
+
+  return { success: true, draftId: quoteRequest.id, totalIncVat: 0 };
+}
+
 export type SubmitInstantQuoteResult =
   | {
       success: true;
@@ -226,6 +415,7 @@ export type SubmitInstantQuoteResult =
  * never recalculated again after this point.
  */
 export async function submitInstantQuoteRequest(input: {
+  draftId: string | null;
   service: QuoteServiceKey;
   selectedInputs: EndOfTenancyInput | DeepCleaningInput | OfficeCleaningInput;
   postcode: string;
@@ -271,75 +461,109 @@ export async function submitInstantQuoteRequest(input: {
   }
 
   const location = await resolveLocationMultiplier(trimmedPostcode);
-
-  let breakdown: QuoteBreakdown;
-  if (input.service === "end_of_tenancy") {
-    breakdown = calculateEndOfTenancy(
-      input.selectedInputs as EndOfTenancyInput,
-      rateCard,
-      location.multiplier,
-      location.label
-    );
-  } else if (input.service === "deep_cleaning") {
-    breakdown = calculateDeepCleaning(
-      input.selectedInputs as DeepCleaningInput,
-      rateCard,
-      location.multiplier,
-      location.label
-    );
-  } else {
-    breakdown = calculateOfficeCleaning(
-      input.selectedInputs as OfficeCleaningInput,
-      rateCard,
-      location.multiplier,
-      location.label
-    );
-  }
+  const breakdown = computeInstantBreakdown(input.service, input.selectedInputs, rateCard, location);
 
   const admin = createAdminClient();
 
   const fullAddress = [input.addressLine.trim(), trimmedPostcode].filter(Boolean).join(", ");
-  const { data: client, error: clientError } = await admin
-    .from("clients")
-    .insert({
-      full_name: parsedContact.data.name,
-      email: parsedContact.data.email,
-      phone: parsedContact.data.phone,
-      address: fullAddress || null,
-    })
-    .select("id")
-    .single();
-  if (clientError || !client) {
-    console.error("Failed to create client for instant quote request", clientError);
-    return { success: false, error: "Unable to process your request right now. Please try again." };
-  }
-
   const startTime = input.requestedWindow ? WINDOW_START_TIME[input.requestedWindow] : "09:00";
   const scheduledAt = new Date(`${input.requestedDate}T${startTime}:00`);
 
-  const { data: cleaning, error: cleaningError } = await admin
-    .from("cleanings")
-    .insert({
-      client_id: client.id,
-      status: "awaiting_confirmation",
-      scheduled_at: scheduledAt.toISOString(),
-      requested_date: input.requestedDate,
-      requested_window: input.requestedWindow,
-      is_flexible: input.isFlexible,
-      access_method: input.accessMethod,
-      access_notes: input.accessNotes.trim() || null,
-      marketing_consent: input.marketingConsent,
-      source: "website_quote",
-      service: input.service,
-      property_answers: input.selectedInputs as unknown as Json,
-      price_breakdown: breakdown as unknown as Json,
-      notes: `Booked via the website quote journey (${input.service}).`,
-    })
-    .select("id, reference, created_at")
-    .single();
-  if (cleaningError || !cleaning) {
-    console.error("Failed to create cleaning for instant quote request", cleaningError);
-    return { success: false, error: "Unable to process your request right now. Please try again." };
+  // If this session already has a 'quoted' draft (saveInstantQuoteDraft,
+  // called when leaving the property step), finish that same row --
+  // filling in the client's name/phone/address and moving the status
+  // on -- instead of creating a second client/cleaning pair. Falls
+  // back to a fresh insert if the draft can't be found/reused, same
+  // fail-soft shape as everywhere else in this flow.
+  let cleaning: { id: string; reference: string } | null = null;
+  if (input.draftId) {
+    const { data: existing } = await admin
+      .from("cleanings")
+      .select("id, client_id")
+      .eq("id", input.draftId)
+      .eq("status", "quoted")
+      .maybeSingle();
+    if (existing) {
+      const { error: clientUpdateError } = await admin
+        .from("clients")
+        .update({
+          full_name: parsedContact.data.name,
+          email: parsedContact.data.email,
+          phone: parsedContact.data.phone,
+          address: fullAddress || null,
+        })
+        .eq("id", existing.client_id);
+      if (!clientUpdateError) {
+        const { data: updated, error: cleaningUpdateError } = await admin
+          .from("cleanings")
+          .update({
+            status: "awaiting_confirmation",
+            scheduled_at: scheduledAt.toISOString(),
+            requested_date: input.requestedDate,
+            requested_window: input.requestedWindow,
+            is_flexible: input.isFlexible,
+            access_method: input.accessMethod,
+            access_notes: input.accessNotes.trim() || null,
+            marketing_consent: input.marketingConsent,
+            service: input.service,
+            postcode: trimmedPostcode,
+            property_answers: input.selectedInputs as unknown as Json,
+            price_breakdown: breakdown as unknown as Json,
+            notes: `Booked via the website quote journey (${input.service}).`,
+          })
+          .eq("id", input.draftId)
+          .select("id, reference")
+          .single();
+        if (!cleaningUpdateError && updated) cleaning = updated;
+        else console.error("Failed to finalize quote draft, creating a fresh cleaning instead", cleaningUpdateError);
+      } else {
+        console.error("Failed to update draft's client, creating a fresh cleaning instead", clientUpdateError);
+      }
+    }
+  }
+
+  if (!cleaning) {
+    const { data: client, error: clientError } = await admin
+      .from("clients")
+      .insert({
+        full_name: parsedContact.data.name,
+        email: parsedContact.data.email,
+        phone: parsedContact.data.phone,
+        address: fullAddress || null,
+      })
+      .select("id")
+      .single();
+    if (clientError || !client) {
+      console.error("Failed to create client for instant quote request", clientError);
+      return { success: false, error: "Unable to process your request right now. Please try again." };
+    }
+
+    const { data: inserted, error: cleaningError } = await admin
+      .from("cleanings")
+      .insert({
+        client_id: client.id,
+        status: "awaiting_confirmation",
+        scheduled_at: scheduledAt.toISOString(),
+        requested_date: input.requestedDate,
+        requested_window: input.requestedWindow,
+        is_flexible: input.isFlexible,
+        access_method: input.accessMethod,
+        access_notes: input.accessNotes.trim() || null,
+        marketing_consent: input.marketingConsent,
+        source: "website_quote",
+        service: input.service,
+        postcode: trimmedPostcode,
+        property_answers: input.selectedInputs as unknown as Json,
+        price_breakdown: breakdown as unknown as Json,
+        notes: `Booked via the website quote journey (${input.service}).`,
+      })
+      .select("id, reference")
+      .single();
+    if (cleaningError || !inserted) {
+      console.error("Failed to create cleaning for instant quote request", cleaningError);
+      return { success: false, error: "Unable to process your request right now. Please try again." };
+    }
+    cleaning = inserted;
   }
 
   const reference = cleaning.reference;
@@ -457,6 +681,7 @@ export type SubmitTailoredQuoteResult =
  * build step) is what eventually prices it.
  */
 export async function submitTailoredQuoteRequest(input: {
+  draftId: string | null;
   service: TailoredServiceSlug;
   answers: Record<string, string>;
   notes: string;
@@ -486,38 +711,86 @@ export async function submitTailoredQuoteRequest(input: {
   if (!trimmedPostcode) return { success: false, error: "Postcode is required" };
 
   const admin = createAdminClient();
-
   const fullAddress = [input.addressLine.trim(), trimmedPostcode].filter(Boolean).join(", ");
-  const { data: client, error: clientError } = await admin
-    .from("clients")
-    .insert({
-      full_name: parsedContact.data.name,
-      email: parsedContact.data.email,
-      phone: parsedContact.data.phone,
-      address: fullAddress || null,
-    })
-    .select("id")
-    .single();
-  if (clientError || !client) {
-    console.error("Failed to create client for tailored quote request", clientError);
-    return { success: false, error: "Unable to process your request right now. Please try again." };
+
+  // Same draft-reuse shape as submitInstantQuoteRequest: finish the
+  // 'draft' row saveTailoredQuoteDraft created when the customer left
+  // the "About the job" step, instead of creating a second client +
+  // quote_requests pair. Falls back to a fresh insert if it can't be
+  // reused.
+  let quoteRequest: { id: string; reference: string } | null = null;
+  if (input.draftId) {
+    const { data: existing } = await admin
+      .from("quote_requests")
+      .select("id, client_id")
+      .eq("id", input.draftId)
+      .eq("status", "draft")
+      .maybeSingle();
+    if (existing) {
+      const { error: clientUpdateError } = await admin
+        .from("clients")
+        .update({
+          full_name: parsedContact.data.name,
+          email: parsedContact.data.email,
+          phone: parsedContact.data.phone,
+          address: fullAddress || null,
+        })
+        .eq("id", existing.client_id);
+      if (!clientUpdateError) {
+        const { data: updated, error: requestUpdateError } = await admin
+          .from("quote_requests")
+          .update({
+            status: "awaiting_quote",
+            service: input.service,
+            postcode: trimmedPostcode,
+            answers: input.answers as unknown as Json,
+            notes: input.notes.trim() || null,
+            marketing_consent: input.marketingConsent,
+          })
+          .eq("id", input.draftId)
+          .select("id, reference")
+          .single();
+        if (!requestUpdateError && updated) quoteRequest = updated;
+        else console.error("Failed to finalize tailored draft, creating a fresh request instead", requestUpdateError);
+      } else {
+        console.error("Failed to update draft's client, creating a fresh request instead", clientUpdateError);
+      }
+    }
   }
 
-  const { data: quoteRequest, error: requestError } = await admin
-    .from("quote_requests")
-    .insert({
-      service: input.service,
-      client_id: client.id,
-      postcode: trimmedPostcode,
-      answers: input.answers as unknown as Json,
-      notes: input.notes.trim() || null,
-      marketing_consent: input.marketingConsent,
-    })
-    .select("id, reference")
-    .single();
-  if (requestError || !quoteRequest) {
-    console.error("Failed to create tailored quote request", requestError);
-    return { success: false, error: "Unable to process your request right now. Please try again." };
+  if (!quoteRequest) {
+    const { data: client, error: clientError } = await admin
+      .from("clients")
+      .insert({
+        full_name: parsedContact.data.name,
+        email: parsedContact.data.email,
+        phone: parsedContact.data.phone,
+        address: fullAddress || null,
+      })
+      .select("id")
+      .single();
+    if (clientError || !client) {
+      console.error("Failed to create client for tailored quote request", clientError);
+      return { success: false, error: "Unable to process your request right now. Please try again." };
+    }
+
+    const { data: inserted, error: requestError } = await admin
+      .from("quote_requests")
+      .insert({
+        service: input.service,
+        client_id: client.id,
+        postcode: trimmedPostcode,
+        answers: input.answers as unknown as Json,
+        notes: input.notes.trim() || null,
+        marketing_consent: input.marketingConsent,
+      })
+      .select("id, reference")
+      .single();
+    if (requestError || !inserted) {
+      console.error("Failed to create tailored quote request", requestError);
+      return { success: false, error: "Unable to process your request right now. Please try again." };
+    }
+    quoteRequest = inserted;
   }
 
   if (input.photoStoragePaths.length > 0) {
