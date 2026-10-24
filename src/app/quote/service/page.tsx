@@ -2,13 +2,14 @@
 
 import { Suspense, useEffect, useMemo, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { Check, Loader2 } from "lucide-react";
+import { Check, Loader2, AlertCircle } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
+import { MobileActionBar } from "@/components/quote-flow/MobileActionBar";
 import { useQuoteState } from "@/lib/quote-state";
 import { services } from "@/components/Services";
 import type { TailoredServiceSlug } from "@/lib/quote-config";
 import type { QuoteServiceKey } from "@/lib/quote-calculations";
-import { getQuoteRateCard, checkPostcodeCoverage, submitCoverageWaitlist } from "@/actions/quote";
+import { getQuoteRateCard, checkPostcodeCoverage } from "@/actions/quote";
 import { fromPriceFor } from "@/lib/quote-from-price";
 import { emailSchema, schemaFieldError } from "@/lib/validation";
 import type { RateCard } from "@/lib/rate-card";
@@ -58,6 +59,7 @@ function QuoteServicePageInner() {
     if (!hydrated || !seededFromQuery) return;
     const qService = searchParams.get("service");
     const qPostcode = searchParams.get("postcode");
+    const qPostcodeUpper = qPostcode ? qPostcode.toUpperCase() : null;
     if (qPostcode) setPostcodeInput(qPostcode);
     if (qService) {
       // A deep-linked service fully determines the selection -- clear
@@ -67,12 +69,12 @@ function QuoteServicePageInner() {
       const instant = instantServices.find((s) => s.slug === qService || s.quoteService === qService);
       const tailored = tailoredServices.find((s) => s.slug === qService);
       update((prev) => ({
-        postcode: qPostcode || prev.postcode,
+        postcode: qPostcodeUpper || prev.postcode,
         service: instant?.quoteService ?? null,
         tailoredService: (tailored?.slug as TailoredServiceSlug | undefined) ?? null,
       }));
-    } else if (qPostcode) {
-      update((prev) => ({ ...prev, postcode: qPostcode }));
+    } else if (qPostcodeUpper) {
+      update((prev) => ({ ...prev, postcode: qPostcodeUpper }));
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, seededFromQuery]);
@@ -84,21 +86,19 @@ function QuoteServicePageInner() {
   }, [hydrated]);
 
   function handleCheck() {
-    const trimmed = postcodeInput.trim();
+    const trimmed = postcodeInput.trim().toUpperCase();
     if (!trimmed) return;
     startChecking(async () => {
       const result = await checkPostcodeCoverage(trimmed);
       update({
         postcode: trimmed,
-        coverage: { checked: true, covered: result.covered, area: result.area },
+        // A postcode that fails validation is deliberately not written
+        // into state.postcode as "confirmed" -- canContinue below stays
+        // false until it's fixed, so the customer can never quote at
+        // the standard rate on a typo and then get surprised by a
+        // location adjustment once they correct it.
+        coverage: { checked: true, valid: result.valid, area: result.area },
       });
-      // Email is already mandatory on this page now, so an uncovered
-      // postcode no longer needs its own separate "notify me" capture --
-      // if we already have a valid email, just log the interest silently.
-      const trimmedEmail = emailInput.trim();
-      if (!result.covered && trimmedEmail && !schemaFieldError(emailSchema, trimmedEmail)) {
-        submitCoverageWaitlist(trimmed, trimmedEmail);
-      }
     });
   }
 
@@ -107,9 +107,6 @@ function QuoteServicePageInner() {
     const trimmed = emailInput.trim();
     if (trimmed && !schemaFieldError(emailSchema, trimmed)) {
       update((prev) => ({ contact: { ...prev.contact, email: trimmed } }));
-      if (state.coverage?.checked && !state.coverage.covered) {
-        submitCoverageWaitlist(state.postcode, trimmed);
-      }
     }
   }
 
@@ -124,7 +121,7 @@ function QuoteServicePageInner() {
   const selectedTailored = tailoredServices.find((s) => s.slug === state.tailoredService);
   const hasSelection = Boolean(selectedInstant || selectedTailored);
   const hasValidEmail = Boolean(emailInput.trim()) && !schemaFieldError(emailSchema, emailInput.trim());
-  const canContinue = hasSelection && Boolean(state.coverage?.checked) && hasValidEmail;
+  const canContinue = hasSelection && Boolean(state.coverage?.valid) && hasValidEmail;
 
   function handleContinue() {
     if (!canContinue) return;
@@ -137,7 +134,7 @@ function QuoteServicePageInner() {
     <>
       <QuoteStepper tailored={Boolean(selectedTailored)} mobileLeading={{ icon: "close", onClick: () => router.push("/") }} />
 
-      <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 sm:p-8">
+      <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-28 sm:p-8 sm:pb-8">
         <main className="flex min-w-0 flex-[999_1_560px] flex-col gap-7">
           <div>
             <h1 className="m-0 text-[26px] font-extrabold tracking-tight sm:text-[32px]">Get a price for your clean</h1>
@@ -158,7 +155,13 @@ function QuoteServicePageInner() {
                   onChange={(e) => setPostcodeInput(e.target.value)}
                   onKeyDown={(e) => e.key === "Enter" && handleCheck()}
                   placeholder="e.g. TN9 1AB"
-                  className="h-12 min-w-[180px] flex-[1_1_220px] rounded-[10px] border border-dash-input-border px-3.5 text-base font-semibold uppercase outline-none focus:border-dash-brand-700"
+                  aria-invalid={state.coverage?.checked === true && !state.coverage.valid}
+                  className={cn(
+                    "h-12 min-w-[180px] flex-[1_1_220px] rounded-[10px] border px-3.5 text-base font-semibold uppercase outline-none",
+                    state.coverage?.checked && !state.coverage.valid
+                      ? "border-2 border-dash-danger"
+                      : "border-dash-input-border focus:border-dash-brand-700"
+                  )}
                 />
                 <button
                   type="button"
@@ -172,18 +175,18 @@ function QuoteServicePageInner() {
               </div>
               {state.coverage?.checked && (
                 <>
-                  {state.coverage.covered ? (
-                    <div className="flex items-center gap-2 text-sm font-semibold text-[#155B33]">
-                      <Check size={18} aria-hidden="true" />
-                      Good news, we clean in {state.coverage.area}.
-                    </div>
+                  {state.coverage.valid ? (
+                    state.coverage.area && (
+                      <div className="flex items-center gap-2 text-sm font-semibold text-[#155B33]">
+                        <Check size={18} aria-hidden="true" />
+                        Good news, we clean in {state.coverage.area}.
+                      </div>
+                    )
                   ) : (
-                    <div className="flex flex-col gap-2.5 rounded-xl bg-dash-bg p-3.5">
-                      <p className="text-sm text-dash-ink-2">
-                        We couldn&apos;t confirm that postcode right now, but we don&apos;t want to turn you away --
-                        you can still carry on below.
-                      </p>
-                    </div>
+                    <p className="flex items-center gap-1.5 text-sm font-semibold text-dash-danger">
+                      <AlertCircle size={15} className="shrink-0" aria-hidden="true" />
+                      Enter a valid UK postcode to continue.
+                    </p>
                   )}
                 </>
               )}
@@ -293,7 +296,7 @@ function QuoteServicePageInner() {
           </section>
         </main>
 
-        <aside aria-label="Your quote" className="flex flex-[1_1_320px] flex-col gap-3.5 md:sticky md:top-6">
+        <aside aria-label="Your quote" className="hidden flex-[1_1_320px] flex-col gap-3.5 md:sticky md:top-6 md:flex">
           <div className="flex flex-col gap-3.5 rounded-2xl border border-dash-border bg-dash-surface p-5">
             <h2 className="m-0 text-[17px] font-extrabold">Your quote</h2>
             <div className="flex flex-col gap-1.5 text-sm">
@@ -309,13 +312,15 @@ function QuoteServicePageInner() {
             <div className="rounded-xl bg-dash-bg p-3.5 text-sm leading-relaxed text-dash-ink-2">
               {!state.coverage?.checked
                 ? "Check your postcode to continue."
-                : !hasValidEmail
-                  ? "Add your email to continue."
-                  : selectedInstant
-                    ? "Next, tell us about the property. Your price updates as you go, and we won't ask for contact details until the end."
-                    : selectedTailored
-                      ? "Next, a few quick questions about the job. We'll email your tailored price within 24 hours."
-                      : "Pick a service to continue."}
+                : !state.coverage.valid
+                  ? "Enter a valid postcode to continue."
+                  : !hasValidEmail
+                    ? "Add your email to continue."
+                    : selectedInstant
+                      ? "Next, tell us about the property. Your price updates as you go, and we won't ask for contact details until the end."
+                      : selectedTailored
+                        ? "Next, a few quick questions about the job. We'll email your tailored price within 24 hours."
+                        : "Pick a service to continue."}
             </div>
             <button
               type="button"
@@ -333,6 +338,8 @@ function QuoteServicePageInner() {
           </ul>
         </aside>
       </div>
+
+      <MobileActionBar label="Continue" onClick={handleContinue} disabled={!canContinue} />
     </>
   );
 }

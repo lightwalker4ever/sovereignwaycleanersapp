@@ -2,10 +2,12 @@ import Link from "next/link";
 
 /**
  * The /quote journey's own minimal header -- logo, Services, Gallery,
- * Sign in, no app sidebar, no mobile hamburger -- per
- * quote-handoff/QUOTE_HANDOFF.md's "Layout shell (desktop)". Deliberately
- * not the full marketing Header (which carries extra nav + the Get a
- * Quote CTA that would be redundant on the quote page itself).
+ * no app sidebar, no mobile hamburger -- per quote-handoff/
+ * QUOTE_HANDOFF.md's "Layout shell (desktop)". Deliberately not the
+ * full marketing Header (which carries extra nav + the Get a Quote CTA
+ * that would be redundant on the quote page itself). No "Sign in"
+ * link, per the user's feedback -- this is a self-serve quote flow,
+ * not a place to prompt an existing customer to log in.
  */
 export function QuoteHeader() {
   return (
@@ -22,9 +24,6 @@ export function QuoteHeader() {
       </Link>
       <Link href="/gallery" className="hidden text-sm font-semibold text-dash-ink-2 sm:block">
         Gallery
-      </Link>
-      <Link href="/login" className="text-sm font-semibold text-dash-ink-2">
-        Sign in
       </Link>
     </header>
   );

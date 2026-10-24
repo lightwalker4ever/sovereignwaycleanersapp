@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Loader2, AlertCircle } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
 import { DesktopPriceSidebar } from "@/components/quote-flow/PriceSummary";
+import { MobileActionBar } from "@/components/quote-flow/MobileActionBar";
 import { useQuoteState, type AccessMethod } from "@/lib/quote-state";
 import { getQuoteRateCard, submitInstantQuoteRequest, submitTailoredQuoteRequest } from "@/actions/quote";
 import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
@@ -28,7 +29,7 @@ const ACCESS_OPTIONS: { value: AccessMethod; label: string }[] = [
   { value: "agent_keys", label: "Collect keys from agent" },
 ];
 
-type Touched = { name: boolean; email: boolean; phone: boolean };
+type Touched = { name: boolean; email: boolean; phone: boolean; address: boolean };
 
 export default function QuoteDetailsPage() {
   const router = useRouter();
@@ -68,13 +69,14 @@ export default function QuoteDetailsPage() {
     return calculateOfficeCleaning(state.office, rateCard, location.multiplier, location.label);
   }, [isTailored, rateCard, state.service, state.eot, state.deep, state.office, state.location]);
 
-  const [touched, setTouched] = useState<Touched>({ name: false, email: false, phone: false });
+  const [touched, setTouched] = useState<Touched>({ name: false, email: false, phone: false, address: false });
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, startSubmitting] = useTransition();
 
   const nameError = schemaFieldError(nameSchema, state.contact.name);
   const emailError = schemaFieldError(emailSchema, state.contact.email);
   const phoneError = schemaFieldError(requiredPhoneSchema, normalizeUkPhone(state.contact.phone));
+  const addressError = state.addressLine.trim() ? null : "Enter the property address";
 
   const dayLabel = state.date
     ? new Date(`${state.date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })
@@ -178,9 +180,9 @@ export default function QuoteDetailsPage() {
   }
 
   function handleSubmit() {
-    setTouched({ name: true, email: true, phone: true });
+    setTouched({ name: true, email: true, phone: true, address: true });
     setSubmitError(null);
-    if (nameError || emailError || phoneError) return;
+    if (nameError || emailError || phoneError || addressError) return;
     if (isTailored) handleSubmitTailored();
     else if (state.service) handleSubmitInstant();
   }
@@ -200,7 +202,7 @@ export default function QuoteDetailsPage() {
     <>
       <QuoteStepper tailored={isTailored} mobileLeading={{ icon: "back", onClick: () => router.push(isTailored ? "/quote/about-job" : "/quote/when") }} />
 
-      <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-8 sm:p-8">
+      <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-28 sm:p-8 sm:pb-8">
         <main className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
           <div>
             <button
@@ -279,8 +281,13 @@ export default function QuoteDetailsPage() {
                 placeholder="Start typing your address"
                 value={state.addressLine}
                 onChange={(e) => update({ addressLine: e.target.value })}
-                className="h-12 rounded-[10px] border border-dash-input-border px-3.5 text-[15px] font-normal outline-none focus:border-dash-brand-700"
+                onBlur={() => setTouched((t) => ({ ...t, address: true }))}
+                className={cn(
+                  "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
+                  touched.address && addressError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
+                )}
               />
+              {touched.address && addressError && <FieldError message={addressError} />}
             </label>
             <div className="flex items-center gap-2.5 text-sm">
               <span className="font-semibold text-dash-muted">Postcode</span>
@@ -413,6 +420,12 @@ export default function QuoteDetailsPage() {
           </p>
         </aside>
       </div>
+
+      <MobileActionBar
+        label={isTailored ? "Get my tailored quote" : "Request this booking"}
+        onClick={handleSubmit}
+        pending={submitting}
+      />
     </>
   );
 }

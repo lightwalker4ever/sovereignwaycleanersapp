@@ -25,7 +25,10 @@ export interface QuoteContact {
  */
 export interface QuoteState {
   postcode: string;
-  coverage: { checked: boolean; covered: boolean; area: string | null } | null;
+  /** Set once the postcode is checked. valid=false means the postcode
+   *  genuinely doesn't exist (blocks continuing) -- see
+   *  checkPostcodeCoverage(). */
+  coverage: { checked: boolean; valid: boolean; area: string | null } | null;
   location: { multiplier: number; label: string } | null;
   /** The in-progress 'quoted'/'draft' row this session is saving to
    *  (Phase B persist-at-quote-time) -- null until the customer leaves

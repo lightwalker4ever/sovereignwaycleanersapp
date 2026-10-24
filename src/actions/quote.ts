@@ -40,34 +40,35 @@ export async function getQuoteRateCard(): Promise<GetQuoteRateCardResult> {
 }
 
 export interface PostcodeCoverageResult {
-  covered: boolean;
-  /** The recognized outward code (e.g. "N12"), shown in the "we clean in ..." message. */
+  /** False only when the postcode genuinely doesn't exist -- blocks
+   *  continuing. There's no real "do we serve this area" business rule
+   *  anywhere in the app (every postcode resolves to a price via
+   *  resolveLocationMultiplier()'s default-rate fallback), so this is
+   *  purely "is this a real UK postcode", checked up front so a
+   *  mistyped postcode can't quote someone the standard rate and then
+   *  surprise them with a location adjustment once they fix the typo. */
+  valid: boolean;
+  /** The recognized outward code (e.g. "N12"), shown in the "we clean in ..." message.
+   *  Null when the lookup service itself failed (fails soft -- valid stays
+   *  true so a postcodes.io outage never blocks the quote, it just skips
+   *  the confirmation message). */
   area: string | null;
 }
 
-/**
- * Step 1's coverage check. There's no real "do we serve this area"
- * business rule anywhere in the app today -- every postcode already
- * resolves to a price via resolveLocationMultiplier()'s default-rate
- * fallback. So "covered" here just means "this is a valid, recognized
- * UK postcode" (via the same postcodes.io lookup already used for
- * pricing) -- it's purely an informational, non-blocking message, not
- * a gate. Swap this for a real allow/deny table if the business ever
- * wants one.
- */
 export async function checkPostcodeCoverage(postcode: string): Promise<PostcodeCoverageResult> {
   const trimmed = postcode.trim();
-  if (!trimmed) return { covered: false, area: null };
+  if (!trimmed) return { valid: false, area: null };
 
-  const geo = await lookupPostcode(trimmed);
-  if (!geo) return { covered: false, area: null };
+  const result = await lookupPostcode(trimmed);
+  if (result.status === "not_found") return { valid: false, area: null };
+  if (result.status === "error") return { valid: true, area: null };
 
   // A UK postcode's inward code (the part after the space) is always
   // exactly 3 characters -- everything before that is the outward code
   // (e.g. "N12", "SE1", "SW1A") shown in the "we clean in ..." message.
   const compact = trimmed.toUpperCase().replace(/\s+/g, "");
-  const outwardCode = compact.length > 3 ? compact.slice(0, -3) : geo.postcodeArea;
-  return { covered: true, area: outwardCode };
+  const outwardCode = compact.length > 3 ? compact.slice(0, -3) : result.geo.postcodeArea;
+  return { valid: true, area: outwardCode };
 }
 
 /**
@@ -171,8 +172,9 @@ export async function resolveLocationMultiplier(postcode: string): Promise<Resol
     ? { multiplier: Number(defaultRow.multiplier), label: defaultRow.label }
     : fallback;
 
-  const geo = await lookupPostcode(postcode);
-  if (!geo) return resolvedDefault;
+  const lookup = await lookupPostcode(postcode);
+  if (lookup.status !== "found") return resolvedDefault;
+  const geo = lookup.geo;
 
   for (const row of rows) {
     if (row.match_type === "admin_district" && row.match_value === geo.adminDistrict) {

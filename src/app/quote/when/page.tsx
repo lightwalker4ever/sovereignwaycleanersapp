@@ -6,6 +6,7 @@ import { Loader2 } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
 import { QuoteCalendar } from "@/components/quote-flow/QuoteCalendar";
 import { DesktopPriceSidebar } from "@/components/quote-flow/PriceSummary";
+import { MobileActionBar } from "@/components/quote-flow/MobileActionBar";
 import { useQuoteState } from "@/lib/quote-state";
 import { getQuoteRateCard } from "@/actions/quote";
 import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
@@ -67,7 +68,7 @@ export default function QuoteWhenPage() {
     <>
       <QuoteStepper tailored={false} mobileLeading={{ icon: "back", onClick: () => router.push("/quote/property") }} />
 
-      <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-8 sm:p-8">
+      <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-28 sm:p-8 sm:pb-8">
         <main className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
           <div>
             <button type="button" onClick={() => router.push("/quote/property")} className="text-sm font-semibold">
@@ -158,6 +159,8 @@ export default function QuoteWhenPage() {
           />
         </aside>
       </div>
+
+      <MobileActionBar label="Add your details" onClick={() => router.push("/quote/details")} disabled={!canContinue} />
     </>
   );
 }
