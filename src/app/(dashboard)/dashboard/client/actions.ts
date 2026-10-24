@@ -5,6 +5,7 @@ import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
 import { listClientJobCards, type ClientJobCard } from "@/lib/client-jobs";
+import { listClientPendingQuotes, resolveOwnQuoteDraft, type ClientQuoteCard, type ResumeOwnDraftResult } from "@/lib/client-quotes";
 
 async function resolveMyClientId(
   admin: ReturnType<typeof createAdminClient>,
@@ -27,6 +28,28 @@ export async function listMyCleaningJobCards(): Promise<ClientJobCard[]> {
   if (!myClientId) return [];
 
   return listClientJobCards(myClientId, user.id);
+}
+
+export async function listMyPendingQuotes(): Promise<ClientQuoteCard[]> {
+  const { user } = await assertIsRole(["client"]);
+
+  const admin = createAdminClient();
+  const myClientId = await resolveMyClientId(admin, user.id);
+  if (!myClientId) return [];
+
+  return listClientPendingQuotes(myClientId);
+}
+
+/** Backing action for the "Continue my quote" button on the dashboard's
+ *  Your quotes section -- see src/components/client/ResumeQuoteButton.tsx. */
+export async function resumeMyQuoteDraft(draftId: string): Promise<ResumeOwnDraftResult | null> {
+  const { user } = await assertIsRole(["client"]);
+
+  const admin = createAdminClient();
+  const myClientId = await resolveMyClientId(admin, user.id);
+  if (!myClientId) return null;
+
+  return resolveOwnQuoteDraft(myClientId, draftId);
 }
 
 export async function getMyCleaningDetailAsClient(

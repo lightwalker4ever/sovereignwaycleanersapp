@@ -1,11 +1,13 @@
 import Link from "next/link";
-import { Home, Calendar, User, Plus, Bell } from "lucide-react";
+import { Home, Calendar, User, Plus, Bell, Phone, MessageCircle } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/current-user";
-import { listMyCleaningJobCards } from "./actions";
+import { listMyCleaningJobCards, listMyPendingQuotes } from "./actions";
 import { isSameDay } from "@/lib/client-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
 import { ClientJobHero } from "@/components/client/ClientJobHero";
+import { ResumeQuoteButton } from "@/components/client/ResumeQuoteButton";
 import type { ShellNavItem } from "@/components/shell/types";
+import type { ClientQuoteCard } from "@/lib/client-quotes";
 
 export const CLIENT_TABS: ShellNavItem[] = [
   { href: "/dashboard/client", label: "Home", icon: <Home size={22} strokeWidth={1.9} aria-hidden="true" /> },
@@ -17,7 +19,7 @@ export default async function ClientHomePage() {
   const user = await getCurrentUser();
   const firstName = (user?.fullName ?? user?.email ?? "").split(" ")[0] || "there";
 
-  const cards = await listMyCleaningJobCards();
+  const [cards, pendingQuotes] = await Promise.all([listMyCleaningJobCards(), listMyPendingQuotes()]);
   const now = new Date();
 
   // A request still awaiting confirmation has no real date yet (its
@@ -82,6 +84,15 @@ export default async function ClientHomePage() {
           </div>
         )}
 
+        {pendingQuotes.length > 0 && (
+          <div className="flex flex-col gap-2.5">
+            <h2 className="px-1 text-xs font-bold tracking-wide text-dash-muted uppercase">Your quotes</h2>
+            {pendingQuotes.map((q) => (
+              <PendingQuoteCard key={q.id} quote={q} />
+            ))}
+          </div>
+        )}
+
         <Link
           href="/quote"
           className="flex h-13 items-center justify-center gap-2 rounded-2xl border-[1.5px] border-dash-brand-700 bg-white text-[15px] font-extrabold text-dash-brand-700"
@@ -125,5 +136,63 @@ export default async function ClientHomePage() {
         </div>
       </div>
     </MobileShell>
+  );
+}
+
+const STATUS_COPY: Record<ClientQuoteCard["status"], { label: string; bg: string; text: string }> = {
+  quoted_draft: { label: "Not yet requested", bg: "#DFF1E5", text: "#155B33" },
+  tailored_draft: { label: "Not yet sent", bg: "#DFF1E5", text: "#155B33" },
+  awaiting_quote: { label: "We're pricing this", bg: "#FFF1D1", text: "#7A4B00" },
+  tailored_quoted: { label: "Price ready", bg: "#E3EEFB", text: "#1C4F8F" },
+};
+
+/** One card per item from listMyPendingQuotes() -- a quote the client
+ *  started but hasn't turned into a real booking yet (Phase D). The
+ *  two pre-submission states get a "Continue my quote" button; a
+ *  submitted tailored request either shows "we're pricing this"
+ *  (nothing to do yet) or, once staff have priced it, the price plus
+ *  how to book -- there's no online "accept" step for tailored quotes
+ *  today, so this matches the same call/WhatsApp CTA already in that
+ *  email. */
+function PendingQuoteCard({ quote }: { quote: ClientQuoteCard }) {
+  const info = STATUS_COPY[quote.status];
+  return (
+    <div className="flex flex-col gap-2.5 rounded-2xl border border-dash-border bg-dash-surface p-4">
+      <div className="flex items-start justify-between gap-2">
+        <div className="flex flex-col gap-0.5">
+          <span className="text-[15px] font-bold">{quote.serviceTitle}</span>
+          <span className="text-[13px] text-dash-muted">{quote.reference}</span>
+        </div>
+        <span
+          className="shrink-0 rounded-full px-2.5 py-1 text-[11px] font-bold"
+          style={{ background: info.bg, color: info.text }}
+        >
+          {info.label}
+        </span>
+      </div>
+
+      {quote.totalIncVat !== null && (
+        <span className="text-lg font-extrabold">£{quote.totalIncVat.toFixed(2)}</span>
+      )}
+
+      {quote.resumable && <ResumeQuoteButton draftId={quote.id} />}
+
+      {quote.status === "tailored_quoted" && (
+        <div className="flex gap-2">
+          <a
+            href="tel:01732711856"
+            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-dash-brand-700 text-sm font-bold text-dash-brand-700"
+          >
+            <Phone size={15} aria-hidden="true" /> Call
+          </a>
+          <a
+            href="https://wa.me/447445109813"
+            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-dash-brand-700 text-sm font-bold text-dash-brand-700"
+          >
+            <MessageCircle size={15} aria-hidden="true" /> WhatsApp
+          </a>
+        </div>
+      )}
+    </div>
   );
 }
