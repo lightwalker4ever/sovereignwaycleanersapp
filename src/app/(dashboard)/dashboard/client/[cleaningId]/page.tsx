@@ -1,9 +1,10 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Check } from "lucide-react";
+import { ArrowLeft, Check, MapPin } from "lucide-react";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { PhotoTile } from "@/components/ui/PhotoTile";
 import { toDisplayCleaningStatus } from "@/lib/cleaning-status";
+import { googleMapsUrl } from "@/lib/maps";
 import { getMyCleaningDetailAsClient } from "../actions";
 import { ClientJobHero } from "@/components/client/ClientJobHero";
 import { RateCleaningForm } from "@/components/client/RateCleaningForm";
@@ -51,6 +52,23 @@ export default async function ClientCleaningDetailPage({
       </header>
 
       <div className="flex flex-col gap-3.5 px-4 py-3.5">
+        {cleaning.clientAddress && (
+          <section className="flex items-center justify-between gap-3 rounded-2xl border border-dash-border bg-dash-surface px-4 py-3.5">
+            <span className="flex items-center gap-2 text-sm text-dash-ink-2">
+              <MapPin size={16} className="shrink-0 text-dash-muted" aria-hidden="true" />
+              {cleaning.clientAddress}
+            </span>
+            <a
+              href={googleMapsUrl(cleaning.clientAddress)}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="shrink-0 text-[13px] font-bold text-dash-brand-700"
+            >
+              Directions
+            </a>
+          </section>
+        )}
+
         {!isCompleted && (
           <ClientJobHero
             card={{

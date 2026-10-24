@@ -3,7 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Check, Loader2, MessageSquarePlus, PlayCircle, Send } from "lucide-react";
+import { ArrowLeft, Camera, Check, Loader2, MessageSquarePlus, PlayCircle, Send, MapPin } from "lucide-react";
+import { googleMapsUrl } from "@/lib/maps";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { PhotoTile } from "@/components/ui/PhotoTile";
 import { Textarea } from "@/components/ui/textarea";
@@ -127,8 +128,20 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
           </Link>
           <div className="flex flex-1 flex-col">
             <h1 className="text-lg font-extrabold">{cleaning.clientName || "Unnamed client"}</h1>
-            <span className="text-[13px] text-dash-muted">
-              {cleaning.clientAddress || "No address on file"} &middot; {formatTimeRange(cleaning.scheduledAt, cleaning.endsAt)}
+            <span className="flex flex-wrap items-center gap-x-1.5 text-[13px] text-dash-muted">
+              <span>
+                {cleaning.clientAddress || "No address on file"} &middot; {formatTimeRange(cleaning.scheduledAt, cleaning.endsAt)}
+              </span>
+              {cleaning.clientAddress && (
+                <a
+                  href={googleMapsUrl(cleaning.clientAddress)}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-0.5 font-bold text-dash-brand-700"
+                >
+                  <MapPin size={13} aria-hidden="true" /> Directions
+                </a>
+              )}
             </span>
           </div>
           <StatusPill status={displayStatus} className="shrink-0" />
