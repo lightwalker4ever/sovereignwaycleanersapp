@@ -8,6 +8,7 @@ import { QuoteRequestDrawer } from "@/components/admin/QuoteRequestDrawer";
 import type { QuoteRequestRow } from "@/app/(dashboard)/dashboard/admin/quote-requests/actions";
 
 const STATUS_INFO: Record<string, { label: string; bg: string; text: string }> = {
+  draft: { label: "Not yet sent", bg: "#EEF1EF", text: "#3F4B44" },
   awaiting_quote: { label: "Awaiting quote", bg: "#FFF1D1", text: "#7A4B00" },
   quoted: { label: "Quoted", bg: "#DFF1E5", text: "#155B33" },
   declined: { label: "Declined", bg: "#FDE8E6", text: "#B42318" },

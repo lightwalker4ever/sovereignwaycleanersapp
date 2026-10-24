@@ -18,6 +18,7 @@ import {
   confirmCleaningRequest,
   proposeAnotherDate,
   declineCleaningRequest,
+  sendQuoteReminder,
   type CleaningRequestDetail,
   type AssignableStaff,
 } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
@@ -67,6 +68,8 @@ export function RequestDrawer({
   const [proposeDate, setProposeDate] = useState("");
   const [proposeWindow, setProposeWindow] = useState<string>("morning");
   const [reason, setReason] = useState("");
+  const [reminderSent, setReminderSent] = useState(false);
+  const [sendingReminder, startSendingReminder] = useTransition();
 
   useEffect(() => {
     if (!open) return;
@@ -76,6 +79,7 @@ export function RequestDrawer({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMode("view");
     setError(null);
+    setReminderSent(false);
     setLoading(true);
     getCleaningRequestDetail(cleaningId).then((d) => {
       setDetail(d);
@@ -90,6 +94,18 @@ export function RequestDrawer({
 
   function refreshDetail() {
     getCleaningRequestDetail(cleaningId).then(setDetail);
+  }
+
+  function handleSendReminder() {
+    setError(null);
+    startSendingReminder(async () => {
+      const result = await sendQuoteReminder(cleaningId);
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      setReminderSent(true);
+    });
   }
 
   function handleConfirm() {
@@ -232,6 +248,28 @@ export function RequestDrawer({
                 <DrawerSection label="Decline reason">
                   <p className="text-sm text-dash-danger">{detail.declineReason}</p>
                 </DrawerSection>
+              )}
+
+              {detail.status === "quoted" && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-dash-ink-2">
+                    The customer saw this price but hasn&apos;t requested the booking yet.
+                  </p>
+                  {reminderSent ? (
+                    <p className="text-sm font-semibold text-[#155B33]">Reminder sent.</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendReminder}
+                      disabled={sendingReminder}
+                      className="flex h-11 items-center justify-center gap-2 rounded-[10px] border border-dash-input-border text-sm font-semibold text-dash-ink disabled:opacity-60"
+                    >
+                      {sendingReminder && <Loader2 className="size-4 animate-spin" />}
+                      Send reminder email
+                    </button>
+                  )}
+                  {error && <p className="text-sm text-dash-danger">{error}</p>}
+                </div>
               )}
 
               {detail.status === "awaiting_confirmation" && mode === "view" && (

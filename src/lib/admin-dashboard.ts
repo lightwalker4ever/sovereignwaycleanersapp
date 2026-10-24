@@ -108,20 +108,23 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     { data: profiles, error: profilesError },
     { data: comments, error: commentsError },
     { data: assignments, error: assignmentsError },
+    { data: quoteRequests, error: quoteRequestsError },
   ] = await Promise.all([
     admin
       .from("cleanings")
       .select(
-        "id, client_id, cleaner_id, supervisor_id, status, scheduled_at, submitted_at, completed_at, redo_count"
+        "id, client_id, cleaner_id, supervisor_id, status, scheduled_at, submitted_at, completed_at, redo_count, created_at"
       )
       .order("scheduled_at", { ascending: true }),
     admin.from("clients").select("id, full_name, address"),
     admin.from("profiles").select("id, full_name"),
     admin.from("cleaning_comments").select("id, cleaning_id, rating, body, created_at"),
     admin.from("client_standard_assignments").select("client_id"),
+    admin.from("quote_requests").select("id, status, created_at").eq("status", "draft"),
   ]);
   if (cleaningsError) throw new Error(cleaningsError.message);
   if (clientsError) throw new Error(clientsError.message);
+  if (quoteRequestsError) throw new Error(quoteRequestsError.message);
   if (profilesError) throw new Error(profilesError.message);
   if (commentsError) throw new Error(commentsError.message);
   if (assignmentsError) throw new Error(assignmentsError.message);
@@ -279,6 +282,32 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       body: "From the website -- confirm, propose another date, or decline",
       href: "/dashboard/admin/cleanings?status=awaiting_confirmation",
       dotColor: "#7A4B00",
+    });
+  }
+
+  // Phase E of the persisted-quote work: a quote the customer saw but
+  // never submitted (instant-price 'quoted') or a tailored request
+  // they started but never sent ('draft'), both over 48h old -- worth
+  // a proactive nudge rather than waiting on the customer to come
+  // back. Only the pre-submission states count here, same reasoning
+  // as listClientPendingQuotes's expiry: a submitted-but-unpriced or
+  // already-priced tailored request is live business, not abandoned.
+  const ABANDONED_THRESHOLD_MS = 48 * 3_600_000;
+  const abandonedCutoff = now.getTime() - ABANDONED_THRESHOLD_MS;
+  const abandonedQuotes = allCleanings.filter(
+    (c) => c.status === "quoted" && new Date(c.created_at).getTime() < abandonedCutoff
+  );
+  const abandonedRequests = (quoteRequests ?? []).filter(
+    (r) => new Date(r.created_at).getTime() < abandonedCutoff
+  );
+  const abandonedTotal = abandonedQuotes.length + abandonedRequests.length;
+  if (abandonedTotal > 0) {
+    alerts.push({
+      key: "abandoned-quotes",
+      title: `${abandonedTotal} quote${abandonedTotal === 1 ? "" : "s"} may need a follow-up`,
+      body: "Seen a price but haven't booked yet -- send a reminder from the quote",
+      href: "/dashboard/admin/cleanings?status=quoted",
+      dotColor: "#1C4F8F",
     });
   }
 

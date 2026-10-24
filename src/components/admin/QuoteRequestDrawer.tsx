@@ -16,6 +16,7 @@ import {
   getQuoteRequestDetail,
   sendQuoteForRequest,
   declineQuoteRequest,
+  sendTailoredDraftReminder,
   type QuoteRequestDetail,
 } from "@/app/(dashboard)/dashboard/admin/quote-requests/actions";
 
@@ -38,6 +39,8 @@ export function QuoteRequestDrawer({
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startPending] = useTransition();
+  const [reminderSent, setReminderSent] = useState(false);
+  const [sendingReminder, startSendingReminder] = useTransition();
 
   useEffect(() => {
     if (!open) return;
@@ -46,12 +49,25 @@ export function QuoteRequestDrawer({
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setMode("view");
     setError(null);
+    setReminderSent(false);
     setLoading(true);
     getQuoteRequestDetail(requestId).then((d) => {
       setDetail(d);
       setLoading(false);
     });
   }, [open, requestId]);
+
+  function handleSendReminder() {
+    setError(null);
+    startSendingReminder(async () => {
+      const result = await sendTailoredDraftReminder(requestId);
+      if (!result.success) {
+        setError(result.error);
+        return;
+      }
+      setReminderSent(true);
+    });
+  }
 
   function handleSendQuote() {
     setError(null);
@@ -151,6 +167,28 @@ export function QuoteRequestDrawer({
                 <DrawerSection label="Quoted price">
                   <p className="text-lg font-extrabold text-dash-ink">£{detail.quotedPrice.toFixed(2)}</p>
                 </DrawerSection>
+              )}
+
+              {detail.status === "draft" && (
+                <div className="flex flex-col gap-2">
+                  <p className="text-sm text-dash-ink-2">
+                    The customer started this request but hasn&apos;t sent it to us yet.
+                  </p>
+                  {reminderSent ? (
+                    <p className="text-sm font-semibold text-[#155B33]">Reminder sent.</p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleSendReminder}
+                      disabled={sendingReminder}
+                      className="flex h-11 items-center justify-center gap-2 rounded-[10px] border border-dash-input-border text-sm font-semibold text-dash-ink disabled:opacity-60"
+                    >
+                      {sendingReminder && <Loader2 className="size-4 animate-spin" />}
+                      Send reminder email
+                    </button>
+                  )}
+                  {error && <p className="text-sm text-dash-danger">{error}</p>}
+                </div>
               )}
 
               {detail.status === "awaiting_quote" && mode === "view" && (

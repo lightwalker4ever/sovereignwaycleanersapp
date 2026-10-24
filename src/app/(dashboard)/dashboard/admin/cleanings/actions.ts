@@ -372,6 +372,59 @@ function windowLabelFor(key: string | null): string {
   return ARRIVAL_WINDOWS.find((w) => w.key === key)?.label ?? "";
 }
 
+export type SendReminderResult = { success: true } | { success: false; error: string };
+
+/**
+ * Phase E of the persisted-quote work: a manual nudge for a 'quoted'
+ * instant-price draft the customer never submitted -- resends the
+ * magic link saveInstantQuoteDraft() already emailed once
+ * automatically, reusing the stored resume_token rather than minting
+ * a new one.
+ */
+export async function sendQuoteReminder(cleaningId: string): Promise<SendReminderResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  const { data: cleaning, error: fetchError } = await admin
+    .from("cleanings")
+    .select("reference, service, client_id, status, resume_token, price_breakdown")
+    .eq("id", cleaningId)
+    .single();
+  if (fetchError || !cleaning) return { success: false, error: "Quote not found" };
+  if (cleaning.status !== "quoted" || !cleaning.resume_token) {
+    return { success: false, error: "This quote has already moved on" };
+  }
+
+  const { data: client } = await admin.from("clients").select("email").eq("id", cleaning.client_id).single();
+  if (!client?.email) return { success: false, error: "No email on file for this client" };
+
+  const breakdown = cleaning.price_breakdown as { totalIncVat?: number } | null;
+  const serviceTitle = SERVICE_TITLE[cleaning.service ?? ""] ?? "cleaning";
+  const resumeUrl = `https://sovereignwaycleaners.co.uk/quote/resume?token=${cleaning.resume_token}`;
+
+  try {
+    await resend.emails.send({
+      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      to: client.email,
+      subject: `Still interested? Your ${serviceTitle} quote is waiting (${cleaning.reference})`,
+      html: `
+        <p>Hi,</p>
+        <p>Just checking in -- your <strong>${serviceTitle}</strong> quote is still saved for you.</p>
+        ${breakdown?.totalIncVat ? `<p style="font-size:20px;font-weight:bold">£${breakdown.totalIncVat.toFixed(2)} inc. VAT</p>` : ""}
+        <p><a href="${resumeUrl}" style="display:inline-block;padding:10px 18px;background:#1B5E3B;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold">Continue my quote</a></p>
+        <p>Or call us on <strong>01732 711856</strong> or WhatsApp <strong>07445 109813</strong> if you'd rather talk it through.</p>
+        <br>
+        <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+      `,
+    });
+  } catch (e) {
+    console.error("Failed to send quote reminder email", e);
+    return { success: false, error: "Couldn't send that right now. Please try again." };
+  }
+
+  return { success: true };
+}
+
 export type ConfirmRequestResult = { success: true } | { success: false; error: string };
 
 /**

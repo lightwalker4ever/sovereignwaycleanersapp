@@ -119,6 +119,54 @@ export async function getQuoteRequestDetail(id: string): Promise<QuoteRequestDet
 export type QuoteRequestActionResult = { success: true } | { success: false; error: string };
 
 /**
+ * Phase E of the persisted-quote work: a manual nudge for a 'draft'
+ * request (the customer started "About the job" but never reached
+ * step 4) -- resends the same magic link saveTailoredQuoteDraft()
+ * already emailed once automatically, reusing the stored resume_token
+ * rather than minting a new one, so any link the customer already has
+ * keeps working too.
+ */
+export async function sendTailoredDraftReminder(id: string): Promise<QuoteRequestActionResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  const { data: request, error: fetchError } = await admin
+    .from("quote_requests")
+    .select("reference, service, client_id, status, resume_token")
+    .eq("id", id)
+    .single();
+  if (fetchError || !request) return { success: false, error: "Request not found" };
+  if (request.status !== "draft" || !request.resume_token) {
+    return { success: false, error: "This request has already moved on" };
+  }
+
+  const { data: client } = await admin.from("clients").select("email").eq("id", request.client_id).single();
+  if (!client?.email) return { success: false, error: "No email on file for this client" };
+
+  const resumeUrl = `https://sovereignwaycleaners.co.uk/quote/resume?token=${request.resume_token}`;
+  try {
+    await resend.emails.send({
+      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      to: client.email,
+      subject: `Still interested? Your ${SERVICE_TITLE[request.service] ?? request.service} request is waiting (${request.reference})`,
+      html: `
+        <p>Hi,</p>
+        <p>Just checking in -- you started a <strong>${SERVICE_TITLE[request.service] ?? request.service}</strong> request with us, but nothing's been sent to us yet.</p>
+        <p><a href="${resumeUrl}" style="display:inline-block;padding:10px 18px;background:#1B5E3B;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold">Continue my request</a></p>
+        <p>Or call us on <strong>01732 711856</strong> or WhatsApp <strong>07445 109813</strong> if you'd rather talk it through.</p>
+        <br>
+        <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+      `,
+    });
+  } catch (e) {
+    console.error("Failed to send tailored draft reminder email", e);
+    return { success: false, error: "Couldn't send that right now. Please try again." };
+  }
+
+  return { success: true };
+}
+
+/**
  * "Send quote": admin enters a price, which emails the customer. There's
  * no mechanism yet to resume the /quote journey at a fixed, pre-priced
  * step -- the 6 tailored services have no pricing formula or calendar
