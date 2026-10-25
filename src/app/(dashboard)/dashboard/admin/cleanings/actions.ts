@@ -288,6 +288,12 @@ const SERVICE_TITLE: Record<string, string> = {
   end_of_tenancy: "End of Tenancy",
   deep_cleaning: "Deep Cleaning",
   office_cleaning: "Office Cleaning",
+  domestic_cleaning: "Domestic Cleaning",
+  commercial_cleaning: "Commercial Cleaning",
+  carpet_cleaning: "Carpet Cleaning",
+  after_build_clean: "After Build Clean",
+  builders_sparkle_clean: "Builders & Sparkle Clean",
+  move_in_out: "Move In / Out Cleaning",
 };
 
 export interface CleaningRequestDetail {

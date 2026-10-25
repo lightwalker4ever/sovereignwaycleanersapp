@@ -1,5 +1,6 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { Resend } from "resend";
 import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
@@ -71,6 +72,7 @@ export interface QuoteRequestDetail {
   marketingConsent: boolean;
   quotedPrice: number | null;
   declineReason: string | null;
+  cleaningId: string | null;
   photos: { storagePath: string; signedUrl: string | null }[];
   createdAt: string;
 }
@@ -81,7 +83,9 @@ export async function getQuoteRequestDetail(id: string): Promise<QuoteRequestDet
 
   const { data: request, error } = await admin
     .from("quote_requests")
-    .select("id, reference, service, client_id, postcode, answers, notes, marketing_consent, status, quoted_price, decline_reason, created_at")
+    .select(
+      "id, reference, service, client_id, postcode, answers, notes, marketing_consent, status, quoted_price, decline_reason, cleaning_id, created_at"
+    )
     .eq("id", id)
     .single();
   if (error || !request) return null;
@@ -108,6 +112,7 @@ export async function getQuoteRequestDetail(id: string): Promise<QuoteRequestDet
     marketingConsent: request.marketing_consent,
     quotedPrice: request.quoted_price,
     declineReason: request.decline_reason,
+    cleaningId: request.cleaning_id,
     photos: (photoRows ?? []).map((p) => ({
       storagePath: p.storage_path,
       signedUrl: signedUrls.get(p.storage_path) ?? null,
@@ -181,19 +186,24 @@ export async function sendQuoteForRequest(id: string, price: number): Promise<Qu
   const admin = createAdminClient();
   const { data: request, error: fetchError } = await admin
     .from("quote_requests")
-    .select("reference, service, client_id")
+    .select("reference, service, client_id, resume_token")
     .eq("id", id)
     .single();
   if (fetchError || !request) return { success: false, error: "Request not found" };
 
+  // Defensive: every row should have one post-migration, but a request
+  // sent before resume_token existed at all would still have a null one.
+  const resumeToken = request.resume_token ?? randomUUID();
+
   const { error: updateError } = await admin
     .from("quote_requests")
-    .update({ status: "quoted", quoted_price: price, quoted_at: new Date().toISOString() })
+    .update({ status: "quoted", quoted_price: price, quoted_at: new Date().toISOString(), resume_token: resumeToken })
     .eq("id", id);
   if (updateError) return { success: false, error: updateError.message };
 
   const { data: client } = await admin.from("clients").select("full_name, email").eq("id", request.client_id).single();
   if (client?.email) {
+    const responseUrl = `https://sovereignwaycleaners.co.uk/quote/response?token=${resumeToken}`;
     try {
       await resend.emails.send({
         from: "Sovereign Way Cleaners <onboarding@resend.dev>",
@@ -202,7 +212,8 @@ export async function sendQuoteForRequest(id: string, price: number): Promise<Qu
         html: `
           <p>Hi ${client.full_name ?? "there"},</p>
           <p>Here's your price for <strong>${SERVICE_TITLE[request.service] ?? request.service}</strong>: <strong>£${price.toFixed(2)}</strong>. Reference <strong>${request.reference}</strong>.</p>
-          <p>To book, just call us on <strong>01732 711856</strong>, WhatsApp <strong>07445 109813</strong>, or reply to this email.</p>
+          <p><a href="${responseUrl}" style="display:inline-block;padding:10px 18px;background:#1B5E3B;color:#fff;text-decoration:none;border-radius:8px;font-weight:bold">Accept or decline this quote</a></p>
+          <p>Or call us on <strong>01732 711856</strong> or WhatsApp <strong>07445 109813</strong> if you'd rather talk it through.</p>
           <br>
           <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
         `,

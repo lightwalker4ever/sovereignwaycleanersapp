@@ -946,6 +946,10 @@ export async function submitTailoredQuoteRequest(input: {
         answers: input.answers as unknown as Json,
         notes: input.notes.trim() || null,
         marketing_consent: input.marketingConsent,
+        // Guarantees the "quoted" email's accept/decline link
+        // (getQuoteResponseByToken) always has a token to use, even
+        // for a request that never passed through the draft-save step.
+        resume_token: randomUUID(),
       })
       .select("id, reference")
       .single();
@@ -989,7 +993,246 @@ export async function submitTailoredQuoteRequest(input: {
     console.error("Failed to send tailored quote confirmation email", e);
   }
 
-  revalidatePath("/dashboard/admin/enquiries");
+  revalidatePath("/dashboard/admin/quote-requests");
 
   return { success: true, reference };
+}
+
+export interface QuoteResponseDetail {
+  reference: string;
+  serviceTitle: string;
+  quotedPrice: number;
+  status: "draft" | "awaiting_quote" | "quoted" | "declined" | "converted";
+  clientName: string | null;
+  clientPhone: string | null;
+  clientAddress: string | null;
+}
+
+export type GetQuoteResponseResult =
+  | { success: true; detail: QuoteResponseDetail }
+  | { success: false; error: string };
+
+function postcodesMatch(a: string, b: string): boolean {
+  return a.replace(/\s+/g, "").toLowerCase() === b.replace(/\s+/g, "").toLowerCase();
+}
+
+/**
+ * Looks up a tailored quote request by the magic-link token from the
+ * "quoted" email, same ownership check as resolveQuoteDraftByToken
+ * (token alone isn't trusted -- it has to match this request's own
+ * postcode too). Returns the request regardless of its current status
+ * so the response page can show "already responded to" instead of a
+ * bare error once it's been accepted/declined.
+ */
+export async function getQuoteResponseByToken(token: string, postcode: string): Promise<GetQuoteResponseResult> {
+  const trimmedToken = token.trim();
+  const trimmedPostcode = postcode.trim();
+  if (!trimmedToken) return { success: false, error: "That link looks incomplete. Please use the link from your email." };
+  if (!trimmedPostcode) return { success: false, error: "Enter the postcode from your quote." };
+
+  const admin = createAdminClient();
+  const { data: request, error } = await admin
+    .from("quote_requests")
+    .select("reference, service, client_id, postcode, status, quoted_price")
+    .eq("resume_token", trimmedToken)
+    .maybeSingle();
+  if (error || !request) return { success: false, error: "We couldn't find that quote." };
+  if (!postcodesMatch(request.postcode, trimmedPostcode)) {
+    return { success: false, error: "That postcode doesn't match our records." };
+  }
+
+  const { data: client } = await admin
+    .from("clients")
+    .select("full_name, phone, address")
+    .eq("id", request.client_id)
+    .single();
+
+  // The stored address is "<street>, <postcode>" (built that way by
+  // submitTailoredQuoteRequest). acceptQuoteRequest re-appends the
+  // postcode to whatever the customer submits here, so the prefill
+  // must strip it back off first -- otherwise an unedited accept
+  // doubles it up ("...Street, SW1A 1AA, SW1A 1AA").
+  const addressSuffix = `, ${request.postcode}`;
+  const clientAddressLine =
+    client?.address && client.address.toLowerCase().endsWith(addressSuffix.toLowerCase())
+      ? client.address.slice(0, -addressSuffix.length)
+      : (client?.address ?? null);
+
+  return {
+    success: true,
+    detail: {
+      reference: request.reference,
+      serviceTitle: TAILORED_SERVICE_TITLE[request.service] ?? request.service,
+      quotedPrice: request.quoted_price ?? 0,
+      status: request.status,
+      clientName: client?.full_name ?? null,
+      clientPhone: client?.phone ?? null,
+      clientAddress: clientAddressLine,
+    },
+  };
+}
+
+export type QuoteResponseActionResult = { success: true } | { success: false; error: string };
+
+/**
+ * Customer accepts a priced tailored quote. Collects the one thing
+ * never asked for earlier in the journey -- a preferred date/window,
+ * since the 6 tailored services have no calendar step -- and turns the
+ * request into a real `cleanings` row at 'awaiting_confirmation', the
+ * exact same status an instant-quote booking lands at. From there
+ * admin's existing "Confirm & schedule" action (confirmCleaningRequest)
+ * takes over -- no new admin scheduling UI needed.
+ */
+export async function acceptQuoteRequest(input: {
+  token: string;
+  postcode: string;
+  phone: string;
+  addressLine: string;
+  requestedDate: string;
+  requestedWindow: ArrivalWindowKey | null;
+  isFlexible: boolean;
+}): Promise<QuoteResponseActionResult> {
+  const trimmedToken = input.token.trim();
+  const trimmedPostcode = input.postcode.trim();
+  if (!trimmedToken || !trimmedPostcode) {
+    return { success: false, error: "That link looks incomplete. Please use the link from your email." };
+  }
+  if (!input.requestedDate) return { success: false, error: "Pick a date" };
+  if (!input.requestedWindow && !input.isFlexible) {
+    return { success: false, error: "Pick an arrival window, or tell us you're flexible" };
+  }
+  const parsedPhone = z.string().transform(normalizeUkPhone).pipe(requiredPhoneSchema).safeParse(input.phone);
+  if (!parsedPhone.success) return { success: false, error: "Enter a valid UK phone number" };
+  if (!input.addressLine.trim()) return { success: false, error: "Enter your address" };
+
+  const admin = createAdminClient();
+  const { data: request, error: fetchError } = await admin
+    .from("quote_requests")
+    .select("id, reference, service, client_id, postcode, status, quoted_price")
+    .eq("resume_token", trimmedToken)
+    .maybeSingle();
+  if (fetchError || !request) return { success: false, error: "We couldn't find that quote." };
+  if (!postcodesMatch(request.postcode, trimmedPostcode)) {
+    return { success: false, error: "That postcode doesn't match our records." };
+  }
+  if (request.status !== "quoted") {
+    return { success: false, error: "This quote has already been responded to." };
+  }
+
+  const fullAddress = [input.addressLine.trim(), request.postcode].filter(Boolean).join(", ");
+  await admin
+    .from("clients")
+    .update({ phone: parsedPhone.data, address: fullAddress })
+    .eq("id", request.client_id);
+
+  const startTime = input.requestedWindow ? WINDOW_START_TIME[input.requestedWindow] : "09:00";
+  const scheduledAt = new Date(`${input.requestedDate}T${startTime}:00`);
+
+  const breakdown = {
+    lineItems: [{ label: TAILORED_SERVICE_TITLE[request.service] ?? request.service, amount: request.quoted_price ?? 0 }],
+    subtotalExVat: request.quoted_price ?? 0,
+    vatAmount: 0,
+    totalIncVat: request.quoted_price ?? 0,
+    locationLabel: "",
+  };
+
+  const { data: cleaning, error: cleaningError } = await admin
+    .from("cleanings")
+    .insert({
+      client_id: request.client_id,
+      status: "awaiting_confirmation",
+      scheduled_at: scheduledAt.toISOString(),
+      requested_date: input.requestedDate,
+      requested_window: input.requestedWindow,
+      is_flexible: input.isFlexible,
+      source: "website_quote",
+      service: request.service,
+      postcode: request.postcode,
+      price_breakdown: breakdown as unknown as Json,
+      notes: `Accepted tailored quote ${request.reference}.`,
+    })
+    .select("id, reference")
+    .single();
+  if (cleaningError || !cleaning) {
+    console.error("Failed to create cleaning from accepted quote request", cleaningError);
+    return { success: false, error: "Unable to process this right now. Please try again." };
+  }
+
+  const { error: updateError } = await admin
+    .from("quote_requests")
+    .update({ status: "converted", cleaning_id: cleaning.id })
+    .eq("id", request.id);
+  if (updateError) {
+    console.error("Failed to mark quote request as converted", updateError);
+  }
+
+  const { data: client } = await admin.from("clients").select("full_name, email").eq("id", request.client_id).single();
+  if (client?.email) {
+    try {
+      await resend.emails.send({
+        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        to: client.email,
+        subject: `You're booked in! (${cleaning.reference})`,
+        html: `
+          <p>Hi ${client.full_name ?? "there"},</p>
+          <p>Thanks for confirming -- your <strong>${TAILORED_SERVICE_TITLE[request.service] ?? request.service}</strong> is booked for <strong>£${(request.quoted_price ?? 0).toFixed(2)}</strong>. Reference <strong>${cleaning.reference}</strong>.</p>
+          <p>We'll confirm your exact date and time within ${CONFIRMATION_WINDOW_HOURS} hours. No payment is needed now.</p>
+          <p>If you need to reach us in the meantime, you can call us on <strong>01732 711856</strong> or WhatsApp us on <strong>07445 109813</strong>.</p>
+          <br>
+          <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
+        `,
+      });
+    } catch (e) {
+      console.error("Failed to send tailored-quote acceptance email", e);
+    }
+  }
+
+  revalidatePath("/dashboard/admin/quote-requests");
+  revalidatePath("/dashboard/admin/cleanings");
+  revalidatePath("/dashboard/admin");
+  revalidatePath("/dashboard/client");
+
+  return { success: true };
+}
+
+/**
+ * Customer declines a priced tailored quote. A reason is optional here
+ * (unlike admin's own decline, which requires one to tell the customer
+ * why) -- the customer doesn't owe anyone an explanation to say no.
+ */
+export async function declineQuoteRequestByCustomer(input: {
+  token: string;
+  postcode: string;
+  reason: string;
+}): Promise<QuoteResponseActionResult> {
+  const trimmedToken = input.token.trim();
+  const trimmedPostcode = input.postcode.trim();
+  if (!trimmedToken || !trimmedPostcode) {
+    return { success: false, error: "That link looks incomplete. Please use the link from your email." };
+  }
+
+  const admin = createAdminClient();
+  const { data: request, error: fetchError } = await admin
+    .from("quote_requests")
+    .select("id, postcode, status")
+    .eq("resume_token", trimmedToken)
+    .maybeSingle();
+  if (fetchError || !request) return { success: false, error: "We couldn't find that quote." };
+  if (!postcodesMatch(request.postcode, trimmedPostcode)) {
+    return { success: false, error: "That postcode doesn't match our records." };
+  }
+  if (request.status !== "quoted") {
+    return { success: false, error: "This quote has already been responded to." };
+  }
+
+  const { error: updateError } = await admin
+    .from("quote_requests")
+    .update({ status: "declined", decline_reason: input.reason.trim() || "Declined by customer" })
+    .eq("id", request.id);
+  if (updateError) return { success: false, error: updateError.message };
+
+  revalidatePath("/dashboard/admin/quote-requests");
+  revalidatePath("/dashboard/client");
+
+  return { success: true };
 }

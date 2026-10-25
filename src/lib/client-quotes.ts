@@ -29,6 +29,10 @@ export interface ClientQuoteCard {
   resumable: boolean;
   totalIncVat: number | null;
   createdAt: string;
+  /** Set only for tailored_quoted -- the magic-link token for
+   *  /quote/response, so the dashboard card can link straight to the
+   *  same accept/decline page the quote email sends. */
+  resumeToken: string | null;
 }
 
 /**
@@ -61,7 +65,7 @@ export async function listClientPendingQuotes(clientId: string): Promise<ClientQ
       .order("created_at", { ascending: false }),
     admin
       .from("quote_requests")
-      .select("id, reference, service, status, quoted_price, created_at")
+      .select("id, reference, service, status, quoted_price, resume_token, created_at")
       .eq("client_id", clientId)
       .in("status", ["draft", "awaiting_quote", "quoted"])
       .order("created_at", { ascending: false }),
@@ -81,6 +85,7 @@ export async function listClientPendingQuotes(clientId: string): Promise<ClientQ
       resumable: true,
       totalIncVat: breakdown?.totalIncVat ?? null,
       createdAt: c.created_at,
+      resumeToken: null,
     });
   }
 
@@ -94,6 +99,7 @@ export async function listClientPendingQuotes(clientId: string): Promise<ClientQ
       resumable: r.status === "draft",
       totalIncVat: r.quoted_price,
       createdAt: r.created_at,
+      resumeToken: r.status === "quoted" ? r.resume_token : null,
     });
   }
 

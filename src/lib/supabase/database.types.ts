@@ -519,10 +519,11 @@ export type Database = {
           answers: Json;
           notes: string | null;
           marketing_consent: boolean;
-          status: "draft" | "awaiting_quote" | "quoted" | "declined";
+          status: "draft" | "awaiting_quote" | "quoted" | "declined" | "converted";
           quoted_price: number | null;
           quoted_at: string | null;
           decline_reason: string | null;
+          cleaning_id: string | null;
           reference: string;
           resume_token: string | null;
           created_at: string;
@@ -536,10 +537,11 @@ export type Database = {
           answers: Json;
           notes?: string | null;
           marketing_consent?: boolean;
-          status?: "draft" | "awaiting_quote" | "quoted" | "declined";
+          status?: "draft" | "awaiting_quote" | "quoted" | "declined" | "converted";
           quoted_price?: number | null;
           quoted_at?: string | null;
           decline_reason?: string | null;
+          cleaning_id?: string | null;
           resume_token?: string | null;
           created_at?: string;
           updated_at?: string;
@@ -552,10 +554,11 @@ export type Database = {
           answers?: Json;
           notes?: string | null;
           marketing_consent?: boolean;
-          status?: "draft" | "awaiting_quote" | "quoted" | "declined";
+          status?: "draft" | "awaiting_quote" | "quoted" | "declined" | "converted";
           quoted_price?: number | null;
           quoted_at?: string | null;
           decline_reason?: string | null;
+          cleaning_id?: string | null;
           resume_token?: string | null;
           created_at?: string;
           updated_at?: string;

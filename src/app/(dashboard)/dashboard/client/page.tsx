@@ -151,9 +151,8 @@ const STATUS_COPY: Record<ClientQuoteCard["status"], { label: string; bg: string
  *  two pre-submission states get a "Continue my quote" button; a
  *  submitted tailored request either shows "we're pricing this"
  *  (nothing to do yet) or, once staff have priced it, the price plus
- *  how to book -- there's no online "accept" step for tailored quotes
- *  today, so this matches the same call/WhatsApp CTA already in that
- *  email. */
+ *  a link into the same /quote/response accept/decline page the
+ *  quote email itself links to -- Call/WhatsApp stay as a fallback. */
 function PendingQuoteCard({ quote }: { quote: ClientQuoteCard }) {
   const info = STATUS_COPY[quote.status];
   return (
@@ -177,20 +176,28 @@ function PendingQuoteCard({ quote }: { quote: ClientQuoteCard }) {
 
       {quote.resumable && <ResumeQuoteButton draftId={quote.id} />}
 
-      {quote.status === "tailored_quoted" && (
-        <div className="flex gap-2">
-          <a
-            href="tel:01732711856"
-            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-dash-brand-700 text-sm font-bold text-dash-brand-700"
+      {quote.status === "tailored_quoted" && quote.resumeToken && (
+        <div className="flex flex-col gap-2">
+          <Link
+            href={`/quote/response?token=${quote.resumeToken}`}
+            className="flex h-10 items-center justify-center rounded-xl bg-dash-brand-700 text-sm font-bold text-white"
           >
-            <Phone size={15} aria-hidden="true" /> Call
-          </a>
-          <a
-            href="https://wa.me/447445109813"
-            className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-dash-brand-700 text-sm font-bold text-dash-brand-700"
-          >
-            <MessageCircle size={15} aria-hidden="true" /> WhatsApp
-          </a>
+            Respond to this quote
+          </Link>
+          <div className="flex gap-2">
+            <a
+              href="tel:01732711856"
+              className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-dash-brand-700 text-sm font-bold text-dash-brand-700"
+            >
+              <Phone size={15} aria-hidden="true" /> Call
+            </a>
+            <a
+              href="https://wa.me/447445109813"
+              className="flex h-10 flex-1 items-center justify-center gap-1.5 rounded-xl border border-dash-brand-700 text-sm font-bold text-dash-brand-700"
+            >
+              <MessageCircle size={15} aria-hidden="true" /> WhatsApp
+            </a>
+          </div>
         </div>
       )}
     </div>

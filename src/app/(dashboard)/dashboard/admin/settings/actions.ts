@@ -16,7 +16,7 @@ export async function setContactFormEnabled(enabled: boolean) {
   if (error) throw new Error(error.message);
 
   revalidatePath("/dashboard/admin/settings");
-  revalidatePath("/");
+  revalidatePath("/contact");
 }
 
 export async function setSalesNotificationEmail(email: string) {

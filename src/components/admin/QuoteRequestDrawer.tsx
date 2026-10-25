@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { Loader2 } from "lucide-react";
 import {
   Drawer,
@@ -163,10 +164,25 @@ export function QuoteRequestDrawer({
                   <p className="text-sm text-dash-danger">{detail.declineReason}</p>
                 </DrawerSection>
               )}
-              {detail.status === "quoted" && detail.quotedPrice && (
+              {(detail.status === "quoted" || detail.status === "converted") && detail.quotedPrice && (
                 <DrawerSection label="Quoted price">
                   <p className="text-lg font-extrabold text-dash-ink">£{detail.quotedPrice.toFixed(2)}</p>
                 </DrawerSection>
+              )}
+
+              {detail.status === "quoted" && (
+                <p className="text-sm text-dash-ink-2">
+                  Waiting on the customer to accept or decline (they got a link in the quote email).
+                </p>
+              )}
+
+              {detail.status === "converted" && detail.cleaningId && (
+                <Link
+                  href={`/dashboard/admin/cleanings/${detail.cleaningId}`}
+                  className="flex h-11 items-center justify-center rounded-[10px] bg-dash-brand-700 text-sm font-bold text-white"
+                >
+                  View cleaning
+                </Link>
               )}
 
               {detail.status === "draft" && (
