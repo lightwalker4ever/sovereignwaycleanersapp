@@ -4,6 +4,7 @@ import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listMyCleaningJobCards, listMyPendingQuotes } from "./actions";
 import { isSameDay } from "@/lib/client-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { ClientJobHero } from "@/components/client/ClientJobHero";
 import { ResumeQuoteButton } from "@/components/client/ResumeQuoteButton";
 import type { ShellNavItem } from "@/components/shell/types";
@@ -47,6 +48,7 @@ export default async function ClientHomePage() {
             <div className="text-[13px] font-semibold text-dash-muted">Sovereign Way Cleaners</div>
             <h1 className="text-2xl font-extrabold">Hi {firstName}</h1>
           </div>
+          <SignOutButton />
           <span
             aria-hidden="true"
             className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full border border-dash-border bg-dash-surface text-dash-muted"

@@ -3,6 +3,7 @@ import { Home, Calendar, History, User, PlayCircle, ClipboardCheck } from "lucid
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listCleanerJobCards, isSameDay, jobTimeLabel } from "@/lib/cleaner-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { StatusPill } from "@/components/ui/StatusPill";
 import type { ShellNavItem } from "@/components/shell/types";
 
@@ -52,6 +53,7 @@ export default async function CleanerTodayPage() {
             <div className="text-[13px] font-semibold text-dash-muted">{dateLabel}</div>
             <h1 className="mt-0.5 text-[26px] font-extrabold tracking-tight">Today, {firstName}</h1>
           </div>
+          <SignOutButton />
           <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-dash-brand-900 text-sm font-bold text-white">
             {initials || "?"}
           </div>

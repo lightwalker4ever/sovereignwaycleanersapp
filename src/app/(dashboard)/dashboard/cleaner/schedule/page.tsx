@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listCleanerJobCards, jobTimeLabel } from "@/lib/cleaner-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { CLEANER_TABS } from "../page";
 
@@ -14,9 +15,12 @@ export default async function CleanerSchedulePage() {
   return (
     <MobileShell
       header={
-        <header className="px-5 pt-6 pb-4">
-          <h1 className="text-[26px] font-extrabold tracking-tight">Schedule</h1>
-          <p className="mt-0.5 text-sm text-dash-muted">Every upcoming job, in order.</p>
+        <header className="flex items-start justify-between gap-3 px-5 pt-6 pb-4">
+          <div>
+            <h1 className="text-[26px] font-extrabold tracking-tight">Schedule</h1>
+            <p className="mt-0.5 text-sm text-dash-muted">Every upcoming job, in order.</p>
+          </div>
+          <SignOutButton />
         </header>
       }
       tabs={CLEANER_TABS}

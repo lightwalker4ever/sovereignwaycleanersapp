@@ -2,6 +2,7 @@ import { LogOut } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signOut } from "@/app/(dashboard)/actions";
 import { MobileShell } from "@/components/shell/MobileShell";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { CLEANER_TABS } from "../page";
 
 export default async function CleanerProfilePage() {
@@ -19,8 +20,9 @@ export default async function CleanerProfilePage() {
   return (
     <MobileShell
       header={
-        <header className="px-5 pt-6 pb-4">
+        <header className="flex items-start justify-between gap-3 px-5 pt-6 pb-4">
           <h1 className="text-[26px] font-extrabold tracking-tight">Profile</h1>
+          <SignOutButton />
         </header>
       }
       tabs={CLEANER_TABS}

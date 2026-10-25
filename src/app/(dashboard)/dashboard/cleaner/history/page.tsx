@@ -2,6 +2,7 @@ import Link from "next/link";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listCleanerJobCards } from "@/lib/cleaner-jobs";
 import { MobileShell } from "@/components/shell/MobileShell";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { CLEANER_TABS } from "../page";
 
 export default async function CleanerHistoryPage() {
@@ -15,9 +16,12 @@ export default async function CleanerHistoryPage() {
   return (
     <MobileShell
       header={
-        <header className="px-5 pt-6 pb-4">
-          <h1 className="text-[26px] font-extrabold tracking-tight">History</h1>
-          <p className="mt-0.5 text-sm text-dash-muted">Jobs you&apos;ve finished.</p>
+        <header className="flex items-start justify-between gap-3 px-5 pt-6 pb-4">
+          <div>
+            <h1 className="text-[26px] font-extrabold tracking-tight">History</h1>
+            <p className="mt-0.5 text-sm text-dash-muted">Jobs you&apos;ve finished.</p>
+          </div>
+          <SignOutButton />
         </header>
       }
       tabs={CLEANER_TABS}

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { listMyCleaningJobCards } from "../actions";
 import { MobileShell } from "@/components/shell/MobileShell";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { CLIENT_TABS } from "../page";
 
@@ -10,9 +11,12 @@ export default async function ClientCleaningsPage() {
   return (
     <MobileShell
       header={
-        <header className="px-5 pt-6 pb-4">
-          <h1 className="text-[26px] font-extrabold tracking-tight">Cleanings</h1>
-          <p className="mt-0.5 text-sm text-dash-muted">Every cleaning booked with us.</p>
+        <header className="flex items-start justify-between gap-3 px-5 pt-6 pb-4">
+          <div>
+            <h1 className="text-[26px] font-extrabold tracking-tight">Cleanings</h1>
+            <p className="mt-0.5 text-sm text-dash-muted">Every cleaning booked with us.</p>
+          </div>
+          <SignOutButton />
         </header>
       }
       tabs={CLIENT_TABS}

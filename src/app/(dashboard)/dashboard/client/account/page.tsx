@@ -3,6 +3,7 @@ import { getCurrentUser } from "@/lib/supabase/current-user";
 import { signOut } from "@/app/(dashboard)/actions";
 import { getMyClientAccount } from "../actions";
 import { MobileShell } from "@/components/shell/MobileShell";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 import { CLIENT_TABS } from "../page";
 
 export default async function ClientAccountPage() {
@@ -21,8 +22,9 @@ export default async function ClientAccountPage() {
   return (
     <MobileShell
       header={
-        <header className="px-5 pt-6 pb-4">
+        <header className="flex items-start justify-between gap-3 px-5 pt-6 pb-4">
           <h1 className="text-[26px] font-extrabold tracking-tight">Account</h1>
+          <SignOutButton />
         </header>
       }
       tabs={CLIENT_TABS}
