@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState, useTransition } from "react";
+import { Suspense, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Check, Loader2, AlertCircle } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
@@ -80,14 +80,29 @@ function QuoteServicePageInner() {
   }, [hydrated, seededFromQuery]);
 
   useEffect(() => {
-    if (hydrated && !postcodeInput && state.postcode) setPostcodeInput(state.postcode);
-    if (hydrated && !emailInput && state.contact.email) setEmailInput(state.contact.email);
+    if (!hydrated) return;
+    if (!postcodeInput && state.postcode) setPostcodeInput(state.postcode);
+    if (!emailInput && state.contact.email) setEmailInput(state.contact.email);
+    // Covers a postcode that arrives already filled in (resumed
+    // session, deep link) without the customer ever touching the
+    // field themselves -- there's no button anymore to fall back on,
+    // so this is the only trigger for that case. Reads state.postcode
+    // directly rather than postcodeInput, since the setPostcodeInput
+    // call just above won't be reflected in postcodeInput until the
+    // next render.
+    if (state.postcode && !state.coverage?.checked) handleCheck(state.postcode);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
-  function handleCheck() {
-    const trimmed = postcodeInput.trim().toUpperCase();
-    if (!trimmed) return;
+  // Avoids re-checking the same value twice -- e.g. Enter immediately
+  // followed by the field's own blur, or tabbing back through an
+  // already-checked field.
+  const lastCheckedRef = useRef<string | null>(null);
+
+  function handleCheck(valueOverride?: string) {
+    const trimmed = (valueOverride ?? postcodeInput).trim().toUpperCase();
+    if (!trimmed || trimmed === lastCheckedRef.current) return;
+    lastCheckedRef.current = trimmed;
     startChecking(async () => {
       const result = await checkPostcodeCoverage(trimmed);
       update({
@@ -149,30 +164,28 @@ function QuoteServicePageInner() {
               <label htmlFor="pc" className="text-sm font-bold">
                 Postcode
               </label>
-              <div className="flex flex-wrap gap-2.5">
+              <div className="relative flex">
                 <input
                   id="pc"
                   value={postcodeInput}
                   onChange={(e) => setPostcodeInput(e.target.value)}
+                  onBlur={() => handleCheck()}
                   onKeyDown={(e) => e.key === "Enter" && handleCheck()}
                   placeholder="e.g. TN9 1AB"
                   aria-invalid={state.coverage?.checked === true && !state.coverage.valid}
                   className={cn(
-                    "h-12 min-w-[180px] flex-[1_1_220px] rounded-[10px] border px-3.5 text-base font-semibold uppercase outline-none",
+                    "h-12 w-full rounded-[10px] border px-3.5 pr-11 text-base font-semibold uppercase outline-none",
                     state.coverage?.checked && !state.coverage.valid
                       ? "border-2 border-dash-danger"
                       : "border-dash-input-border focus:border-dash-brand-700"
                   )}
                 />
-                <button
-                  type="button"
-                  onClick={handleCheck}
-                  disabled={checking || !postcodeInput.trim()}
-                  className="flex h-12 items-center gap-2 rounded-[10px] border border-dash-brand-700 bg-white px-5 text-[15px] font-bold text-dash-brand-700 disabled:opacity-50"
-                >
-                  {checking && <Loader2 className="size-4 animate-spin" />}
-                  Check
-                </button>
+                {checking && (
+                  <Loader2
+                    className="pointer-events-none absolute top-1/2 right-3.5 size-4 -translate-y-1/2 animate-spin text-dash-muted"
+                    aria-hidden="true"
+                  />
+                )}
               </div>
               {state.coverage?.checked && (
                 <>
