@@ -84,7 +84,7 @@ export async function listClientJobCards(clientId: string, profileId: string): P
       startedAt: c.started_at,
       submittedAt: c.submitted_at,
       completedAt: c.completed_at,
-      displayStatus: toDisplayCleaningStatus(c.status, a?.hasNotMet ?? false),
+      displayStatus: toDisplayCleaningStatus(c.status, a?.hasNotMet ?? false, c.scheduled_at, c.started_at),
       done: a?.done ?? 0,
       total: a?.total ?? 0,
       myRating: ratingByCleaning.get(c.id) ?? null,

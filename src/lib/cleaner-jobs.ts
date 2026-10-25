@@ -28,7 +28,7 @@ export async function listCleanerJobCards(cleanerId: string): Promise<CleanerJob
   const admin = createAdminClient();
   const { data: cleanings, error } = await admin
     .from("cleanings")
-    .select("id, client_id, status, scheduled_at, ends_at, completed_at, redo_count")
+    .select("id, client_id, status, scheduled_at, ends_at, started_at, completed_at, redo_count")
     .eq("cleaner_id", cleanerId)
     .order("scheduled_at", { ascending: true });
   if (error) throw new Error(error.message);
@@ -68,7 +68,7 @@ export async function listCleanerJobCards(cleanerId: string): Promise<CleanerJob
       scheduledAt: c.scheduled_at,
       endsAt: c.ends_at,
       completedAt: c.completed_at,
-      displayStatus: toDisplayCleaningStatus(c.status, hasNotMet),
+      displayStatus: toDisplayCleaningStatus(c.status, hasNotMet, c.scheduled_at, c.started_at),
       done,
       total: items.length,
       redoCount: c.redo_count,

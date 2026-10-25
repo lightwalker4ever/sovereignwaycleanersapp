@@ -237,7 +237,7 @@ export async function listCleanings(): Promise<CleaningRow[]> {
   ] = await Promise.all([
     admin
       .from("cleanings")
-      .select("id, reference, client_id, cleaner_id, supervisor_id, status, scheduled_at")
+      .select("id, reference, client_id, cleaner_id, supervisor_id, status, scheduled_at, started_at")
       .order("scheduled_at", { ascending: false }),
     admin.from("clients").select("id, full_name, address"),
     admin.from("profiles").select("id, full_name"),
@@ -270,7 +270,7 @@ export async function listCleanings(): Promise<CleaningRow[]> {
       supervisorName: c.supervisor_id ? profileNameById.get(c.supervisor_id) ?? null : null,
       checklistDone: agg?.done ?? 0,
       checklistTotal: agg?.total ?? 0,
-      displayStatus: toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false),
+      displayStatus: toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false, c.scheduled_at, c.started_at),
     };
   });
 

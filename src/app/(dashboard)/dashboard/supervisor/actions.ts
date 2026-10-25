@@ -24,7 +24,7 @@ export async function listAllMyCleanings(): Promise<SupervisorCleaningRow[]> {
   const admin = createAdminClient();
   const { data: cleanings, error } = await admin
     .from("cleanings")
-    .select("id, client_id, cleaner_id, status, scheduled_at")
+    .select("id, client_id, cleaner_id, status, scheduled_at, started_at")
     .eq("supervisor_id", user.id)
     .order("scheduled_at", { ascending: false });
   if (error) throw new Error(error.message);
@@ -58,7 +58,7 @@ export async function listAllMyCleanings(): Promise<SupervisorCleaningRow[]> {
       cleanerName: c.cleaner_id ? cleanerNameById.get(c.cleaner_id) ?? null : null,
       checklistDone: a?.done ?? 0,
       checklistTotal: a?.total ?? 0,
-      displayStatus: toDisplayCleaningStatus(c.status, a?.hasNotMet ?? false),
+      displayStatus: toDisplayCleaningStatus(c.status, a?.hasNotMet ?? false, c.scheduled_at, c.started_at),
     };
   });
 }

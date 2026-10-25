@@ -27,7 +27,7 @@ export default async function ClientCleaningDetailPage({
   if (!cleaning) notFound();
 
   const hasNotMet = cleaning.checklist.some((i) => i.reviewStatus === "not_met");
-  const displayStatus = toDisplayCleaningStatus(cleaning.status, hasNotMet);
+  const displayStatus = toDisplayCleaningStatus(cleaning.status, hasNotMet, cleaning.scheduledAt, cleaning.startedAt);
   const isCompleted = cleaning.status === "completed";
   const done = cleaning.checklist.filter((i) => i.reviewStatus === "met").length;
   const myRating = cleaning.comments.find((c) => c.rating !== null)?.rating ?? null;

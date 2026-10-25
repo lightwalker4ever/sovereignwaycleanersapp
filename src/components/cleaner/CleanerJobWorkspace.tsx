@@ -51,7 +51,7 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
   const editable = status === "in_progress";
   const notStarted = status === "assigned";
   const hasNotMet = items.some((i) => i.reviewStatus === "not_met");
-  const displayStatus = toDisplayCleaningStatus(status, hasNotMet);
+  const displayStatus = toDisplayCleaningStatus(status, hasNotMet, cleaning.scheduledAt, cleaning.startedAt);
 
   const isPhotographed = (item: CleaningChecklistItem) => item.photos.some((p) => p.authorRole === "cleaner");
   const doneCount = items.filter(isPhotographed).length;

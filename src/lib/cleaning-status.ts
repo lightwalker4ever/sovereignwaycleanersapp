@@ -20,6 +20,7 @@ export const DISPLAY_CLEANING_STATUSES = [
   "quoted",
   "awaiting_confirmation",
   "scheduled",
+  "missed",
   "in_progress",
   "in_review",
   "changes_requested",
@@ -36,6 +37,7 @@ export const CLEANING_STATUS_INFO: Record<
   quoted: { label: "Quoted", bg: "#E3EEFB", text: "#1C4F8F" },
   awaiting_confirmation: { label: "Awaiting confirmation", bg: "#FFF1D1", text: "#7A4B00" },
   scheduled: { label: "Scheduled", bg: "#EEF1EF", text: "#3F4B44" },
+  missed: { label: "Missed job - Reschedule", bg: "#FDE8E6", text: "#B42318" },
   in_progress: { label: "In progress", bg: "#FFF1D1", text: "#7A4B00" },
   in_review: { label: "In review", bg: "#E3EEFB", text: "#1C4F8F" },
   changes_requested: { label: "Changes requested", bg: "#FCE6DA", text: "#9A3A0B" },
@@ -55,14 +57,24 @@ const DB_STATUS_TO_DISPLAY: Record<string, DisplayCleaningStatus> = {
 
 /**
  * Maps a cleanings.status DB value (+ whether any checklist item is
- * currently "not_met") to the 5-value display status. `hasNotMet` only
- * matters while the DB status is "in_progress".
+ * currently "not_met") to the display status. `hasNotMet` only matters
+ * while the DB status is "in_progress". `scheduledAt`/`startedAt` are
+ * optional -- a "scheduled" (DB "assigned") job whose scheduled time
+ * has passed with no `started_at` becomes "missed", the same
+ * derived-not-stored pattern as "changes_requested" above: it's fully
+ * reconstructable from existing data, so there's no new DB status to
+ * keep in sync with "now".
  */
 export function toDisplayCleaningStatus(
   dbStatus: string,
-  hasNotMet: boolean
+  hasNotMet: boolean,
+  scheduledAt?: string | null,
+  startedAt?: string | null
 ): DisplayCleaningStatus {
   if (dbStatus === "in_progress" && hasNotMet) return "changes_requested";
+  if (dbStatus === "assigned" && !startedAt && scheduledAt && new Date(scheduledAt) < new Date()) {
+    return "missed";
+  }
   return DB_STATUS_TO_DISPLAY[dbStatus] ?? "scheduled";
 }
 

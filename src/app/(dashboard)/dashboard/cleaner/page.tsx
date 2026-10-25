@@ -34,7 +34,9 @@ export default async function CleanerTodayPage() {
   const today = cards.filter((c) => isSameDay(c.scheduledAt, now));
   const redo = today.find((c) => c.displayStatus === "changes_requested") ?? null;
   const current =
-    today.find((c) => c.displayStatus === "in_progress") ?? today.find((c) => c.displayStatus === "scheduled") ?? null;
+    today.find((c) => c.displayStatus === "in_progress") ??
+    today.find((c) => c.displayStatus === "scheduled" || c.displayStatus === "missed") ??
+    null;
   const tomorrowCards = cards.filter(
     (c) => isSameDay(c.scheduledAt, tomorrow) && c.displayStatus !== "completed"
   );
@@ -85,12 +87,12 @@ export default async function CleanerTodayPage() {
               </div>
             </div>
             <span className="flex h-13 items-center justify-center gap-2 rounded-[14px] bg-white text-base font-extrabold text-dash-brand-900">
-              {current.displayStatus === "scheduled" ? (
+              {current.displayStatus === "scheduled" || current.displayStatus === "missed" ? (
                 <PlayCircle size={20} aria-hidden="true" />
               ) : (
                 <ClipboardCheck size={20} aria-hidden="true" />
               )}
-              {current.displayStatus === "scheduled" ? "Start job" : "Continue checklist"}
+              {current.displayStatus === "scheduled" || current.displayStatus === "missed" ? "Start job" : "Continue checklist"}
             </span>
           </Link>
         ) : (

@@ -113,7 +113,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     admin
       .from("cleanings")
       .select(
-        "id, client_id, cleaner_id, supervisor_id, status, scheduled_at, submitted_at, completed_at, redo_count, created_at"
+        "id, client_id, cleaner_id, supervisor_id, status, scheduled_at, started_at, submitted_at, completed_at, redo_count, created_at"
       )
       .order("scheduled_at", { ascending: true }),
     admin.from("clients").select("id, full_name, address"),
@@ -146,7 +146,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
 
   function displayStatusFor(c: (typeof allCleanings)[number]) {
     const agg = checklistByCleaningId.get(c.id);
-    return toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false);
+    return toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false, c.scheduled_at, c.started_at);
   }
 
   // Today's schedule -- quoted/awaiting-confirmation/declined requests
