@@ -7,7 +7,13 @@ import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
 import { DesktopPriceSidebar } from "@/components/quote-flow/PriceSummary";
 import { MobileActionBar } from "@/components/quote-flow/MobileActionBar";
 import { useQuoteState, type AccessMethod } from "@/lib/quote-state";
-import { getQuoteRateCard, submitInstantQuoteRequest, submitTailoredQuoteRequest } from "@/actions/quote";
+import {
+  getQuoteRateCard,
+  submitInstantQuoteRequest,
+  submitTailoredQuoteRequest,
+  getMyAccountForQuote,
+  type MyQuoteAccount,
+} from "@/actions/quote";
 import { checkEmailExists } from "@/app/(auth)/login/actions";
 import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
 import { nameSchema, emailSchema, requiredPhoneSchema, schemaFieldError } from "@/lib/validation";
@@ -81,6 +87,40 @@ export default function QuoteDetailsPage() {
   // affects the "track this clean online" copy below (an already-
   // registered customer doesn't need to be told to set a password).
   const [emailIsRegistered, setEmailIsRegistered] = useState(false);
+  // Set once if the browser already has an active client session --
+  // name/phone then come from the account and can't be edited (so a
+  // signed-in customer can't submit a quote as someone else), address
+  // is still editable since a one-off clean at a different property is
+  // legitimate.
+  const [myAccount, setMyAccount] = useState<MyQuoteAccount | null>(null);
+  const prefilledRef = useRef(false);
+
+  useEffect(() => {
+    // Wait for useQuoteState's own hydration (sessionStorage read) --
+    // without this, state.contact.email is still the pre-hydration
+    // empty string the moment this effect's closure captures it, so
+    // an email already carried over from /quote/service never gets
+    // checked.
+    if (!hydrated) return;
+    getMyAccountForQuote().then((account) => {
+      if (!account) {
+        if (state.contact.email.trim()) checkEmailExists(state.contact.email.trim()).then(setEmailIsRegistered);
+        return;
+      }
+      setMyAccount(account);
+      if (prefilledRef.current) return;
+      prefilledRef.current = true;
+      update((prev) => ({
+        contact: {
+          name: account.fullName ?? prev.contact.name,
+          email: account.email,
+          phone: account.phone ?? prev.contact.phone,
+        },
+        addressLine: prev.addressLine || account.address || "",
+      }));
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
 
   const nameError = schemaFieldError(nameSchema, state.contact.name);
   const emailError = schemaFieldError(emailSchema, state.contact.email);
@@ -188,7 +228,10 @@ export default function QuoteDetailsPage() {
     });
   }
 
+  const loginGated = !myAccount && emailIsRegistered;
+
   function handleSubmit() {
+    if (loginGated) return;
     setTouched({ name: true, email: true, phone: true, address: true });
     setSubmitError(null);
     if (nameError || emailError || phoneError || addressError) return;
@@ -229,15 +272,21 @@ export default function QuoteDetailsPage() {
 
           <section aria-label="Contact" className="flex flex-col gap-3.5 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
             <h2 className="m-0 text-[15px] font-extrabold">Contact</h2>
+            {myAccount && (
+              <p className="m-0 text-[13px] text-dash-muted">
+                Signed in as <strong>{myAccount.email}</strong> — your name and number come from your account.
+              </p>
+            )}
             <label className="flex flex-col gap-1.5 text-sm font-semibold">
               Full name
               <input
                 autoComplete="name"
                 value={state.contact.name}
+                disabled={Boolean(myAccount)}
                 onChange={(e) => update({ contact: { ...state.contact, name: e.target.value } })}
                 onBlur={() => setTouched((t) => ({ ...t, name: true }))}
                 className={cn(
-                  "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
+                  "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none disabled:bg-dash-bg disabled:text-dash-muted",
                   touched.name && nameError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
                 )}
               />
@@ -250,9 +299,11 @@ export default function QuoteDetailsPage() {
                   type="email"
                   autoComplete="email"
                   value={state.contact.email}
+                  disabled={Boolean(myAccount)}
                   onChange={(e) => update({ contact: { ...state.contact, email: e.target.value } })}
                   onBlur={() => {
                     setTouched((t) => ({ ...t, email: true }));
+                    if (myAccount) return;
                     const trimmed = state.contact.email.trim();
                     if (trimmed && !schemaFieldError(emailSchema, trimmed)) {
                       checkEmailExists(trimmed).then(setEmailIsRegistered);
@@ -261,7 +312,7 @@ export default function QuoteDetailsPage() {
                     }
                   }}
                   className={cn(
-                    "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
+                    "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none disabled:bg-dash-bg disabled:text-dash-muted",
                     touched.email && emailError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
                   )}
                 />
@@ -273,12 +324,13 @@ export default function QuoteDetailsPage() {
                   type="tel"
                   autoComplete="tel"
                   value={state.contact.phone}
+                  disabled={Boolean(myAccount)}
                   onChange={(e) => update({ contact: { ...state.contact, phone: e.target.value } })}
                   onBlur={() => setTouched((t) => ({ ...t, phone: true }))}
                   placeholder="07… or +44…"
                   aria-invalid={touched.phone && Boolean(phoneError)}
                   className={cn(
-                    "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
+                    "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none disabled:bg-dash-bg disabled:text-dash-muted",
                     touched.phone && phoneError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
                   )}
                 />
@@ -287,6 +339,22 @@ export default function QuoteDetailsPage() {
                 )}
               </label>
             </div>
+            {!myAccount && emailIsRegistered && (
+              <div className="flex flex-col gap-2 rounded-xl border border-dash-brand-700 bg-dash-brand-100 p-3.5 text-sm">
+                <p className="m-0 font-semibold text-dash-ink">
+                  You already have an account with this email.
+                </p>
+                <p className="m-0 text-dash-ink-2">
+                  Sign in so we can fill in your details and keep this quote with your account.
+                </p>
+                <a
+                  href="/login?redirectTo=/quote/details"
+                  className="flex h-11 items-center justify-center rounded-xl bg-dash-brand-700 text-sm font-bold text-white"
+                >
+                  Sign in to continue
+                </a>
+              </div>
+            )}
           </section>
 
           <section aria-label="Property address" className="flex flex-col gap-3.5 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
@@ -394,7 +462,7 @@ export default function QuoteDetailsPage() {
               <button
                 type="button"
                 onClick={handleSubmit}
-                disabled={submitting}
+                disabled={submitting || loginGated}
                 className="flex h-13 items-center justify-center gap-2 rounded-xl bg-dash-brand-700 text-base font-extrabold text-white disabled:opacity-50"
               >
                 {submitting && <Loader2 className="size-4 animate-spin" />}
@@ -409,6 +477,7 @@ export default function QuoteDetailsPage() {
               primaryLabel="Request this booking"
               onPrimary={handleSubmit}
               primaryPending={submitting}
+              primaryDisabled={loginGated}
               extraRows={
                 <div className="mb-1 flex flex-col gap-1.5 border-b border-dash-border pb-3">
                   <div className="flex justify-between gap-2">
@@ -444,6 +513,7 @@ export default function QuoteDetailsPage() {
         label={isTailored ? "Get my tailored quote" : "Request this booking"}
         onClick={handleSubmit}
         pending={submitting}
+        disabled={loginGated}
       />
     </>
   );

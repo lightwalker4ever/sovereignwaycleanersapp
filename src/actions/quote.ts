@@ -7,6 +7,7 @@ import { revalidatePath } from "next/cache";
 import { getRateCard, type RateCard } from "@/lib/rate-card";
 import { lookupPostcode } from "@/lib/postcode-lookup";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getCurrentUser } from "@/lib/supabase/current-user";
 import type { Json } from "@/lib/supabase/database.types";
 import { nameSchema, emailSchema, requiredPhoneSchema } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
@@ -24,6 +25,52 @@ import {
 } from "@/lib/quote-calculations";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
+
+/**
+ * If the browser submitting this quote already has an active session
+ * for a client account, returns that account's own clients.id so the
+ * quote lands on their existing record instead of a brand-new,
+ * disconnected ghost client -- linkGhostClientToProfile() only runs at
+ * sign-in/signup, never again for someone already logged in, so
+ * without this every quote an already-authenticated customer submits
+ * would silently orphan itself from their own dashboard.
+ */
+async function getSessionClientId(): Promise<string | null> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "client") return null;
+  const admin = createAdminClient();
+  const { data } = await admin.from("clients").select("id").eq("profile_id", user.id).maybeSingle();
+  return data?.id ?? null;
+}
+
+export interface MyQuoteAccount {
+  fullName: string | null;
+  email: string;
+  phone: string | null;
+  address: string | null;
+}
+
+/**
+ * Powers the /quote journey's "prefill and lock identity fields for an
+ * already-logged-in customer" behaviour. Name and phone come back so
+ * the details step can prefill *and disable* them (the customer
+ * shouldn't be able to submit a quote as someone else while signed
+ * into their own account); address comes back for prefill only -- it
+ * stays editable, since a one-off clean at a different property is a
+ * legitimate thing to ask for.
+ */
+export async function getMyAccountForQuote(): Promise<MyQuoteAccount | null> {
+  const user = await getCurrentUser();
+  if (!user || user.role !== "client" || !user.email) return null;
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("clients")
+    .select("full_name, phone, address")
+    .eq("profile_id", user.id)
+    .maybeSingle();
+  if (!data) return null;
+  return { fullName: data.full_name ?? user.fullName, email: user.email, phone: data.phone, address: data.address };
+}
 
 export type GetQuoteRateCardResult =
   | { success: true; rateCard: RateCard }
@@ -304,6 +351,7 @@ export async function saveInstantQuoteDraft(input: {
   const breakdown = computeInstantBreakdown(input.service, input.selectedInputs, rateCard, location);
 
   const admin = createAdminClient();
+  const sessionClientId = await getSessionClientId();
 
   if (input.draftId) {
     const { data: existing } = await admin
@@ -313,7 +361,15 @@ export async function saveInstantQuoteDraft(input: {
       .eq("status", "quoted")
       .maybeSingle();
     if (existing) {
-      await admin.from("clients").update({ email: parsedEmail.data }).eq("id", existing.client_id);
+      // Re-parent an anonymously-started draft onto the account the
+      // customer has since logged into, instead of leaving it tied to
+      // a disconnected ghost client forever.
+      const draftClientId = sessionClientId ?? existing.client_id;
+      if (draftClientId !== existing.client_id) {
+        await admin.from("cleanings").update({ client_id: draftClientId }).eq("id", input.draftId);
+      } else {
+        await admin.from("clients").update({ email: parsedEmail.data }).eq("id", existing.client_id);
+      }
       const { error: updateError } = await admin
         .from("cleanings")
         .update({
@@ -330,14 +386,20 @@ export async function saveInstantQuoteDraft(input: {
     }
   }
 
-  const { data: client, error: clientError } = await admin
-    .from("clients")
-    .insert({ email: parsedEmail.data })
-    .select("id")
-    .single();
-  if (clientError || !client) {
-    console.error("Failed to create client for quote draft", clientError);
-    return { success: false, error: "Unable to save your quote right now." };
+  let clientId: string;
+  if (sessionClientId) {
+    clientId = sessionClientId;
+  } else {
+    const { data: client, error: clientError } = await admin
+      .from("clients")
+      .insert({ email: parsedEmail.data })
+      .select("id")
+      .single();
+    if (clientError || !client) {
+      console.error("Failed to create client for quote draft", clientError);
+      return { success: false, error: "Unable to save your quote right now." };
+    }
+    clientId = client.id;
   }
 
   // Generated only here, on a fresh draft, and never regenerated on an
@@ -348,7 +410,7 @@ export async function saveInstantQuoteDraft(input: {
   const { data: cleaning, error: cleaningError } = await admin
     .from("cleanings")
     .insert({
-      client_id: client.id,
+      client_id: clientId,
       status: "quoted",
       service: input.service,
       postcode: trimmedPostcode,
@@ -400,6 +462,7 @@ export async function saveTailoredQuoteDraft(input: {
   if (!parsedEmail.success) return { success: false, error: "A valid email is required" };
 
   const admin = createAdminClient();
+  const sessionClientId = await getSessionClientId();
 
   if (input.draftId) {
     const { data: existing } = await admin
@@ -409,7 +472,12 @@ export async function saveTailoredQuoteDraft(input: {
       .eq("status", "draft")
       .maybeSingle();
     if (existing) {
-      await admin.from("clients").update({ email: parsedEmail.data }).eq("id", existing.client_id);
+      const draftClientId = sessionClientId ?? existing.client_id;
+      if (draftClientId !== existing.client_id) {
+        await admin.from("quote_requests").update({ client_id: draftClientId }).eq("id", input.draftId);
+      } else {
+        await admin.from("clients").update({ email: parsedEmail.data }).eq("id", existing.client_id);
+      }
       const { error: updateError } = await admin
         .from("quote_requests")
         .update({
@@ -425,14 +493,20 @@ export async function saveTailoredQuoteDraft(input: {
     }
   }
 
-  const { data: client, error: clientError } = await admin
-    .from("clients")
-    .insert({ email: parsedEmail.data })
-    .select("id")
-    .single();
-  if (clientError || !client) {
-    console.error("Failed to create client for tailored quote draft", clientError);
-    return { success: false, error: "Unable to save your quote right now." };
+  let clientId: string;
+  if (sessionClientId) {
+    clientId = sessionClientId;
+  } else {
+    const { data: client, error: clientError } = await admin
+      .from("clients")
+      .insert({ email: parsedEmail.data })
+      .select("id")
+      .single();
+    if (clientError || !client) {
+      console.error("Failed to create client for tailored quote draft", clientError);
+      return { success: false, error: "Unable to save your quote right now." };
+    }
+    clientId = client.id;
   }
 
   const resumeToken = randomUUID();
@@ -440,7 +514,7 @@ export async function saveTailoredQuoteDraft(input: {
   const { data: quoteRequest, error: requestError } = await admin
     .from("quote_requests")
     .insert({
-      client_id: client.id,
+      client_id: clientId,
       status: "draft",
       service: input.service,
       postcode: trimmedPostcode,
@@ -627,6 +701,7 @@ export async function submitInstantQuoteRequest(input: {
   const breakdown = computeInstantBreakdown(input.service, input.selectedInputs, rateCard, location);
 
   const admin = createAdminClient();
+  const sessionClientId = await getSessionClientId();
 
   // Only affects the confirmation email's "track online" paragraph
   // below -- an already-registered customer doesn't need to be told
@@ -654,19 +729,25 @@ export async function submitInstantQuoteRequest(input: {
       .eq("status", "quoted")
       .maybeSingle();
     if (existing) {
-      const { error: clientUpdateError } = await admin
-        .from("clients")
-        .update({
-          full_name: parsedContact.data.name,
-          email: parsedContact.data.email,
-          phone: parsedContact.data.phone,
-          address: fullAddress || null,
-        })
-        .eq("id", existing.client_id);
+      // An already-logged-in customer's name/phone stay authoritative
+      // from their account (never overwritten by submitted values --
+      // the details step locks those fields, but this is the server-
+      // side backstop); address is job-specific and always updated.
+      const draftClientId = sessionClientId ?? existing.client_id;
+      const clientUpdate = sessionClientId
+        ? { address: fullAddress || null }
+        : {
+            full_name: parsedContact.data.name,
+            email: parsedContact.data.email,
+            phone: parsedContact.data.phone,
+            address: fullAddress || null,
+          };
+      const { error: clientUpdateError } = await admin.from("clients").update(clientUpdate).eq("id", draftClientId);
       if (!clientUpdateError) {
         const { data: updated, error: cleaningUpdateError } = await admin
           .from("cleanings")
           .update({
+            client_id: draftClientId,
             status: "awaiting_confirmation",
             scheduled_at: scheduledAt.toISOString(),
             requested_date: input.requestedDate,
@@ -693,25 +774,32 @@ export async function submitInstantQuoteRequest(input: {
   }
 
   if (!cleaning) {
-    const { data: client, error: clientError } = await admin
-      .from("clients")
-      .insert({
-        full_name: parsedContact.data.name,
-        email: parsedContact.data.email,
-        phone: parsedContact.data.phone,
-        address: fullAddress || null,
-      })
-      .select("id")
-      .single();
-    if (clientError || !client) {
-      console.error("Failed to create client for instant quote request", clientError);
-      return { success: false, error: "Unable to process your request right now. Please try again." };
+    let clientId: string;
+    if (sessionClientId) {
+      await admin.from("clients").update({ address: fullAddress || null }).eq("id", sessionClientId);
+      clientId = sessionClientId;
+    } else {
+      const { data: client, error: clientError } = await admin
+        .from("clients")
+        .insert({
+          full_name: parsedContact.data.name,
+          email: parsedContact.data.email,
+          phone: parsedContact.data.phone,
+          address: fullAddress || null,
+        })
+        .select("id")
+        .single();
+      if (clientError || !client) {
+        console.error("Failed to create client for instant quote request", clientError);
+        return { success: false, error: "Unable to process your request right now. Please try again." };
+      }
+      clientId = client.id;
     }
 
     const { data: inserted, error: cleaningError } = await admin
       .from("cleanings")
       .insert({
-        client_id: client.id,
+        client_id: clientId,
         status: "awaiting_confirmation",
         scheduled_at: scheduledAt.toISOString(),
         requested_date: input.requestedDate,
@@ -883,6 +971,7 @@ export async function submitTailoredQuoteRequest(input: {
   if (!trimmedPostcode) return { success: false, error: "Postcode is required" };
 
   const admin = createAdminClient();
+  const sessionClientId = await getSessionClientId();
   const fullAddress = [input.addressLine.trim(), trimmedPostcode].filter(Boolean).join(", ");
 
   // Same draft-reuse shape as submitInstantQuoteRequest: finish the
@@ -899,19 +988,23 @@ export async function submitTailoredQuoteRequest(input: {
       .eq("status", "draft")
       .maybeSingle();
     if (existing) {
-      const { error: clientUpdateError } = await admin
-        .from("clients")
-        .update({
-          full_name: parsedContact.data.name,
-          email: parsedContact.data.email,
-          phone: parsedContact.data.phone,
-          address: fullAddress || null,
-        })
-        .eq("id", existing.client_id);
+      // An already-logged-in customer's name/phone stay authoritative
+      // from their account; address is job-specific and always updated.
+      const draftClientId = sessionClientId ?? existing.client_id;
+      const clientUpdate = sessionClientId
+        ? { address: fullAddress || null }
+        : {
+            full_name: parsedContact.data.name,
+            email: parsedContact.data.email,
+            phone: parsedContact.data.phone,
+            address: fullAddress || null,
+          };
+      const { error: clientUpdateError } = await admin.from("clients").update(clientUpdate).eq("id", draftClientId);
       if (!clientUpdateError) {
         const { data: updated, error: requestUpdateError } = await admin
           .from("quote_requests")
           .update({
+            client_id: draftClientId,
             status: "awaiting_quote",
             service: input.service,
             postcode: trimmedPostcode,
@@ -931,26 +1024,33 @@ export async function submitTailoredQuoteRequest(input: {
   }
 
   if (!quoteRequest) {
-    const { data: client, error: clientError } = await admin
-      .from("clients")
-      .insert({
-        full_name: parsedContact.data.name,
-        email: parsedContact.data.email,
-        phone: parsedContact.data.phone,
-        address: fullAddress || null,
-      })
-      .select("id")
-      .single();
-    if (clientError || !client) {
-      console.error("Failed to create client for tailored quote request", clientError);
-      return { success: false, error: "Unable to process your request right now. Please try again." };
+    let clientId: string;
+    if (sessionClientId) {
+      await admin.from("clients").update({ address: fullAddress || null }).eq("id", sessionClientId);
+      clientId = sessionClientId;
+    } else {
+      const { data: client, error: clientError } = await admin
+        .from("clients")
+        .insert({
+          full_name: parsedContact.data.name,
+          email: parsedContact.data.email,
+          phone: parsedContact.data.phone,
+          address: fullAddress || null,
+        })
+        .select("id")
+        .single();
+      if (clientError || !client) {
+        console.error("Failed to create client for tailored quote request", clientError);
+        return { success: false, error: "Unable to process your request right now. Please try again." };
+      }
+      clientId = client.id;
     }
 
     const { data: inserted, error: requestError } = await admin
       .from("quote_requests")
       .insert({
         service: input.service,
-        client_id: client.id,
+        client_id: clientId,
         postcode: trimmedPostcode,
         answers: input.answers as unknown as Json,
         notes: input.notes.trim() || null,
