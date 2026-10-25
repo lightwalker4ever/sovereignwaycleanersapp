@@ -204,3 +204,60 @@ export function calculateOfficeCleaning(
 
   return finalizeBreakdown(lineItems, rateCard, locationMultiplier, locationLabel, visitsPerMonth);
 }
+
+export interface PropertyAnswerRow {
+  label: string;
+  value: string;
+}
+
+/**
+ * Turns a `cleanings.property_answers` row (one of the 3 typed inputs
+ * above, stored as plain JSON) into plain-text label/value pairs for
+ * the admin request drawer -- reuses the same label maps the price
+ * breakdown itself is built from, so "propertySize: bed3" becomes
+ * "Property size: 3 Bedroom" instead of a raw JSON dump.
+ */
+export function formatPropertyAnswers(
+  service: QuoteServiceKey,
+  answers: Record<string, unknown>
+): PropertyAnswerRow[] {
+  if (service === "end_of_tenancy") {
+    const input = answers as unknown as EndOfTenancyInput;
+    const selectedAddons = Object.entries(input.addons ?? {})
+      .filter(([, selected]) => selected)
+      .map(([key]) => EOT_ADDON_LABEL[key as keyof RateCard["endOfTenancy"]["addons"]] ?? key);
+    return [
+      { label: "Property size", value: EOT_PROPERTY_SIZE_LABEL[input.propertySize] ?? String(input.propertySize) },
+      { label: "Bathrooms", value: String(input.bathrooms) },
+      { label: "Add-ons", value: selectedAddons.length ? selectedAddons.join(", ") : "None" },
+    ];
+  }
+
+  if (service === "deep_cleaning") {
+    const input = answers as unknown as DeepCleaningInput;
+    const selectedAddons = Object.entries(input.addons ?? {})
+      .filter(([, selected]) => selected)
+      .map(([key]) => DEEP_ADDON_LABEL[key as keyof RateCard["deepCleaning"]["addons"]] ?? key);
+    return [
+      { label: "Bedrooms", value: String(input.bedrooms) },
+      { label: "Toilets", value: String(input.toilets) },
+      { label: "WCs", value: String(input.wcs) },
+      { label: "Kitchens", value: String(input.kitchens) },
+      { label: "Lounges", value: String(input.lounges) },
+      { label: "Appliances", value: selectedAddons.length ? selectedAddons.join(", ") : "None" },
+    ];
+  }
+
+  const input = answers as unknown as OfficeCleaningInput;
+  const rows: PropertyAnswerRow[] = [
+    { label: "Pricing method", value: input.method === "hourly" ? "By hours" : "By floor area" },
+  ];
+  if (input.method === "hourly" && input.hours != null) {
+    rows.push({ label: "Hours per visit", value: String(input.hours) });
+  }
+  if (input.method === "sqm" && input.sqm != null) {
+    rows.push({ label: "Floor area", value: `${input.sqm} sqm` });
+  }
+  rows.push({ label: "Frequency", value: OFFICE_FREQUENCY_LABEL[input.frequency] ?? input.frequency });
+  return rows;
+}

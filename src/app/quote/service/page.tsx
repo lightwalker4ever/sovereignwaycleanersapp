@@ -121,7 +121,8 @@ function QuoteServicePageInner() {
   const selectedTailored = tailoredServices.find((s) => s.slug === state.tailoredService);
   const hasSelection = Boolean(selectedInstant || selectedTailored);
   const hasValidEmail = Boolean(emailInput.trim()) && !schemaFieldError(emailSchema, emailInput.trim());
-  const canContinue = hasSelection && Boolean(state.coverage?.valid) && hasValidEmail;
+  const readyToPickService = Boolean(state.coverage?.valid) && hasValidEmail;
+  const canContinue = hasSelection && readyToPickService;
 
   function handleContinue() {
     if (!canContinue) return;
@@ -216,6 +217,19 @@ function QuoteServicePageInner() {
             </div>
           </section>
 
+          {!readyToPickService && (
+            <div className="flex flex-col gap-1.5 rounded-2xl border border-dash-border bg-dash-surface p-5 text-sm text-dash-muted">
+              <p className="m-0 font-semibold text-dash-ink">
+                {!state.coverage?.checked || !state.coverage.valid
+                  ? "Check your postcode above to see our services."
+                  : "Add your email above to see our services."}
+              </p>
+              <p className="m-0">We confirm we clean your area and save your quote before showing prices.</p>
+            </div>
+          )}
+
+          {readyToPickService && (
+          <>
           <section aria-label="Instant price services" className="flex flex-col gap-3">
             <div className="flex flex-wrap items-baseline gap-2.5">
               <h2 className="m-0 text-lg font-extrabold">See your price now</h2>
@@ -294,6 +308,8 @@ function QuoteServicePageInner() {
               })}
             </div>
           </section>
+          </>
+          )}
         </main>
 
         <aside aria-label="Your quote" className="hidden flex-[1_1_320px] flex-col gap-3.5 md:sticky md:top-6 md:flex">

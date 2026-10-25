@@ -23,6 +23,7 @@ import {
   type AssignableStaff,
 } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
 import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
+import { formatPropertyAnswers, type QuoteServiceKey } from "@/lib/quote-calculations";
 
 const fieldClassName =
   "h-11 w-full rounded-[10px] border border-dash-input-border px-3 text-sm text-dash-ink outline-none focus:border-dash-brand-700";
@@ -30,6 +31,8 @@ const selectTriggerClassName = "h-11 w-full rounded-[10px] border-dash-input-bor
 const labelClassName = "text-sm font-semibold text-dash-ink";
 
 type Mode = "view" | "confirm" | "propose" | "decline";
+
+const INSTANT_SERVICE_KEYS: QuoteServiceKey[] = ["end_of_tenancy", "deep_cleaning", "office_cleaning"];
 
 function accessLabel(method: string | null): string {
   if (method === "present") return "I'll be there";
@@ -214,13 +217,13 @@ export function RequestDrawer({
                 </div>
               </DrawerSection>
 
-              {detail.propertyAnswers && (
+              {detail.propertyAnswers && INSTANT_SERVICE_KEYS.includes(detail.service as QuoteServiceKey) && (
                 <DrawerSection label="Property">
                   <div className="flex flex-col gap-1 text-sm text-dash-ink-2">
-                    {Object.entries(detail.propertyAnswers).map(([key, value]) => (
-                      <div key={key} className="flex justify-between gap-2">
-                        <span className="text-dash-muted">{key}</span>
-                        <span className="font-semibold">{JSON.stringify(value)}</span>
+                    {formatPropertyAnswers(detail.service as QuoteServiceKey, detail.propertyAnswers).map((row) => (
+                      <div key={row.label} className="flex justify-between gap-2">
+                        <span className="text-dash-muted">{row.label}</span>
+                        <span className="font-semibold">{row.value}</span>
                       </div>
                     ))}
                   </div>

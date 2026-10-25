@@ -628,6 +628,13 @@ export async function submitInstantQuoteRequest(input: {
 
   const admin = createAdminClient();
 
+  // Only affects the confirmation email's "track online" paragraph
+  // below -- an already-registered customer doesn't need to be told
+  // to set a password, just to sign in.
+  const { data: emailAlreadyRegistered } = await admin.rpc("email_exists", {
+    check_email: parsedContact.data.email,
+  });
+
   const fullAddress = [input.addressLine.trim(), trimmedPostcode].filter(Boolean).join(", ");
   const startTime = input.requestedWindow ? WINDOW_START_TIME[input.requestedWindow] : "09:00";
   const scheduledAt = new Date(`${input.requestedDate}T${startTime}:00`);
@@ -755,7 +762,9 @@ export async function submitInstantQuoteRequest(input: {
         <p>We'll confirm your date within ${CONFIRMATION_WINDOW_HOURS} hours. No payment is needed now.</p>
         ${
           input.trackOnline
-            ? `<p>Want to track this clean online? <a href="https://sovereignwaycleaners.co.uk/login">Set a password</a> using this email address to follow progress, photos and results.</p>`
+            ? emailAlreadyRegistered
+              ? `<p>Want to track this clean online? <a href="https://sovereignwaycleaners.co.uk/login">Sign in</a> with this email address to follow progress, photos and results.</p>`
+              : `<p>Want to track this clean online? <a href="https://sovereignwaycleaners.co.uk/login">Set a password</a> using this email address to follow progress, photos and results.</p>`
             : ""
         }
         <p>If you need to reach us in the meantime, you can call us on <strong>01732 711856</strong> or WhatsApp us on <strong>07445 109813</strong>.</p>

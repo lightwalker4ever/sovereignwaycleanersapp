@@ -37,6 +37,10 @@ export default function QuoteWhenPage() {
 
   const breakdown = useMemo(() => {
     if (!rateCard || !state.service) return null;
+    // See /quote/property's identical guard: avoid flashing the
+    // unadjusted standard-rate price while a postcode's location
+    // multiplier is still resolving.
+    if (state.postcode.trim() && !state.location) return null;
     const location = state.location ?? { multiplier: 1, label: "Standard rate" };
     if (state.service === "end_of_tenancy") {
       return calculateEndOfTenancy(state.eot, rateCard, location.multiplier, location.label);
@@ -45,7 +49,7 @@ export default function QuoteWhenPage() {
       return calculateDeepCleaning(state.deep, rateCard, location.multiplier, location.label);
     }
     return calculateOfficeCleaning(state.office, rateCard, location.multiplier, location.label);
-  }, [rateCard, state.service, state.eot, state.deep, state.office, state.location]);
+  }, [rateCard, state.service, state.eot, state.deep, state.office, state.location, state.postcode]);
 
   if (!state.service || !breakdown) {
     return (

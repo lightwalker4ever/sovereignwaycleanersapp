@@ -58,6 +58,12 @@ export default function QuotePropertyPage() {
 
   const breakdown = useMemo(() => {
     if (!rateCard || !state.service) return null;
+    // Don't fall back to the standard rate while a postcode's location
+    // multiplier is still resolving -- that would flash the wrong
+    // (unadjusted) price for a moment before the real one lands. Null
+    // here just keeps the existing full-page "Loading…" guard active
+    // a beat longer, same as waiting on the rate card itself.
+    if (state.postcode.trim() && !state.location) return null;
     const location = state.location ?? { multiplier: 1, label: "Standard rate" };
     if (state.service === "end_of_tenancy") {
       return calculateEndOfTenancy(state.eot, rateCard, location.multiplier, location.label);
@@ -66,7 +72,7 @@ export default function QuotePropertyPage() {
       return calculateDeepCleaning(state.deep, rateCard, location.multiplier, location.label);
     }
     return calculateOfficeCleaning(state.office, rateCard, location.multiplier, location.label);
-  }, [rateCard, state.service, state.eot, state.deep, state.office, state.location]);
+  }, [rateCard, state.service, state.eot, state.deep, state.office, state.location, state.postcode]);
 
   const [emailOpen, setEmailOpen] = useState(false);
   const [emailValue, setEmailValue] = useState("");

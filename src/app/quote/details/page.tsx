@@ -8,6 +8,7 @@ import { DesktopPriceSidebar } from "@/components/quote-flow/PriceSummary";
 import { MobileActionBar } from "@/components/quote-flow/MobileActionBar";
 import { useQuoteState, type AccessMethod } from "@/lib/quote-state";
 import { getQuoteRateCard, submitInstantQuoteRequest, submitTailoredQuoteRequest } from "@/actions/quote";
+import { checkEmailExists } from "@/app/(auth)/login/actions";
 import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
 import { nameSchema, emailSchema, requiredPhoneSchema, schemaFieldError } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
@@ -59,6 +60,10 @@ export default function QuoteDetailsPage() {
 
   const breakdown = useMemo(() => {
     if (isTailored || !rateCard || !state.service) return null;
+    // See /quote/property's identical guard: avoid flashing the
+    // unadjusted standard-rate price while a postcode's location
+    // multiplier is still resolving.
+    if (state.postcode.trim() && !state.location) return null;
     const location = state.location ?? { multiplier: 1, label: "Standard rate" };
     if (state.service === "end_of_tenancy") {
       return calculateEndOfTenancy(state.eot, rateCard, location.multiplier, location.label);
@@ -67,11 +72,15 @@ export default function QuoteDetailsPage() {
       return calculateDeepCleaning(state.deep, rateCard, location.multiplier, location.label);
     }
     return calculateOfficeCleaning(state.office, rateCard, location.multiplier, location.label);
-  }, [isTailored, rateCard, state.service, state.eot, state.deep, state.office, state.location]);
+  }, [isTailored, rateCard, state.service, state.eot, state.deep, state.office, state.location, state.postcode]);
 
   const [touched, setTouched] = useState<Touched>({ name: false, email: false, phone: false, address: false });
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [submitting, startSubmitting] = useTransition();
+  // Whether this email already belongs to a registered account -- only
+  // affects the "track this clean online" copy below (an already-
+  // registered customer doesn't need to be told to set a password).
+  const [emailIsRegistered, setEmailIsRegistered] = useState(false);
 
   const nameError = schemaFieldError(nameSchema, state.contact.name);
   const emailError = schemaFieldError(emailSchema, state.contact.email);
@@ -242,7 +251,15 @@ export default function QuoteDetailsPage() {
                   autoComplete="email"
                   value={state.contact.email}
                   onChange={(e) => update({ contact: { ...state.contact, email: e.target.value } })}
-                  onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+                  onBlur={() => {
+                    setTouched((t) => ({ ...t, email: true }));
+                    const trimmed = state.contact.email.trim();
+                    if (trimmed && !schemaFieldError(emailSchema, trimmed)) {
+                      checkEmailExists(trimmed).then(setEmailIsRegistered);
+                    } else {
+                      setEmailIsRegistered(false);
+                    }
+                  }}
                   className={cn(
                     "h-12 rounded-[10px] border px-3.5 text-[15px] font-normal outline-none",
                     touched.email && emailError ? "border-2 border-dash-danger" : "border-dash-input-border focus:border-dash-brand-700"
@@ -341,8 +358,10 @@ export default function QuoteDetailsPage() {
                   className="mt-0.5 h-5 w-5 shrink-0 accent-dash-brand-700"
                 />
                 <span>
-                  <strong>Track this clean online.</strong> We&apos;ll email you a link to set a password and follow
-                  progress, photos and results.
+                  <strong>Track this clean online.</strong>{" "}
+                  {emailIsRegistered
+                    ? "You're already registered with us -- sign in with this email to follow progress, photos and results."
+                    : "We'll email you a link to set a password and follow progress, photos and results."}
                 </span>
               </label>
             )}
