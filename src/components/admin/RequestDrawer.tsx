@@ -307,7 +307,7 @@ export function RequestDrawer({
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="space-y-1.5">
                       <label className={labelClassName}>Cleaner</label>
-                      <Select value={cleanerId || undefined} onValueChange={(v) => setCleanerId(v ?? "")}>
+                      <Select value={cleanerId} onValueChange={(v) => setCleanerId(v ?? "")}>
                         <SelectTrigger className={selectTriggerClassName}>
                           <SelectValue>{(val: string | null) => cleaners.find((c) => c.id === val)?.fullName ?? "Choose a cleaner"}</SelectValue>
                         </SelectTrigger>
@@ -322,7 +322,7 @@ export function RequestDrawer({
                     </div>
                     <div className="space-y-1.5">
                       <label className={labelClassName}>Supervisor</label>
-                      <Select value={supervisorId || undefined} onValueChange={(v) => setSupervisorId(v ?? "")}>
+                      <Select value={supervisorId} onValueChange={(v) => setSupervisorId(v ?? "")}>
                         <SelectTrigger className={selectTriggerClassName}>
                           <SelectValue>{(val: string | null) => supervisors.find((s) => s.id === val)?.fullName ?? "Choose a supervisor"}</SelectValue>
                         </SelectTrigger>
@@ -349,7 +349,7 @@ export function RequestDrawer({
                   <div className="space-y-1.5">
                     <label className={labelClassName}>Standards list</label>
                     <Select
-                      value={standardListId || undefined}
+                      value={standardListId}
                       onValueChange={(v) => {
                         if (v === "__create_new__") {
                           window.open("/dashboard/admin/standards", "_blank", "noopener,noreferrer");
