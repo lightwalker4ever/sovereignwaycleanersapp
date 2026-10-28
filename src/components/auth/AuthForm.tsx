@@ -17,9 +17,25 @@ import { GoogleSignInButton } from "./GoogleSignInButton";
 
 type Step = "email" | "signin" | "signup" | "check-email";
 
-export function AuthForm({ redirectTo }: { redirectTo?: string }) {
-  const [step, setStep] = useState<Step>("email");
-  const [email, setEmail] = useState("");
+export function AuthForm({
+  redirectTo,
+  initialEmail,
+  emailIsKnownRegistered,
+}: {
+  redirectTo?: string;
+  initialEmail?: string;
+  /** Set only when the caller has already confirmed this email belongs
+   *  to a registered account (the quote journey's "sign in to
+   *  continue" prompt, after its own checkEmailExists check) -- skips
+   *  straight to the password step instead of re-checking. A caller
+   *  that isn't sure (e.g. "set a password" for a possibly-new
+   *  customer) should prefill the email but leave this false, so the
+   *  normal "email" step still runs its own check and routes to
+   *  signin/signup correctly either way. */
+  emailIsKnownRegistered?: boolean;
+}) {
+  const [step, setStep] = useState<Step>(initialEmail && emailIsKnownRegistered ? "signin" : "email");
+  const [email, setEmail] = useState(initialEmail ?? "");
   const [emailError, setEmailError] = useState<string | null>(null);
   const [checking, startChecking] = useTransition();
 

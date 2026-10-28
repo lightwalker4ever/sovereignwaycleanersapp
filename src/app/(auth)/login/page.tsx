@@ -11,9 +11,9 @@ import { AuthForm } from "@/components/auth/AuthForm";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ redirectTo?: string }>;
+  searchParams: Promise<{ redirectTo?: string; email?: string; registered?: string }>;
 }) {
-  const { redirectTo } = await searchParams;
+  const { redirectTo, email, registered } = await searchParams;
 
   return (
     <Card className="w-full max-w-sm rounded-2xl border-dash-border bg-dash-surface px-2 py-6 shadow-sm">
@@ -27,7 +27,7 @@ export default async function LoginPage({
         </CardDescription>
       </CardHeader>
       <CardContent>
-        <AuthForm redirectTo={redirectTo} />
+        <AuthForm redirectTo={redirectTo} initialEmail={email} emailIsKnownRegistered={registered === "1"} />
       </CardContent>
     </Card>
   );

@@ -166,7 +166,11 @@ export default function QuoteConfirmedPage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href={isLoggedIn ? "/dashboard/client" : `/login?redirectTo=${encodeURIComponent("/dashboard/client")}`}
+          href={
+            isLoggedIn
+              ? "/dashboard/client"
+              : `/login?redirectTo=${encodeURIComponent("/dashboard/client")}&email=${encodeURIComponent(data.email)}`
+          }
           className="flex h-13.5 flex-[2_1_260px] items-center justify-center rounded-xl bg-dash-brand-700 text-base font-extrabold text-white"
         >
           {isLoggedIn ? "View in your account" : "Set a password to track it"}

@@ -348,7 +348,7 @@ export default function QuoteDetailsPage() {
                   Sign in so we can fill in your details and keep this quote with your account.
                 </p>
                 <a
-                  href="/login?redirectTo=/quote/details"
+                  href={`/login?redirectTo=/quote/details&email=${encodeURIComponent(state.contact.email.trim())}&registered=1`}
                   className="flex h-11 items-center justify-center rounded-xl bg-dash-brand-700 text-sm font-bold text-white"
                 >
                   Sign in to continue
