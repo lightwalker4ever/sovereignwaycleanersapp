@@ -9,6 +9,7 @@ import { getMyCleaningDetailAsClient } from "../actions";
 import { ClientJobHero } from "@/components/client/ClientJobHero";
 import { RateCleaningForm } from "@/components/client/RateCleaningForm";
 import { AllPhotosToggle } from "@/components/client/AllPhotosToggle";
+import { SignOutButton } from "@/components/shell/SignOutButton";
 
 function formatTimeRange(scheduledAt: string, endsAt: string | null): string {
   const start = new Date(scheduledAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
@@ -49,6 +50,7 @@ export default async function ClientCleaningDetailPage({
           </span>
         </div>
         <StatusPill status={displayStatus} className="shrink-0" />
+        <SignOutButton className="shrink-0" />
       </header>
 
       <div className="flex flex-col gap-3.5 px-4 py-3.5">

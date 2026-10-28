@@ -3,8 +3,9 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Check, Loader2, MessageSquarePlus, PlayCircle, Send, MapPin } from "lucide-react";
+import { ArrowLeft, Camera, Check, Loader2, LogOut, MessageSquarePlus, PlayCircle, Send, MapPin } from "lucide-react";
 import { googleMapsUrl } from "@/lib/maps";
+import { signOut } from "@/app/(dashboard)/actions";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { PhotoTile } from "@/components/ui/PhotoTile";
 import { Textarea } from "@/components/ui/textarea";
@@ -145,6 +146,15 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
             </span>
           </div>
           <StatusPill status={displayStatus} className="shrink-0" />
+          <form action={signOut}>
+            <button
+              type="submit"
+              aria-label="Sign out"
+              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-dash-border bg-dash-surface text-dash-ink-2"
+            >
+              <LogOut size={16} strokeWidth={1.8} aria-hidden="true" />
+            </button>
+          </form>
         </div>
         <div className="px-1.5">
           <div className="h-2 overflow-hidden rounded-full bg-dash-track">

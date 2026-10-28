@@ -275,9 +275,11 @@ function QuoteServicePageInner() {
                     </span>
                     <span className="text-base font-extrabold">{svc.name}</span>
                     <span className="text-[13px] leading-relaxed text-dash-muted">{svc.description}</span>
-                    <span className="text-[13px] font-bold text-dash-brand-700">
-                      {rateCard && svc.quoteService ? `From £${money(fromPriceFor(svc.quoteService, rateCard))}` : "From £—"}
-                    </span>
+                    {rateCard && svc.quoteService && (
+                      <span className="text-[13px] font-bold text-dash-brand-700">
+                        From £{money(fromPriceFor(svc.quoteService, rateCard))}
+                      </span>
+                    )}
                   </button>
                 );
               })}
