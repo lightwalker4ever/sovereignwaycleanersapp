@@ -12,7 +12,7 @@ export default async function AdminStaffPage() {
         <div className="flex-1 basis-75">
           <h1 className="text-[28px] font-extrabold tracking-tight text-dash-ink">Staff</h1>
           <p className="mt-1 text-sm text-dash-muted">
-            Cleaners, supervisors, managers and admins. Clients live under Clients.
+            Cleaners, supervisors, sales and admins. Clients live under Clients.
           </p>
         </div>
         <AddStaffDrawer />
