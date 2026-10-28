@@ -7,6 +7,7 @@ import { Check, Calendar } from "lucide-react";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { useQuoteState } from "@/lib/quote-state";
 import { readQuoteConfirmation, type QuoteConfirmationData } from "@/lib/quote-confirmation";
+import { getMyAccountForQuote } from "@/actions/quote";
 import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
 import { buildQuoteIcs, downloadIcs } from "@/lib/quote-ics";
 
@@ -33,6 +34,11 @@ export default function QuoteConfirmedPage() {
   const router = useRouter();
   const { clear } = useQuoteState();
   const [data, setData] = useState<QuoteConfirmationData | null | undefined>(undefined);
+  // Whether the browser already has an active client session -- if so,
+  // this booking is already on their account (see getSessionClientId()
+  // in src/actions/quote.ts), so the "set a password" CTA below would
+  // be nonsensical; they get a direct link to their account instead.
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
 
   useEffect(() => {
     // sessionStorage doesn't exist during SSR -- same hydration-safe
@@ -51,9 +57,10 @@ export default function QuoteConfirmedPage() {
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setData(confirmation);
     clear();
+    getMyAccountForQuote().then((account) => setIsLoggedIn(Boolean(account)));
   }, [router, clear]);
 
-  if (!data) return null;
+  if (!data || isLoggedIn === null) return null;
 
   const windowConfig = data.windowKey ? ARRIVAL_WINDOWS.find((w) => w.key === data.windowKey) : null;
   const dateLabel = data.dateIso
@@ -159,10 +166,10 @@ export default function QuoteConfirmedPage() {
 
       <div className="flex flex-wrap gap-3">
         <Link
-          href={`/login?redirectTo=${encodeURIComponent("/dashboard/client")}`}
+          href={isLoggedIn ? "/dashboard/client" : `/login?redirectTo=${encodeURIComponent("/dashboard/client")}`}
           className="flex h-13.5 flex-[2_1_260px] items-center justify-center rounded-xl bg-dash-brand-700 text-base font-extrabold text-white"
         >
-          Set a password to track it
+          {isLoggedIn ? "View in your account" : "Set a password to track it"}
         </Link>
         {!data.isTailored && (
           <button

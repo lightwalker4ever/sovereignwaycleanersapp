@@ -417,7 +417,13 @@ export default function QuoteDetailsPage() {
           </section>
 
           <section className="flex flex-col gap-2.5 px-1">
-            {!isTailored && (
+            {!isTailored && myAccount && (
+              <p className="m-0 text-sm text-dash-ink-2">
+                <strong>You&apos;re signed in,</strong> so this clean is already on your account -- no need to set
+                anything up to follow progress, photos and results.
+              </p>
+            )}
+            {!isTailored && !myAccount && (
               <label className="flex items-start gap-2.5 text-sm">
                 <input
                   type="checkbox"
