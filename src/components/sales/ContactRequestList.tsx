@@ -33,6 +33,20 @@ export function ContactRequestList({ requests }: { requests: ContactRequest[] })
             <p className="text-xs text-gray-400">
               {new Date(r.createdAt).toLocaleString("en-GB")}
             </p>
+            {r.notes.length > 0 && (
+              <div className="space-y-1.5 border-t border-gray-100 pt-2">
+                {r.notes.map((n) => (
+                  <div key={n.id} className="rounded-lg bg-gray-50 p-2.5 text-xs">
+                    <p className="font-medium text-gray-700">
+                      Marked {n.status}
+                      {n.authorName ? ` by ${n.authorName}` : ""} ·{" "}
+                      {new Date(n.createdAt).toLocaleString("en-GB")}
+                    </p>
+                    <p className="mt-0.5 whitespace-pre-wrap text-gray-600">{n.note}</p>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         );
       })}

@@ -510,6 +510,33 @@ export type Database = {
         };
         Relationships: [];
       };
+      contact_request_notes: {
+        Row: {
+          id: string;
+          contact_request_id: string;
+          status: "contacted" | "closed";
+          note: string;
+          author_name: string | null;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          contact_request_id: string;
+          status: "contacted" | "closed";
+          note: string;
+          author_name?: string | null;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          contact_request_id?: string;
+          status?: "contacted" | "closed";
+          note?: string;
+          author_name?: string | null;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       quote_requests: {
         Row: {
           id: string;
