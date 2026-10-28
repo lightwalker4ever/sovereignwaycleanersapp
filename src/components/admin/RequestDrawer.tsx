@@ -92,6 +92,7 @@ export function RequestDrawer({
         setProposeDate(d.requestedDate);
       }
       if (d?.requestedWindow) setProposeWindow(d.requestedWindow);
+      setStandardListId(d?.currentStandardListId ?? "");
     });
   }, [open, cleaningId]);
 
@@ -346,10 +347,19 @@ export function RequestDrawer({
                     </div>
                   </div>
                   <div className="space-y-1.5">
-                    <label className={labelClassName}>Standards list (only if the client has none yet)</label>
-                    <Select value={standardListId || undefined} onValueChange={(v) => setStandardListId(v ?? "")}>
+                    <label className={labelClassName}>Standards list</label>
+                    <Select
+                      value={standardListId || undefined}
+                      onValueChange={(v) => {
+                        if (v === "__create_new__") {
+                          window.open("/dashboard/admin/standards", "_blank", "noopener,noreferrer");
+                          return;
+                        }
+                        setStandardListId(v ?? "");
+                      }}
+                    >
                       <SelectTrigger className={selectTriggerClassName}>
-                        <SelectValue>{(val: string | null) => standardLists.find((l) => l.id === val)?.name ?? "Use client's assigned list"}</SelectValue>
+                        <SelectValue>{(val: string | null) => standardLists.find((l) => l.id === val)?.name ?? "Select a standard list"}</SelectValue>
                       </SelectTrigger>
                       <SelectContent>
                         {standardLists.map((l) => (
@@ -357,8 +367,12 @@ export function RequestDrawer({
                             {l.name}
                           </SelectItem>
                         ))}
+                        <SelectItem value="__create_new__">+ Create new list…</SelectItem>
                       </SelectContent>
                     </Select>
+                    <p className="text-xs text-dash-muted">
+                      {"Create new list… opens Standards in a new tab -- come back here once it's set up."}
+                    </p>
                   </div>
                   {error && <p className="text-sm text-dash-danger">{error}</p>}
                   <div className="flex gap-2.5">
@@ -368,7 +382,7 @@ export function RequestDrawer({
                     <button
                       type="button"
                       onClick={handleConfirm}
-                      disabled={pending}
+                      disabled={pending || !standardListId}
                       className="flex h-11 flex-1 items-center justify-center gap-2 rounded-[10px] bg-dash-brand-700 text-sm font-bold text-white disabled:opacity-60"
                     >
                       {pending && <Loader2 className="size-4 animate-spin" />}

@@ -12,20 +12,30 @@ const REVIEW_STATUS_LABEL: Record<string, string> = {
   not_met: "Not met",
 };
 
+const BACK_LINKS: Record<string, { href: string; label: string }> = {
+  dashboard: { href: "/dashboard/admin", label: "← Back to Dashboard" },
+  feedback: { href: "/dashboard/admin/feedback", label: "← Back to Feedback" },
+};
+
 export default async function CleaningDetailPage({
   params,
+  searchParams,
 }: {
   params: Promise<{ cleaningId: string }>;
+  searchParams: Promise<{ from?: string }>;
 }) {
   const { cleaningId } = await params;
+  const { from } = await searchParams;
   const cleaning = await getCleaningDetail(cleaningId);
   if (!cleaning) notFound();
+
+  const backLink = (from && BACK_LINKS[from]) || { href: "/dashboard/admin/cleanings", label: "← Cleanings" };
 
   return (
     <PageContainer>
       <div>
-        <Link href="/dashboard/admin/cleanings" className="text-sm text-gray-500 hover:underline">
-          ← Cleanings
+        <Link href={backLink.href} className="text-sm text-gray-500 hover:underline">
+          {backLink.label}
         </Link>
         <h1 className="mt-1 text-2xl font-bold text-gray-900">
           {cleaning.clientName || "Unnamed client"}
@@ -133,6 +143,15 @@ export default async function CleaningDetailPage({
                       {new Date(c.createdAt).toLocaleDateString("en-GB")}
                     </p>
                   </div>
+                  {c.rating !== null && (
+                    <span
+                      className="text-sm tracking-widest text-[#9A6A00]"
+                      aria-label={`${c.rating} out of 5 stars`}
+                    >
+                      {"★".repeat(c.rating)}
+                      {"☆".repeat(5 - c.rating)}
+                    </span>
+                  )}
                   <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{c.body}</p>
                 </div>
               ))}

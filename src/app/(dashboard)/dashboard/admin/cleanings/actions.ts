@@ -216,6 +216,10 @@ export interface CleaningRow {
   id: string;
   reference: string;
   scheduledAt: string;
+  createdAt: string;
+  requestedDate: string | null;
+  requestedWindow: string | null;
+  isFlexible: boolean;
   clientName: string | null;
   address: string | null;
   cleanerId: string | null;
@@ -237,7 +241,9 @@ export async function listCleanings(): Promise<CleaningRow[]> {
   ] = await Promise.all([
     admin
       .from("cleanings")
-      .select("id, reference, client_id, cleaner_id, supervisor_id, status, scheduled_at, started_at")
+      .select(
+        "id, reference, client_id, cleaner_id, supervisor_id, status, scheduled_at, started_at, created_at, requested_date, requested_window, is_flexible"
+      )
       .order("scheduled_at", { ascending: false }),
     admin.from("clients").select("id, full_name, address"),
     admin.from("profiles").select("id, full_name"),
@@ -263,6 +269,10 @@ export async function listCleanings(): Promise<CleaningRow[]> {
       id: c.id,
       reference: c.reference,
       scheduledAt: c.scheduled_at,
+      createdAt: c.created_at,
+      requestedDate: c.requested_date,
+      requestedWindow: c.requested_window,
+      isFlexible: c.is_flexible,
       clientName: client?.full_name ?? null,
       address: client?.address ?? null,
       cleanerId: c.cleaner_id,
@@ -323,6 +333,10 @@ export interface CleaningRequestDetail {
   } | null;
   declineReason: string | null;
   createdAt: string;
+  /** The client's already-assigned standard list, if any -- lets the
+   *  confirm form pre-select it instead of leaving the picker empty
+   *  (and blocking Confirm) for a returning client. */
+  currentStandardListId: string | null;
 }
 
 /**
@@ -344,11 +358,14 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
     .single();
   if (error || !cleaning) return null;
 
-  const { data: client } = await admin
-    .from("clients")
-    .select("full_name, email, phone, address")
-    .eq("id", cleaning.client_id)
-    .single();
+  const [{ data: client }, { data: assignment }] = await Promise.all([
+    admin.from("clients").select("full_name, email, phone, address").eq("id", cleaning.client_id).single(),
+    admin
+      .from("client_standard_assignments")
+      .select("standard_list_id")
+      .eq("client_id", cleaning.client_id)
+      .maybeSingle(),
+  ]);
 
   return {
     id: cleaning.id,
@@ -371,6 +388,7 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
     priceBreakdown: (cleaning.price_breakdown as CleaningRequestDetail["priceBreakdown"]) ?? null,
     declineReason: cleaning.decline_reason,
     createdAt: cleaning.created_at,
+    currentStandardListId: assignment?.standard_list_id ?? null,
   };
 }
 

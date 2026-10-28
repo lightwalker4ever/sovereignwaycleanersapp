@@ -48,7 +48,7 @@ export default async function AdminLayout({
     redirect("/dashboard");
   }
 
-  const { cleaningsInReview, enquiriesNew, quoteRequestsAwaiting } = await getAdminNavBadges();
+  const { cleaningsNeedingAttention, enquiriesNew, quoteRequestsAwaiting } = await getAdminNavBadges();
 
   // The handoff's own nav list (Dashboard/Cleanings/Clients/Staff/
   // Standards/Feedback) plus the pre-existing Quote-and-Book admin
@@ -60,7 +60,7 @@ export default async function AdminLayout({
       href: "/dashboard/admin/cleanings",
       label: "Cleanings",
       icon: navIcon(CalendarDays),
-      badge: cleaningsInReview || undefined,
+      badge: cleaningsNeedingAttention || undefined,
     },
     { href: "/dashboard/admin/clients", label: "Clients", icon: navIcon(Home) },
     { href: "/dashboard/admin/staff", label: "Staff", icon: navIcon(Users) },

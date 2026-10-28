@@ -73,7 +73,10 @@ export function FeedbackList({ feedback }: { feedback: FeedbackEntry[] }) {
                 {new Date(f.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                 {f.cleanerName ? ` · ${f.cleanerName}` : ""}
               </span>
-              <Link href={`/dashboard/admin/cleanings/${f.cleaningId}`} className="font-semibold text-dash-brand-700">
+              <Link
+                href={`/dashboard/admin/cleanings/${f.cleaningId}?from=feedback`}
+                className="font-semibold text-dash-brand-700"
+              >
                 View cleaning →
               </Link>
             </div>

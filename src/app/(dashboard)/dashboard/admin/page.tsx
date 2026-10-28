@@ -222,7 +222,11 @@ export default async function AdminDashboardPage() {
             </Link>
           </div>
           {data.latestFeedback.map((f) => (
-            <div key={f.id} className="flex flex-col gap-1.5 rounded-xl border border-dash-border-soft p-3.5">
+            <Link
+              key={f.id}
+              href={`/dashboard/admin/cleanings/${f.cleaningId}?from=dashboard`}
+              className="flex flex-col gap-1.5 rounded-xl border border-dash-border-soft p-3.5"
+            >
               <div className="flex items-center justify-between">
                 <span className="text-sm font-semibold">{f.clientName ?? "Unknown client"}</span>
                 {f.rating !== null && (
@@ -240,7 +244,7 @@ export default async function AdminDashboardPage() {
                 {new Date(f.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                 {f.cleanerName ? ` · ${f.cleanerName}` : ""}
               </span>
-            </div>
+            </Link>
           ))}
           {data.latestFeedback.length === 0 && <p className="text-sm text-dash-muted">No feedback yet.</p>}
         </section>

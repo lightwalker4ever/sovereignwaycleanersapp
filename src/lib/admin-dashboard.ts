@@ -30,6 +30,7 @@ export interface WeekBar {
 
 export interface LatestFeedbackEntry {
   id: string;
+  cleaningId: string;
   clientName: string | null;
   cleanerName: string | null;
   rating: number | null;
@@ -69,25 +70,32 @@ function addDays(d: Date, n: number) {
  * still need to stay reachable from the sidebar.
  */
 export async function getAdminNavBadges(): Promise<{
-  cleaningsInReview: number;
+  cleaningsNeedingAttention: number;
   enquiriesNew: number;
   quoteRequestsAwaiting: number;
 }> {
   const admin = createAdminClient();
   const [
-    { count: cleaningsInReview, error: cleaningsError },
+    { count: cleaningsAwaitingConfirmation, error: awaitingError },
+    { count: cleaningsInReview, error: reviewError },
     { count: enquiriesNew, error: enquiriesError },
     { count: quoteRequestsAwaiting, error: quoteRequestsError },
   ] = await Promise.all([
+    admin.from("cleanings").select("id", { count: "exact", head: true }).eq("status", "awaiting_confirmation"),
     admin.from("cleanings").select("id", { count: "exact", head: true }).eq("status", "in_review"),
     admin.from("contact_requests").select("id", { count: "exact", head: true }).eq("status", "new"),
     admin.from("quote_requests").select("id", { count: "exact", head: true }).eq("status", "awaiting_quote"),
   ]);
-  if (cleaningsError) throw new Error(cleaningsError.message);
+  if (awaitingError) throw new Error(awaitingError.message);
+  if (reviewError) throw new Error(reviewError.message);
   if (enquiriesError) throw new Error(enquiriesError.message);
   if (quoteRequestsError) throw new Error(quoteRequestsError.message);
   return {
-    cleaningsInReview: cleaningsInReview ?? 0,
+    // New booking requests waiting to be confirmed, plus checklists
+    // waiting on review -- both are things admin needs to act on under
+    // Cleanings. Previously this only counted "in_review", so a brand
+    // new booking request never moved the badge at all.
+    cleaningsNeedingAttention: (cleaningsAwaitingConfirmation ?? 0) + (cleaningsInReview ?? 0),
     enquiriesNew: enquiriesNew ?? 0,
     quoteRequestsAwaiting: quoteRequestsAwaiting ?? 0,
   };
@@ -335,6 +343,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
       const client = cleaning ? clientById.get(cleaning.client_id) : undefined;
       return {
         id: c.id,
+        cleaningId: c.cleaning_id,
         clientName: client?.full_name ?? null,
         cleanerName: cleaning?.cleaner_id ? (profileNameById.get(cleaning.cleaner_id) ?? null) : null,
         rating: c.rating,

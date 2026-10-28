@@ -10,9 +10,18 @@ import { ProgressBar } from "@/components/ui/ProgressBar";
 import { StatusPill } from "@/components/ui/StatusPill";
 import { RequestDrawer } from "@/components/admin/RequestDrawer";
 import { DISPLAY_CLEANING_STATUSES, CLEANING_STATUS_INFO } from "@/lib/cleaning-status";
+import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
 import type { CleaningRow, AssignableStaff } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
 
 const REQUEST_STATUSES = new Set(["quoted", "awaiting_confirmation", "declined"]);
+
+function preferredLabel(r: CleaningRow): string {
+  if (!r.requestedDate) return "—";
+  const date = new Date(`${r.requestedDate}T00:00:00`).toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+  if (r.isFlexible) return `${date}, Flexible`;
+  const window = ARRIVAL_WINDOWS.find((w) => w.key === r.requestedWindow);
+  return window ? `${date}, ${window.label}` : date;
+}
 
 export function CleaningsList({
   rows,
@@ -114,9 +123,10 @@ export function CleaningsList({
         </select>
       </div>
 
-      <DataTable minWidth={680}>
+      <DataTable minWidth={820}>
         <DataTableHeadRow>
-          <th className="px-4 py-3 font-semibold">When</th>
+          <th className="px-4 py-3 font-semibold">Date received</th>
+          <th className="px-2 py-3 font-semibold">Preferred date/time</th>
           <th className="px-2 py-3 font-semibold">Client</th>
           <th className="px-2 py-3 font-semibold">Cleaner</th>
           <th className="px-2 py-3 font-semibold">Checklist</th>
@@ -130,12 +140,13 @@ export function CleaningsList({
               <DataTableRow key={r.id}>
                 <td className="px-4 py-3.5 whitespace-nowrap">
                   <div className="font-bold text-dash-ink">
-                    {new Date(r.scheduledAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
+                    {new Date(r.createdAt).toLocaleDateString("en-GB", { day: "numeric", month: "short" })}
                   </div>
                   <div className="text-[13px] text-dash-muted">
-                    {isRequest ? "Requested" : new Date(r.scheduledAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
+                    {new Date(r.createdAt).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" })}
                   </div>
                 </td>
+                <td className="px-2 py-3.5 whitespace-nowrap text-[13px] text-dash-ink-2">{preferredLabel(r)}</td>
                 <td className="px-2 py-3.5">
                   <div className="font-semibold text-dash-ink">{r.clientName || "—"}</div>
                   <div className="text-[13px] text-dash-muted">{r.address || "—"} · {r.reference}</div>
@@ -176,7 +187,7 @@ export function CleaningsList({
           })}
           {filtered.length === 0 && (
             <tr>
-              <td colSpan={6} className="px-4 py-8 text-center text-sm text-dash-muted">
+              <td colSpan={7} className="px-4 py-8 text-center text-sm text-dash-muted">
                 No cleanings match these filters.
               </td>
             </tr>
