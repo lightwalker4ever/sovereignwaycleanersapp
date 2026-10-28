@@ -30,7 +30,7 @@ export interface QuoteRequestRow {
 }
 
 export async function listQuoteRequests(): Promise<QuoteRequestRow[]> {
-  await assertIsRole(["admin"]);
+  await assertIsRole(["admin", "sales"]);
   const admin = createAdminClient();
 
   const { data: requests, error } = await admin
@@ -78,7 +78,7 @@ export interface QuoteRequestDetail {
 }
 
 export async function getQuoteRequestDetail(id: string): Promise<QuoteRequestDetail | null> {
-  await assertIsRole(["admin"]);
+  await assertIsRole(["admin", "sales"]);
   const admin = createAdminClient();
 
   const { data: request, error } = await admin
@@ -132,7 +132,7 @@ export type QuoteRequestActionResult = { success: true } | { success: false; err
  * keeps working too.
  */
 export async function sendTailoredDraftReminder(id: string): Promise<QuoteRequestActionResult> {
-  await assertIsRole(["admin"]);
+  await assertIsRole(["admin", "sales"]);
   const admin = createAdminClient();
 
   const { data: request, error: fetchError } = await admin
@@ -180,7 +180,7 @@ export async function sendTailoredDraftReminder(id: string): Promise<QuoteReques
  * as every other tailored-request touchpoint.
  */
 export async function sendQuoteForRequest(id: string, price: number): Promise<QuoteRequestActionResult> {
-  await assertIsRole(["admin"]);
+  await assertIsRole(["admin", "sales"]);
   if (!Number.isFinite(price) || price <= 0) return { success: false, error: "Enter a valid price" };
 
   const admin = createAdminClient();
@@ -228,7 +228,7 @@ export async function sendQuoteForRequest(id: string, price: number): Promise<Qu
 }
 
 export async function declineQuoteRequest(id: string, reason: string): Promise<QuoteRequestActionResult> {
-  await assertIsRole(["admin"]);
+  await assertIsRole(["admin", "sales"]);
   const trimmedReason = reason.trim();
   if (!trimmedReason) return { success: false, error: "Add a reason for the customer" };
 
