@@ -47,6 +47,57 @@ export type Database = {
         };
         Relationships: [];
       };
+      cleaner_availability: {
+        Row: {
+          id: string;
+          cleaner_id: string;
+          day_of_week: number;
+          window_key: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          cleaner_id: string;
+          day_of_week: number;
+          window_key: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          cleaner_id?: string;
+          day_of_week?: number;
+          window_key?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      cleaner_availability_exceptions: {
+        Row: {
+          id: string;
+          cleaner_id: string;
+          date: string;
+          window_key: string;
+          type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          cleaner_id: string;
+          date: string;
+          window_key: string;
+          type: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          cleaner_id?: string;
+          date?: string;
+          window_key?: string;
+          type?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       clients: {
         Row: {
           id: string;
