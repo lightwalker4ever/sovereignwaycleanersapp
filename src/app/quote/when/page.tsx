@@ -1,16 +1,16 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Loader2 } from "lucide-react";
 import { QuoteStepper } from "@/components/quote-flow/QuoteStepper";
-import { QuoteCalendar } from "@/components/quote-flow/QuoteCalendar";
+import { QuoteCalendar, toIso } from "@/components/quote-flow/QuoteCalendar";
 import { DesktopPriceSidebar } from "@/components/quote-flow/PriceSummary";
 import { MobileActionBar } from "@/components/quote-flow/MobileActionBar";
 import { useQuoteState } from "@/lib/quote-state";
-import { getQuoteRateCard } from "@/actions/quote";
+import { getQuoteRateCard, getQuoteWindowAvailability } from "@/actions/quote";
 import { calculateEndOfTenancy, calculateDeepCleaning, calculateOfficeCleaning } from "@/lib/quote-calculations";
-import { ARRIVAL_WINDOWS, type ArrivalWindowConfig } from "@/lib/quote-config";
+import { ARRIVAL_WINDOWS, type ArrivalWindowConfig, type ArrivalWindowKey } from "@/lib/quote-config";
 import type { RateCard } from "@/lib/rate-card";
 import { cn } from "@/lib/utils";
 
@@ -34,6 +34,48 @@ export default function QuoteWhenPage() {
   useEffect(() => {
     if (hydrated && !state.service) router.replace("/quote/service");
   }, [hydrated, state.service, router]);
+
+  // Real cleaner-capacity data layered on top of QuoteCalendar's own
+  // static placeholder rule -- see src/lib/cleaner-availability.ts.
+  // Keyed by ISO date so switching months doesn't lose earlier months'
+  // already-fetched results.
+  const [monthAvailability, setMonthAvailability] = useState<Record<string, ArrivalWindowKey[]>>({});
+  const handleMonthChange = useCallback((year: number, month: number) => {
+    const start = toIso(new Date(year, month, 1));
+    const days = new Date(year, month + 1, 0).getDate();
+    getQuoteWindowAvailability(start, days).then((result) => {
+      setMonthAvailability((prev) => ({ ...prev, ...result }));
+    });
+  }, []);
+  const unavailableDates = useMemo(() => {
+    const dates = new Set<string>();
+    for (const [date, windows] of Object.entries(monthAvailability)) {
+      if (windows.length === 0) dates.add(date);
+    }
+    return dates;
+  }, [monthAvailability]);
+
+  // Which windows have a free cleaner on the *selected* date -- re-fetched
+  // (1-day range, same action as the calendar) whenever the date changes.
+  // null means "not yet checked"; nothing is greyed out until it resolves,
+  // consistent with this flow's existing fail-open conventions elsewhere.
+  const [dateWindowAvailability, setDateWindowAvailability] = useState<ArrivalWindowKey[] | null>(null);
+  useEffect(() => {
+    if (!state.date) {
+      setDateWindowAvailability(null);
+      return;
+    }
+    const existing = monthAvailability[state.date];
+    if (existing) {
+      setDateWindowAvailability(existing);
+      return;
+    }
+    setDateWindowAvailability(null);
+    getQuoteWindowAvailability(state.date, 1).then((result) => {
+      setDateWindowAvailability(result[state.date!] ?? []);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.date]);
 
   const breakdown = useMemo(() => {
     if (!rateCard || !state.service) return null;
@@ -86,7 +128,12 @@ export default function QuoteWhenPage() {
             </p>
           </div>
 
-          <QuoteCalendar selectedDate={state.date} onSelect={(iso) => update({ date: iso })} />
+          <QuoteCalendar
+            selectedDate={state.date}
+            onSelect={(iso) => update({ date: iso, cleanerId: null, cleanerChoice: null, cleanerFirstName: null })}
+            unavailableDates={unavailableDates}
+            onMonthChange={handleMonthChange}
+          />
 
           <section aria-label="Arrival window" className="flex flex-col gap-3 rounded-2xl border border-dash-border bg-dash-surface p-5.5">
             <h2 className="m-0 text-[15px] font-extrabold">
@@ -95,13 +142,19 @@ export default function QuoteWhenPage() {
             <div className="grid grid-cols-1 gap-2.5 sm:grid-cols-3">
               {ARRIVAL_WINDOWS.map((w: ArrivalWindowConfig) => {
                 const on = state.window === w.key;
+                // null (not yet checked) never disables -- only an
+                // actually-resolved empty result does, consistent with
+                // this flow's fail-open conventions elsewhere.
+                const noCapacity = dateWindowAvailability !== null && !dateWindowAvailability.includes(w.key);
                 return (
                   <button
                     key={w.key}
                     type="button"
                     aria-pressed={on}
-                    disabled={state.flexible}
-                    onClick={() => update({ window: w.key })}
+                    disabled={state.flexible || noCapacity}
+                    onClick={() =>
+                      update({ window: w.key, cleanerId: null, cleanerChoice: null, cleanerFirstName: null })
+                    }
                     className={cn(
                       "flex min-h-16 flex-col items-start gap-0.5 rounded-xl px-3.5 py-2.5 text-left disabled:opacity-50",
                       on
@@ -110,7 +163,7 @@ export default function QuoteWhenPage() {
                     )}
                   >
                     <span className="text-[15px] font-extrabold">{w.label}</span>
-                    <span className="text-[13px] opacity-85">{w.time}</span>
+                    <span className="text-[13px] opacity-85">{noCapacity ? "Fully booked" : w.time}</span>
                   </button>
                 );
               })}
@@ -119,7 +172,10 @@ export default function QuoteWhenPage() {
               <input
                 type="checkbox"
                 checked={state.flexible}
-                onChange={(e) => update({ flexible: e.target.checked })}
+                disabled={dateWindowAvailability !== null && dateWindowAvailability.length === 0}
+                onChange={(e) =>
+                  update({ flexible: e.target.checked, cleanerId: null, cleanerChoice: null, cleanerFirstName: null })
+                }
                 className="h-5 w-5 accent-dash-brand-700"
               />
               I&apos;m flexible: any time that day is fine
@@ -132,8 +188,8 @@ export default function QuoteWhenPage() {
             serviceTitle={`Your price · ${SERVICE_NAME[state.service]}`}
             recap={state.postcode || "—"}
             breakdown={breakdown}
-            primaryLabel="Add your details"
-            onPrimary={() => router.push("/quote/details")}
+            primaryLabel="Choose a cleaner"
+            onPrimary={() => router.push("/quote/cleaner")}
             primaryDisabled={!canContinue}
             bodyOverride={
               <div className="flex flex-col gap-2.5 text-sm">
@@ -164,7 +220,7 @@ export default function QuoteWhenPage() {
         </aside>
       </div>
 
-      <MobileActionBar label="Add your details" onClick={() => router.push("/quote/details")} disabled={!canContinue} />
+      <MobileActionBar label="Choose a cleaner" onClick={() => router.push("/quote/cleaner")} disabled={!canContinue} />
     </>
   );
 }

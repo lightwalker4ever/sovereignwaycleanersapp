@@ -1,29 +1,43 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { isDateAvailable } from "@/lib/quote-config";
 import { cn } from "@/lib/utils";
 
 const DOW_LABELS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 
-function toIso(d: Date): string {
+export function toIso(d: Date): string {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 /**
  * Step 3's month calendar grid, per quote-handoff/QUOTE_HANDOFF.md:
  * Mon-Sun columns, available/fully-booked/selected/past day states.
- * Availability comes from isDateAvailable() (src/lib/quote-config.ts) --
- * a static placeholder rule (every day from tomorrow except Sundays and
- * a configurable blocked-dates list) until real capacity data exists.
+ * The base placeholder rule (every day from tomorrow except Sundays
+ * and a configurable blocked-dates list) comes from isDateAvailable()
+ * (src/lib/quote-config.ts); `unavailableDates` layers real cleaner
+ * capacity on top (a day present there has zero available cleaner
+ * across all 3 windows) -- the parent owns fetching that (per visible
+ * month, via onMonthChange) since this component stays a pure, dumb
+ * calendar with no knowledge of how availability is actually resolved.
  */
 export function QuoteCalendar({
   selectedDate,
   onSelect,
+  unavailableDates,
+  onMonthChange,
 }: {
   selectedDate: string | null;
   onSelect: (iso: string) => void;
+  /** ISO dates with zero available cleaner capacity, on top of the
+   *  static isDateAvailable() rule. Empty while unknown/loading --
+   *  loading never blocks a selection, it just means nothing's been
+   *  greyed out yet from real capacity. */
+  unavailableDates?: Set<string>;
+  /** Called on mount and whenever the visible month changes, so the
+   *  parent can fetch that month's real availability. */
+  onMonthChange?: (year: number, month: number) => void;
 }) {
   const [viewMonth, setViewMonth] = useState(() => {
     const d = new Date();
@@ -31,6 +45,11 @@ export function QuoteCalendar({
     d.setHours(0, 0, 0, 0);
     return d;
   });
+
+  useEffect(() => {
+    onMonthChange?.(viewMonth.getFullYear(), viewMonth.getMonth());
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [viewMonth]);
 
   const year = viewMonth.getFullYear();
   const month = viewMonth.getMonth();
@@ -78,7 +97,7 @@ export function QuoteCalendar({
           <span key={`blank-${i}`} className="h-12" />
         ))}
         {cells.map(({ date, iso }) => {
-          const available = isDateAvailable(date);
+          const available = isDateAvailable(date) && !unavailableDates?.has(iso);
           const selected = iso === selectedDate;
           return (
             <button

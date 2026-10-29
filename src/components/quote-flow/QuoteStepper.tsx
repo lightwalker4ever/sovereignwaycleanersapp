@@ -14,6 +14,7 @@ const INSTANT_STEPS: StepDef[] = [
   { key: "service", label: "Service", path: "/quote/service" },
   { key: "property", label: "Your property", path: "/quote/property" },
   { key: "when", label: "Date & time", path: "/quote/when" },
+  { key: "cleaner", label: "Cleaner", path: "/quote/cleaner" },
   { key: "details", label: "Your details", path: "/quote/details" },
 ];
 
