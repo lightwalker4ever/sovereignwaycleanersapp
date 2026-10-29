@@ -11,6 +11,7 @@ import {
   Sparkles,
   Tag,
   MapPin,
+  Globe,
   Settings as SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -82,6 +83,7 @@ export default async function AdminLayout({
     },
     { href: "/dashboard/admin/rate-card", label: "Rate Card", icon: navIcon(Tag) },
     { href: "/dashboard/admin/location-pricing", label: "Location Pricing", icon: navIcon(MapPin) },
+    { href: "/dashboard/admin/service-areas", label: "Service Areas", icon: navIcon(Globe) },
     { href: "/dashboard/admin/settings", label: "Settings", icon: navIcon(SettingsIcon) },
   ];
 

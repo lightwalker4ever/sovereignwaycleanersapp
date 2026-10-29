@@ -68,8 +68,13 @@ export default function QuoteCleanerPage() {
     // RequestDrawer.tsx's own reset-then-fetch effect.
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setCleaners(null);
-    getAvailableCleanersForQuote(state.date, state.flexible ? null : state.window, state.flexible).then(setCleaners);
-  }, [state.date, state.window, state.flexible]);
+    getAvailableCleanersForQuote(
+      state.date,
+      state.flexible ? null : state.window,
+      state.flexible,
+      state.postcode
+    ).then(setCleaners);
+  }, [state.date, state.window, state.flexible, state.postcode]);
 
   const [selectedCleanerId, setSelectedCleanerId] = useState<string | null>(state.cleanerId);
   const [selectedChoice, setSelectedChoice] = useState<"specific" | "any" | null>(state.cleanerChoice);

@@ -18,6 +18,7 @@ import {
   listAvailableCleanersForSlot,
   resolveBookingCleaner,
 } from "@/lib/cleaner-availability";
+import { resolveCoveringCleanerIds } from "@/lib/cleaner-service-areas";
 import {
   calculateEndOfTenancy,
   calculateDeepCleaning,
@@ -637,6 +638,23 @@ export async function resolveQuoteDraftByToken(token: string, postcode: string):
 }
 
 /**
+ * Resolves a postcode's geo once and turns it into the Set<string> |
+ * null restriction listAvailableCleanersForSlot()/
+ * getCleanerScheduleGrid() expect -- null (no restriction) whenever
+ * the postcode is blank or can't be resolved, per the agreed
+ * fail-soft rule: an unresolvable postcode never excludes a cleaner
+ * for a reason that can't be checked, it just falls back to matching
+ * on availability alone, same as before geographic matching existed.
+ */
+async function resolveGeoCoverage(postcode: string): Promise<Set<string> | null> {
+  const trimmed = postcode.trim();
+  if (!trimmed) return null;
+  const lookup = await lookupPostcode(trimmed);
+  if (lookup.status !== "found") return null;
+  return resolveCoveringCleanerIds(lookup.geo);
+}
+
+/**
  * Which of the 3 arrival windows have at least one available cleaner,
  * per date, across a range -- powers both the "when" step's calendar
  * (whole months at a time) and its window picker (a single date).
@@ -644,12 +662,17 @@ export async function resolveQuoteDraftByToken(token: string, postcode: string):
  * source) rather than a separate implementation, but strips cleaner
  * identities out of what's returned here -- this is a public action,
  * nothing about which named cleaner is free should leave the server.
+ * `postcode` layers geographic matching on top -- see
+ * resolveGeoCoverage() below; an unresolvable postcode falls back to
+ * no restriction rather than blocking the calendar.
  */
 export async function getQuoteWindowAvailability(
   startIso: string,
-  days: number
+  days: number,
+  postcode: string
 ): Promise<Record<string, ArrivalWindowKey[]>> {
-  const { cells } = await getCleanerScheduleGrid(startIso, days);
+  const coveringCleanerIds = await resolveGeoCoverage(postcode);
+  const { cells } = await getCleanerScheduleGrid(startIso, days, coveringCleanerIds);
   const result: Record<string, ArrivalWindowKey[]> = {};
   // Seed every date in range with an empty array first -- a date with
   // zero available cells must still appear as a key (with []), not be
@@ -677,15 +700,20 @@ export interface QuoteCleanerOption {
  * requested date+window (or, when flexible, free for *any* window
  * that day, unioned). Only a first name is returned, never the full
  * identity (name/email) listAvailableCleanersForSlot() itself holds --
- * this is public-facing.
+ * this is public-facing. `postcode` layers geographic matching on top,
+ * same fail-soft rule as getQuoteWindowAvailability() above.
  */
 export async function getAvailableCleanersForQuote(
   date: string,
   windowKey: ArrivalWindowKey | null,
-  isFlexible: boolean
+  isFlexible: boolean,
+  postcode: string
 ): Promise<QuoteCleanerOption[]> {
+  const coveringCleanerIds = await resolveGeoCoverage(postcode);
   const windowsToCheck = isFlexible || !windowKey ? WINDOW_ORDER : [windowKey];
-  const perWindow = await Promise.all(windowsToCheck.map((w) => listAvailableCleanersForSlot(date, w)));
+  const perWindow = await Promise.all(
+    windowsToCheck.map((w) => listAvailableCleanersForSlot(date, w, coveringCleanerIds))
+  );
 
   const byId = new Map<string, QuoteCleanerOption>();
   for (const list of perWindow) {
@@ -795,12 +823,16 @@ export async function submitInstantQuoteRequest(input: {
   // function's own doc comment. A flexible booking's resolved window
   // (if a match was found) gives it a real time instead of the old
   // meaningless default; requestedWindow/isFlexible themselves still
-  // reflect what the customer actually said, unchanged.
+  // reflect what the customer actually said, unchanged. The
+  // geographic restriction is re-resolved here too, for the same
+  // reason -- never trust an earlier page's snapshot.
+  const coveringCleanerIds = await resolveGeoCoverage(trimmedPostcode);
   const resolvedBooking = await resolveBookingCleaner(
     input.requestedDate,
     input.requestedWindow,
     input.isFlexible,
-    input.cleanerChoice === "specific" ? input.cleanerId : null
+    input.cleanerChoice === "specific" ? input.cleanerId : null,
+    coveringCleanerIds
   );
   const effectiveWindow = resolvedBooking.windowKey ?? input.requestedWindow;
   const startTime = effectiveWindow ? WINDOW_START_TIME[effectiveWindow] : "09:00";

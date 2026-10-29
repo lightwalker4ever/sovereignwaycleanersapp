@@ -207,18 +207,24 @@ export interface AvailableCleaner {
  * Every cleaner who is both declared-available (weekly template +
  * exceptions) and not already busy (real booked jobs, with the buffer
  * rule) for one date+window -- the single source of truth reused by
- * both the admin combined-schedule view and, in a later phase, the
- * customer-facing quote flow.
+ * both the admin combined-schedule view and the customer-facing quote
+ * flow. `coveringCleanerIds`, when passed, additionally restricts the
+ * result to that set (geographic matching -- see
+ * resolveCoveringCleanerIds() in cleaner-service-areas.ts); omitted or
+ * null means no restriction, so every existing caller (admin's
+ * Schedule page, CreateCleaningForm's hint) is unaffected.
  */
 export async function listAvailableCleanersForSlot(
   date: string,
-  windowKey: ArrivalWindowKey
+  windowKey: ArrivalWindowKey,
+  coveringCleanerIds?: Set<string> | null
 ): Promise<AvailableCleaner[]> {
+  if (coveringCleanerIds && coveringCleanerIds.size === 0) return [];
+
   const admin = createAdminClient();
-  const { data: cleaners, error } = await admin
-    .from("profiles")
-    .select("id, full_name, email")
-    .eq("role", "cleaner");
+  let query = admin.from("profiles").select("id, full_name, email").eq("role", "cleaner");
+  if (coveringCleanerIds) query = query.in("id", Array.from(coveringCleanerIds));
+  const { data: cleaners, error } = await query;
   if (error) throw new Error(error.message);
 
   const checked = await Promise.all(
@@ -263,11 +269,18 @@ export interface ScheduleGridCell {
  * tables once for the full date range and resolves every cell
  * in-memory instead, reusing windowForScheduledAt() for the same
  * window-bucketing + buffer rule as resolveCleanerBusyWindows().
+ * `coveringCleanerIds`, when passed, restricts the grid to that set of
+ * cleaners (geographic matching) -- omitted or null means every
+ * cleaner, which is what the admin Schedule page's own call still
+ * passes, so it stays geography-unaware by design.
  */
 export async function getCleanerScheduleGrid(
   startIso: string,
-  days: number
+  days: number,
+  coveringCleanerIds?: Set<string> | null
 ): Promise<{ cleaners: ScheduleGridCleaner[]; cells: ScheduleGridCell[] }> {
+  if (coveringCleanerIds && coveringCleanerIds.size === 0) return { cleaners: [], cells: [] };
+
   const admin = createAdminClient();
   const startDate = new Date(`${startIso}T00:00:00`);
   // Calendar-field arithmetic (setDate), not epoch-millis +N*24h --
@@ -279,13 +292,16 @@ export async function getCleanerScheduleGrid(
   endDate.setDate(endDate.getDate() + days);
   const endIso = toIsoDate(endDate);
 
+  let cleanersQuery = admin.from("profiles").select("id, full_name").eq("role", "cleaner").order("full_name");
+  if (coveringCleanerIds) cleanersQuery = cleanersQuery.in("id", Array.from(coveringCleanerIds));
+
   const [
     { data: cleaners, error: cleanersError },
     { data: weekly, error: weeklyError },
     { data: exceptions, error: exceptionsError },
     { data: jobs, error: jobsError },
   ] = await Promise.all([
-    admin.from("profiles").select("id, full_name").eq("role", "cleaner").order("full_name"),
+    cleanersQuery,
     admin.from("cleaner_availability").select("cleaner_id, day_of_week, window_key"),
     admin
       .from("cleaner_availability_exceptions")
@@ -393,18 +409,22 @@ export interface ResolvedBookingCleaner {
  * pick among whoever's still free; returns nulls if nobody's free at
  * all for any checked window, so the caller can fall back to its own
  * existing "admin sorts it out" path rather than failing the booking.
+ * `coveringCleanerIds` threads straight through to
+ * listAvailableCleanersForSlot() for geographic matching -- omitted or
+ * null means no restriction.
  */
 export async function resolveBookingCleaner(
   date: string,
   windowKey: ArrivalWindowKey | null,
   isFlexible: boolean,
-  preferredCleanerId: string | null
+  preferredCleanerId: string | null,
+  coveringCleanerIds?: Set<string> | null
 ): Promise<ResolvedBookingCleaner> {
   const windowsToTry = isFlexible || !windowKey ? WINDOW_ORDER : [windowKey];
 
   if (preferredCleanerId) {
     for (const w of windowsToTry) {
-      const available = await listAvailableCleanersForSlot(date, w);
+      const available = await listAvailableCleanersForSlot(date, w, coveringCleanerIds);
       if (available.some((c) => c.id === preferredCleanerId)) {
         return { cleanerId: preferredCleanerId, windowKey: w };
       }
@@ -412,7 +432,7 @@ export async function resolveBookingCleaner(
   }
 
   for (const w of windowsToTry) {
-    const available = await listAvailableCleanersForSlot(date, w);
+    const available = await listAvailableCleanersForSlot(date, w, coveringCleanerIds);
     if (available.length > 0) {
       const pick = available[Math.floor(Math.random() * available.length)];
       return { cleanerId: pick.id, windowKey: w };
