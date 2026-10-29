@@ -25,6 +25,14 @@ export default async function CleanerSchedulePage() {
       }
       tabs={CLEANER_TABS}
     >
+      <div className="px-4 pb-4">
+        <Link
+          href="/dashboard/cleaner/availability"
+          className="flex h-11 items-center justify-center rounded-[10px] border border-dash-input-border bg-white text-sm font-semibold text-dash-ink"
+        >
+          Edit my availability
+        </Link>
+      </div>
       <div className="px-4 pb-6">
         <div className="overflow-hidden rounded-2xl border border-dash-border bg-dash-surface">
           {upcoming.map((c) => (
