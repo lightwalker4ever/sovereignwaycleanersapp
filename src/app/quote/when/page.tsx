@@ -40,13 +40,16 @@ export default function QuoteWhenPage() {
   // Keyed by ISO date so switching months doesn't lose earlier months'
   // already-fetched results.
   const [monthAvailability, setMonthAvailability] = useState<Record<string, ArrivalWindowKey[]>>({});
-  const handleMonthChange = useCallback((year: number, month: number) => {
-    const start = toIso(new Date(year, month, 1));
-    const days = new Date(year, month + 1, 0).getDate();
-    getQuoteWindowAvailability(start, days).then((result) => {
-      setMonthAvailability((prev) => ({ ...prev, ...result }));
-    });
-  }, []);
+  const handleMonthChange = useCallback(
+    (year: number, month: number) => {
+      const start = toIso(new Date(year, month, 1));
+      const days = new Date(year, month + 1, 0).getDate();
+      getQuoteWindowAvailability(start, days, state.postcode).then((result) => {
+        setMonthAvailability((prev) => ({ ...prev, ...result }));
+      });
+    },
+    [state.postcode]
+  );
   const unavailableDates = useMemo(() => {
     const dates = new Set<string>();
     for (const [date, windows] of Object.entries(monthAvailability)) {
@@ -71,7 +74,7 @@ export default function QuoteWhenPage() {
       return;
     }
     setDateWindowAvailability(null);
-    getQuoteWindowAvailability(state.date, 1).then((result) => {
+    getQuoteWindowAvailability(state.date, 1, state.postcode).then((result) => {
       setDateWindowAvailability(result[state.date!] ?? []);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps

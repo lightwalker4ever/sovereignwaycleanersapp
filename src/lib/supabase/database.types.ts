@@ -98,6 +98,30 @@ export type Database = {
         };
         Relationships: [];
       };
+      cleaner_service_areas: {
+        Row: {
+          id: string;
+          cleaner_id: string;
+          match_type: "admin_district" | "region" | "postcode_area";
+          match_value: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          cleaner_id: string;
+          match_type: "admin_district" | "region" | "postcode_area";
+          match_value: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          cleaner_id?: string;
+          match_type?: "admin_district" | "region" | "postcode_area";
+          match_value?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       clients: {
         Row: {
           id: string;
