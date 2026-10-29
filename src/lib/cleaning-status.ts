@@ -21,6 +21,7 @@ export const DISPLAY_CLEANING_STATUSES = [
   "awaiting_confirmation",
   "scheduled",
   "missed",
+  "rescheduled",
   "in_progress",
   "in_review",
   "changes_requested",
@@ -38,6 +39,7 @@ export const CLEANING_STATUS_INFO: Record<
   awaiting_confirmation: { label: "Awaiting confirmation", bg: "#FFF1D1", text: "#7A4B00" },
   scheduled: { label: "Scheduled", bg: "#EEF1EF", text: "#3F4B44" },
   missed: { label: "Missed job - Reschedule", bg: "#FDE8E6", text: "#B42318" },
+  rescheduled: { label: "Rescheduled", bg: "#E6E9FD", text: "#3730A3" },
   in_progress: { label: "In progress", bg: "#FFF1D1", text: "#7A4B00" },
   in_review: { label: "In review", bg: "#E3EEFB", text: "#1C4F8F" },
   changes_requested: { label: "Changes requested", bg: "#FCE6DA", text: "#9A3A0B" },
@@ -63,18 +65,26 @@ const DB_STATUS_TO_DISPLAY: Record<string, DisplayCleaningStatus> = {
  * has passed with no `started_at` becomes "missed", the same
  * derived-not-stored pattern as "changes_requested" above: it's fully
  * reconstructable from existing data, so there's no new DB status to
- * keep in sync with "now".
+ * keep in sync with "now". "rescheduled" can't be derived the same way
+ * (the fact that a job *was* missed is lost once its date moves to the
+ * future), so it depends on `rescheduledAt`, the one piece of this that
+ * actually is stored (`cleanings.rescheduled_at`, set by
+ * rescheduleCleaning()) -- checked after "missed" so a rescheduled job
+ * that's then missed *again* shows "missed" rather than a stale
+ * "Rescheduled" badge.
  */
 export function toDisplayCleaningStatus(
   dbStatus: string,
   hasNotMet: boolean,
   scheduledAt?: string | null,
-  startedAt?: string | null
+  startedAt?: string | null,
+  rescheduledAt?: string | null
 ): DisplayCleaningStatus {
   if (dbStatus === "in_progress" && hasNotMet) return "changes_requested";
   if (dbStatus === "assigned" && !startedAt && scheduledAt && new Date(scheduledAt) < new Date()) {
     return "missed";
   }
+  if (dbStatus === "assigned" && !startedAt && rescheduledAt) return "rescheduled";
   return DB_STATUS_TO_DISPLAY[dbStatus] ?? "scheduled";
 }
 

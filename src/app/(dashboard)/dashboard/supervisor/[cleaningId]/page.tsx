@@ -40,7 +40,7 @@ export default async function SupervisorReviewDetailPage({
   ];
 
   const hasNotMet = cleaning.checklist.some((i) => i.reviewStatus === "not_met");
-  const displayStatus = toDisplayCleaningStatus(cleaning.status, hasNotMet, cleaning.scheduledAt, cleaning.startedAt);
+  const displayStatus = toDisplayCleaningStatus(cleaning.status, hasNotMet, cleaning.scheduledAt, cleaning.startedAt, cleaning.rescheduledAt);
 
   return (
     <AppShell

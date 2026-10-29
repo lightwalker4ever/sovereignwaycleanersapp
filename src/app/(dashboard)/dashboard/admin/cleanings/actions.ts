@@ -6,7 +6,7 @@ import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, phoneSchema } from "@/lib/validation";
-import { resolveClientStandardState, assignChecklistToCleaning } from "@/lib/standards";
+import { resolveClientStandardState, assignChecklistToCleaning, refreshCleaningStandards } from "@/lib/standards";
 import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
 import {
   toDisplayCleaningStatus,
@@ -242,7 +242,7 @@ export async function listCleanings(): Promise<CleaningRow[]> {
     admin
       .from("cleanings")
       .select(
-        "id, reference, client_id, cleaner_id, supervisor_id, status, scheduled_at, started_at, created_at, requested_date, requested_window, is_flexible"
+        "id, reference, client_id, cleaner_id, supervisor_id, status, scheduled_at, started_at, rescheduled_at, created_at, requested_date, requested_window, is_flexible"
       )
       .order("scheduled_at", { ascending: false }),
     admin.from("clients").select("id, full_name, address"),
@@ -280,18 +280,116 @@ export async function listCleanings(): Promise<CleaningRow[]> {
       supervisorName: c.supervisor_id ? profileNameById.get(c.supervisor_id) ?? null : null,
       checklistDone: agg?.done ?? 0,
       checklistTotal: agg?.total ?? 0,
-      displayStatus: toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false, c.scheduled_at, c.started_at),
+      displayStatus: toDisplayCleaningStatus(c.status, agg?.hasNotMet ?? false, c.scheduled_at, c.started_at, c.rescheduled_at),
     };
   });
 
   return rows;
 }
 
-export async function getCleaningDetail(cleaningId: string): Promise<CleaningDetailForParty | null> {
+export interface AdminCleaningDetail extends CleaningDetailForParty {
+  clientId: string;
+  cleanerId: string | null;
+  supervisorId: string | null;
+  displayStatus: DisplayCleaningStatus;
+}
+
+export async function getCleaningDetail(cleaningId: string): Promise<AdminCleaningDetail | null> {
   await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
   // No one specific user -- admin isn't the cleaner or supervisor --
   // so ownerColumn null skips the ownership check entirely.
-  return getCleaningDetailForParty(cleaningId, "", null);
+  const [detail, { data: raw }] = await Promise.all([
+    getCleaningDetailForParty(cleaningId, "", null),
+    admin.from("cleanings").select("client_id, cleaner_id, supervisor_id, status").eq("id", cleaningId).single(),
+  ]);
+  if (!detail || !raw) return null;
+
+  const hasNotMet = detail.checklist.some((i) => i.reviewStatus === "not_met");
+  return {
+    ...detail,
+    clientId: raw.client_id,
+    cleanerId: raw.cleaner_id,
+    supervisorId: raw.supervisor_id,
+    displayStatus: toDisplayCleaningStatus(raw.status, hasNotMet, detail.scheduledAt, detail.startedAt, detail.rescheduledAt),
+  };
+}
+
+export type ReassignResult = { success: true } | { success: false; error: string };
+
+/**
+ * "Scheduled jobs should still let admin change cleaner/supervisor" --
+ * limited to the pre-start phase (dbStatus "assigned", which covers
+ * scheduled/missed/rescheduled display states) since swapping staff
+ * mid-job or after review has started is a different, riskier
+ * operation this wasn't asked for.
+ */
+export async function reassignCleaning(input: {
+  cleaningId: string;
+  cleanerId: string;
+  supervisorId: string;
+}): Promise<ReassignResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  if (!input.cleanerId || !input.supervisorId) {
+    return { success: false, error: "Pick a cleaner and a supervisor" };
+  }
+
+  const [{ data: cleanerProfile }, { data: supervisorProfile }, { data: cleaning }] = await Promise.all([
+    admin.from("profiles").select("role").eq("id", input.cleanerId).single(),
+    admin.from("profiles").select("role").eq("id", input.supervisorId).single(),
+    admin.from("cleanings").select("status").eq("id", input.cleaningId).single(),
+  ]);
+  if (cleanerProfile?.role !== "cleaner") return { success: false, error: "Selected cleaner is invalid" };
+  if (supervisorProfile?.role !== "supervisor") return { success: false, error: "Selected supervisor is invalid" };
+  if (!cleaning) return { success: false, error: "Cleaning not found" };
+  if (cleaning.status !== "assigned") {
+    return { success: false, error: "This job can only be reassigned while it's still scheduled" };
+  }
+
+  const { error: updateError } = await admin
+    .from("cleanings")
+    .update({ cleaner_id: input.cleanerId, supervisor_id: input.supervisorId })
+    .eq("id", input.cleaningId);
+  if (updateError) return { success: false, error: updateError.message };
+
+  revalidatePath("/dashboard/admin/cleanings");
+  revalidatePath(`/dashboard/admin/cleanings/${input.cleaningId}`);
+  return { success: true };
+}
+
+export type RefreshStandardsResult =
+  | { success: true; summary: { added: number; updated: number; markedObsolete: number } }
+  | { success: false; error: string };
+
+/**
+ * "Refresh standards" for a job whose checklist was snapshotted before
+ * the client's standard list changed -- see refreshCleaningStandards()
+ * for the add/sync/mark-obsolete logic. Blocked once the job is
+ * completed or declined, since there's nothing left to check off by
+ * then.
+ */
+export async function refreshStandardsForCleaning(cleaningId: string): Promise<RefreshStandardsResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  const { data: cleaning, error: fetchError } = await admin
+    .from("cleanings")
+    .select("client_id, status")
+    .eq("id", cleaningId)
+    .single();
+  if (fetchError || !cleaning) return { success: false, error: "Cleaning not found" };
+  if (cleaning.status === "completed" || cleaning.status === "declined") {
+    return { success: false, error: "This job's checklist can no longer be refreshed" };
+  }
+
+  const result = await refreshCleaningStandards(cleaningId, cleaning.client_id);
+  if (!result.success) return result;
+
+  revalidatePath(`/dashboard/admin/cleanings/${cleaningId}`);
+  return result;
 }
 
 const SERVICE_TITLE: Record<string, string> = {
@@ -599,6 +697,55 @@ export async function proposeAnotherDate(input: {
   }
 
   revalidatePath("/dashboard/admin/cleanings");
+  return { success: true };
+}
+
+export type RescheduleResult = { success: true } | { success: false; error: string };
+
+/**
+ * Admin's response to a "missed" job -- agrees a new date/time with the
+ * client and records `rescheduled_at` so the status shows a persistent
+ * "Rescheduled" badge afterwards (see toDisplayCleaningStatus) instead
+ * of quietly reverting to a plain "Scheduled" one. Only valid for an
+ * already-assigned job that hasn't started -- not a request still
+ * awaiting confirmation (that's proposeAnotherDate's job) and not one
+ * already underway or finished.
+ */
+export async function rescheduleCleaning(input: {
+  cleaningId: string;
+  date: string;
+  time: string;
+}): Promise<RescheduleResult> {
+  await assertIsRole(["admin"]);
+  const admin = createAdminClient();
+
+  if (!input.date || !input.time) {
+    return { success: false, error: "Pick a date and start time" };
+  }
+  const scheduledAt = new Date(`${input.date}T${input.time}`);
+  if (Number.isNaN(scheduledAt.getTime())) {
+    return { success: false, error: "That date and time isn't valid" };
+  }
+
+  const { data: cleaning, error: fetchError } = await admin
+    .from("cleanings")
+    .select("status, started_at")
+    .eq("id", input.cleaningId)
+    .single();
+  if (fetchError || !cleaning) return { success: false, error: "Cleaning not found" };
+  if (cleaning.status !== "assigned" || cleaning.started_at) {
+    return { success: false, error: "This job can no longer be rescheduled" };
+  }
+
+  const { error: updateError } = await admin
+    .from("cleanings")
+    .update({ scheduled_at: scheduledAt.toISOString(), rescheduled_at: new Date().toISOString() })
+    .eq("id", input.cleaningId);
+  if (updateError) return { success: false, error: updateError.message };
+
+  revalidatePath("/dashboard/admin/cleanings");
+  revalidatePath(`/dashboard/admin/cleanings/${input.cleaningId}`);
+  revalidatePath("/dashboard/admin");
   return { success: true };
 }
 

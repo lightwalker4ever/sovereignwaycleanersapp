@@ -131,3 +131,110 @@ export async function assignChecklistToCleaning(
 
   return { success: true };
 }
+
+export interface RefreshStandardsSummary {
+  added: number;
+  updated: number;
+  markedObsolete: number;
+}
+
+/**
+ * Re-syncs an already-created cleaning's checklist against its client's
+ * *current* standards, for when the standard list changes after the
+ * job was created (checklists are snapshotted at creation time by
+ * design -- see createCleaning()/assignChecklistToCleaning() -- so
+ * they never pick this up on their own). A standard newly enabled on
+ * the list becomes a new row; one still present just gets its
+ * title/description/area re-synced (id, review_status, and photos
+ * untouched); one no longer enabled is marked `is_obsolete` rather
+ * than deleted, so a cleaner's or supervisor's existing work on it
+ * isn't lost -- "No longer required" in the UI.
+ */
+export async function refreshCleaningStandards(
+  cleaningId: string,
+  clientId: string
+): Promise<{ success: true; summary: RefreshStandardsSummary } | { success: false; error: string }> {
+  const admin = createAdminClient();
+
+  const state = await resolveClientStandardState(clientId);
+  if (!state) {
+    return { success: false, error: "This client has no standards assigned" };
+  }
+  const liveEnabled = state.items.filter((i) => i.enabled);
+  const liveById = new Map(liveEnabled.map((i) => [i.standardId, i]));
+
+  const { data: existing, error: existingError } = await admin
+    .from("cleaning_standards")
+    .select("id, standard_id, is_obsolete, sort_order")
+    .eq("cleaning_id", cleaningId);
+  if (existingError) return { success: false, error: existingError.message };
+
+  const existingByStandardId = new Map(
+    (existing ?? []).filter((r) => r.standard_id).map((r) => [r.standard_id as string, r])
+  );
+  let nextSortOrder = (existing ?? []).reduce((max, r) => Math.max(max, r.sort_order), -1) + 1;
+
+  const toInsert = liveEnabled
+    .filter((item) => !existingByStandardId.has(item.standardId))
+    .map((item) => ({
+      cleaning_id: cleaningId,
+      standard_id: item.standardId,
+      title: item.title,
+      description: item.description,
+      area: item.area,
+      sort_order: nextSortOrder++,
+    }));
+
+  const toUnObsolete = (existing ?? []).filter((r) => r.standard_id && liveById.has(r.standard_id) && r.is_obsolete);
+  // A row with standard_id === null can never be matched back to a live
+  // standard -- that's not "no standard_id was ever recorded", it's the
+  // cleaning_standards.standard_id foreign key's ON DELETE SET NULL
+  // firing when the source standard is deleted outright (confirmed via
+  // direct query: deleting a standard from the Standards page doesn't
+  // block on existing snapshots referencing it, it nulls them out).
+  // Those rows are unconditionally "no longer required", same as one
+  // whose standard_id still exists but fell off the live/enabled set.
+  const toMarkObsolete = (existing ?? []).filter(
+    (r) => (!r.standard_id || !liveById.has(r.standard_id)) && !r.is_obsolete
+  );
+
+  const writes: PromiseLike<{ error: { message: string } | null }>[] = [];
+  if (toInsert.length > 0) {
+    writes.push(admin.from("cleaning_standards").insert(toInsert));
+  }
+  for (const row of toUnObsolete) {
+    const item = liveById.get(row.standard_id as string)!;
+    writes.push(
+      admin
+        .from("cleaning_standards")
+        .update({ title: item.title, description: item.description, area: item.area, is_obsolete: false })
+        .eq("id", row.id)
+    );
+  }
+  for (const row of toMarkObsolete) {
+    writes.push(admin.from("cleaning_standards").update({ is_obsolete: true }).eq("id", row.id));
+  }
+  // Items present in both and already up to date (not obsolete, still
+  // live) still get their title/description/area synced in case the
+  // standard's text itself changed -- cheap to always write rather
+  // than diffing field-by-field first.
+  for (const row of existing ?? []) {
+    if (!row.standard_id || !liveById.has(row.standard_id) || row.is_obsolete) continue;
+    const item = liveById.get(row.standard_id)!;
+    writes.push(
+      admin
+        .from("cleaning_standards")
+        .update({ title: item.title, description: item.description, area: item.area })
+        .eq("id", row.id)
+    );
+  }
+
+  const results = await Promise.all(writes);
+  const failed = results.find((r) => r.error);
+  if (failed?.error) return { success: false, error: failed.error.message };
+
+  return {
+    success: true,
+    summary: { added: toInsert.length, updated: toUnObsolete.length, markedObsolete: toMarkObsolete.length },
+  };
+}

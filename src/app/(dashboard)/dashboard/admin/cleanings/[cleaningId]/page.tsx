@@ -2,9 +2,13 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { StatusPill } from "@/components/ui/StatusPill";
 import { capitalize } from "@/lib/utils";
-import { getCleaningDetail } from "../actions";
+import { getCleaningDetail, listAssignableStaff } from "../actions";
 import { PageContainer } from "@/components/shell/PageContainer";
+import { RescheduleCleaningForm } from "@/components/admin/RescheduleCleaningForm";
+import { ReassignCleaningForm } from "@/components/admin/ReassignCleaningForm";
+import { RefreshStandardsButton } from "@/components/admin/RefreshStandardsButton";
 
 const REVIEW_STATUS_LABEL: Record<string, string> = {
   pending: "Pending",
@@ -29,6 +33,12 @@ export default async function CleaningDetailPage({
   const cleaning = await getCleaningDetail(cleaningId);
   if (!cleaning) notFound();
 
+  const canReassign = cleaning.status === "assigned";
+  const canRefreshStandards = cleaning.status !== "completed" && cleaning.status !== "declined";
+  const { cleaners, supervisors } = canReassign
+    ? await listAssignableStaff()
+    : { cleaners: [], supervisors: [] };
+
   const backLink = (from && BACK_LINKS[from]) || { href: "/dashboard/admin/cleanings", label: "← Cleanings" };
 
   return (
@@ -41,9 +51,14 @@ export default async function CleaningDetailPage({
           {cleaning.clientName || "Unnamed client"}
         </h1>
         <div className="mt-1 flex items-center gap-2 text-sm text-gray-600">
-          <Badge variant="secondary">{capitalize(cleaning.status.replace("_", " "))}</Badge>
+          <StatusPill status={cleaning.displayStatus} />
           <span>Created {new Date(cleaning.createdAt).toLocaleDateString("en-GB")}</span>
         </div>
+        {cleaning.displayStatus === "missed" && (
+          <div className="mt-3">
+            <RescheduleCleaningForm cleaningId={cleaning.id} />
+          </div>
+        )}
       </div>
 
       <Card className="p-5">
@@ -51,14 +66,26 @@ export default async function CleaningDetailPage({
           <CardTitle>Details</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Cleaner</p>
-            <p className="text-sm text-gray-900">{cleaning.cleanerName || "—"}</p>
-          </div>
-          <div>
-            <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Supervisor</p>
-            <p className="text-sm text-gray-900">{cleaning.supervisorName || "—"}</p>
-          </div>
+          {canReassign ? (
+            <ReassignCleaningForm
+              cleaningId={cleaning.id}
+              cleaners={cleaners}
+              supervisors={supervisors}
+              initialCleanerId={cleaning.cleanerId}
+              initialSupervisorId={cleaning.supervisorId}
+            />
+          ) : (
+            <>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Cleaner</p>
+                <p className="text-sm text-gray-900">{cleaning.cleanerName || "—"}</p>
+              </div>
+              <div>
+                <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Supervisor</p>
+                <p className="text-sm text-gray-900">{cleaning.supervisorName || "—"}</p>
+              </div>
+            </>
+          )}
           {cleaning.notes && (
             <div>
               <p className="text-xs font-medium uppercase tracking-wide text-gray-500">Notes</p>
@@ -70,15 +97,20 @@ export default async function CleaningDetailPage({
 
       <Card className="p-5">
         <CardHeader>
-          <CardTitle>Checklist</CardTitle>
-          <CardDescription>
-            Snapshotted from the client&apos;s standards when this cleaning was created.
-          </CardDescription>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <CardTitle>Checklist</CardTitle>
+              <CardDescription>
+                Snapshotted from the client&apos;s standards when this cleaning was created.
+              </CardDescription>
+            </div>
+            {canRefreshStandards && <RefreshStandardsButton cleaningId={cleaning.id} />}
+          </div>
         </CardHeader>
         <CardContent>
           <div className="divide-y divide-gray-100 rounded-lg ring-1 ring-foreground/10">
             {cleaning.checklist.map((item) => (
-              <div key={item.id} className="space-y-2 p-3">
+              <div key={item.id} className={`space-y-2 p-3 ${item.isObsolete ? "opacity-60" : ""}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="text-sm font-medium text-gray-900">{item.title}</p>
@@ -86,9 +118,16 @@ export default async function CleaningDetailPage({
                       <p className="text-xs text-gray-500">{item.description}</p>
                     )}
                   </div>
-                  <Badge variant="outline">
-                    {REVIEW_STATUS_LABEL[item.reviewStatus] ?? item.reviewStatus}
-                  </Badge>
+                  <div className="flex shrink-0 items-center gap-1.5">
+                    {item.isObsolete && (
+                      <Badge variant="outline" className="border-amber-300 text-amber-700">
+                        No longer required
+                      </Badge>
+                    )}
+                    <Badge variant="outline">
+                      {REVIEW_STATUS_LABEL[item.reviewStatus] ?? item.reviewStatus}
+                    </Badge>
+                  </div>
                 </div>
                 {item.supervisorComment && (
                   <p className="text-xs text-gray-600">

@@ -197,6 +197,7 @@ export type Database = {
           started_at: string | null;
           submitted_at: string | null;
           completed_at: string | null;
+          rescheduled_at: string | null;
           requested_date: string | null;
           requested_window: string | null;
           is_flexible: boolean;
@@ -228,6 +229,7 @@ export type Database = {
           started_at?: string | null;
           submitted_at?: string | null;
           completed_at?: string | null;
+          rescheduled_at?: string | null;
           requested_date?: string | null;
           requested_window?: string | null;
           is_flexible?: boolean;
@@ -258,6 +260,7 @@ export type Database = {
           started_at?: string | null;
           submitted_at?: string | null;
           completed_at?: string | null;
+          rescheduled_at?: string | null;
           requested_date?: string | null;
           requested_window?: string | null;
           is_flexible?: boolean;
@@ -287,6 +290,7 @@ export type Database = {
           sort_order: number;
           review_status: string;
           supervisor_comment: string | null;
+          is_obsolete: boolean;
           created_at: string;
           updated_at: string;
         };
@@ -300,6 +304,7 @@ export type Database = {
           sort_order?: number;
           review_status?: string;
           supervisor_comment?: string | null;
+          is_obsolete?: boolean;
           created_at?: string;
           updated_at?: string;
         };
@@ -313,6 +318,7 @@ export type Database = {
           sort_order?: number;
           review_status?: string;
           supervisor_comment?: string | null;
+          is_obsolete?: boolean;
           created_at?: string;
           updated_at?: string;
         };

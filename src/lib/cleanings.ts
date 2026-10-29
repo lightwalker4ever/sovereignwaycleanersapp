@@ -19,6 +19,7 @@ export interface CleaningChecklistItem {
   area: string | null;
   reviewStatus: string;
   supervisorComment: string | null;
+  isObsolete: boolean;
   photos: CleaningPhoto[];
 }
 
@@ -44,6 +45,7 @@ export interface CleaningDetailForParty {
   submittedAt: string | null;
   createdAt: string;
   completedAt: string | null;
+  rescheduledAt: string | null;
   checklist: CleaningChecklistItem[];
   comments: CleaningCommentEntry[];
 }
@@ -73,7 +75,7 @@ export async function getCleaningDetailForParty(
   const { data: cleaning, error } = await admin
     .from("cleanings")
     .select(
-      "id, client_id, cleaner_id, supervisor_id, status, notes, scheduled_at, ends_at, started_at, submitted_at, created_at, completed_at"
+      "id, client_id, cleaner_id, supervisor_id, status, notes, scheduled_at, ends_at, started_at, submitted_at, created_at, completed_at, rescheduled_at"
     )
     .eq("id", cleaningId)
     .single();
@@ -96,7 +98,7 @@ export async function getCleaningDetailForParty(
       : Promise.resolve({ data: null }),
     admin
       .from("cleaning_standards")
-      .select("id, title, description, area, review_status, supervisor_comment")
+      .select("id, title, description, area, review_status, supervisor_comment, is_obsolete")
       .eq("cleaning_id", cleaningId)
       .order("sort_order", { ascending: true }),
     admin
@@ -160,6 +162,7 @@ export async function getCleaningDetailForParty(
     submittedAt: cleaning.submitted_at,
     createdAt: cleaning.created_at,
     completedAt: cleaning.completed_at,
+    rescheduledAt: cleaning.rescheduled_at,
     checklist: (checklist ?? []).map((c) => ({
       id: c.id,
       title: c.title,
@@ -167,6 +170,7 @@ export async function getCleaningDetailForParty(
       area: c.area,
       reviewStatus: c.review_status,
       supervisorComment: c.supervisor_comment,
+      isObsolete: c.is_obsolete,
       photos: photosByStandard.get(c.id) ?? [],
     })),
     comments: (comments ?? []).map((c) => ({
