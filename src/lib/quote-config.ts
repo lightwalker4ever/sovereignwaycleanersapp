@@ -57,8 +57,10 @@ export const TAILORED_QUESTIONS: Record<TailoredServiceSlug, TailoredQuestion[]>
   ],
 };
 
+export type ArrivalWindowKey = "morning" | "midday" | "afternoon";
+
 export interface ArrivalWindowConfig {
-  key: "morning" | "midday" | "afternoon";
+  key: ArrivalWindowKey;
   label: string;
   time: string;
 }
@@ -69,6 +71,55 @@ export const ARRIVAL_WINDOWS: ArrivalWindowConfig[] = [
   { key: "midday", label: "Midday", time: "11:00–13:00" },
   { key: "afternoon", label: "Afternoon", time: "14:00–16:00" },
 ];
+
+export const WINDOW_ORDER: ArrivalWindowKey[] = ARRIVAL_WINDOWS.map((w) => w.key);
+
+/**
+ * The hour each window conceptually starts at -- used to bucket an
+ * arbitrary scheduled_at time into one of the 3 windows for conflict
+ * checking, since not every booking time is constrained to a window's
+ * own start time (an admin manually creating a job via
+ * CreateCleaningForm can pick any time). A time is bucketed into the
+ * latest window whose start hour is <= its own hour, so e.g. 10:30
+ * (between morning and midday) still counts as "morning" -- the gap
+ * between windows is treated as a continuation of the one before it,
+ * not free time. Pure/framework-agnostic so both server code
+ * (src/lib/cleaner-availability.ts) and client code
+ * (CreateCleaningForm.tsx) can share one implementation.
+ */
+const WINDOW_START_HOUR: Record<ArrivalWindowKey, number> = { morning: 8, midday: 11, afternoon: 14 };
+
+export function windowForScheduledAt(scheduledAt: string): ArrivalWindowKey {
+  // new Date(...).getHours() reads back in whichever local timezone a
+  // scheduled_at was originally written in (every write site in this
+  // app constructs it via `new Date(\`${date}T${time}\`)`, with no
+  // "Z"/offset suffix) -- using getUTCHours() here instead would
+  // silently re-introduce a timezone-offset bug on any runtime that
+  // isn't already UTC.
+  const hour = new Date(scheduledAt).getHours();
+  let result: ArrivalWindowKey = WINDOW_ORDER[0];
+  for (const key of WINDOW_ORDER) {
+    if (hour >= WINDOW_START_HOUR[key]) result = key;
+  }
+  return result;
+}
+
+/**
+ * Expands a list of job times into the set of windows they make a
+ * cleaner busy for on their own day, applying the agreed buffer rule:
+ * a job in window W also occupies the *next* window (no buffer after
+ * the day's last window), covering a job that overruns.
+ */
+export function expandBusyWindowsWithBuffer(scheduledAtTimes: string[]): Set<ArrivalWindowKey> {
+  const busy = new Set<ArrivalWindowKey>();
+  for (const scheduledAt of scheduledAtTimes) {
+    const window = windowForScheduledAt(scheduledAt);
+    busy.add(window);
+    const idx = WINDOW_ORDER.indexOf(window);
+    if (idx < WINDOW_ORDER.length - 1) busy.add(WINDOW_ORDER[idx + 1]);
+  }
+  return busy;
+}
 
 /**
  * Dates step 3's calendar shows as fully booked/not offered, in

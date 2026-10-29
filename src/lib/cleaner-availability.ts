@@ -1,16 +1,19 @@
 import "server-only";
 
 import { createAdminClient } from "@/lib/supabase/admin";
-import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
+import {
+  WINDOW_ORDER,
+  windowForScheduledAt,
+  expandBusyWindowsWithBuffer,
+  type ArrivalWindowKey,
+} from "@/lib/quote-config";
 
-export type ArrivalWindowKey = "morning" | "midday" | "afternoon";
+export type { ArrivalWindowKey };
 
 /** 'all_day' is only ever used in cleaner_availability_exceptions, to
  *  cover a whole date without relying on a nullable unique-constraint
  *  column (see the migration's comment for why). */
 export type ExceptionWindowKey = ArrivalWindowKey | "all_day";
-
-export const WINDOW_ORDER: ArrivalWindowKey[] = ARRIVAL_WINDOWS.map((w) => w.key);
 
 export interface WeeklyAvailabilityEntry {
   /** 0 = Sunday .. 6 = Saturday, matching JS Date.getDay(). */
@@ -162,4 +165,195 @@ export async function clearAvailabilityException(
     .eq("window_key", windowKey);
   if (error) return { success: false, error: error.message };
   return { success: true };
+}
+
+/**
+ * Which windows a cleaner is already committed to on one date, from
+ * real booked jobs -- not "quoted"/"awaiting_confirmation"/"declined"
+ * rows, which aren't real commitments yet. Applies the agreed buffer
+ * rule via expandBusyWindowsWithBuffer() (src/lib/quote-config.ts) --
+ * this is what replaces CreateCleaningForm's old hardcoded ±2h
+ * same-day guess.
+ */
+export async function resolveCleanerBusyWindows(cleanerId: string, date: string): Promise<Set<ArrivalWindowKey>> {
+  const admin = createAdminClient();
+  const dayStart = new Date(`${date}T00:00:00`);
+  const dayEnd = new Date(dayStart.getTime() + 24 * 3_600_000);
+
+  const { data: jobs, error } = await admin
+    .from("cleanings")
+    .select("scheduled_at")
+    .eq("cleaner_id", cleanerId)
+    .in("status", ["assigned", "in_progress", "in_review"])
+    .gte("scheduled_at", dayStart.toISOString())
+    .lt("scheduled_at", dayEnd.toISOString());
+  if (error) throw new Error(error.message);
+
+  return expandBusyWindowsWithBuffer((jobs ?? []).map((j) => j.scheduled_at));
+}
+
+export interface AvailableCleaner {
+  id: string;
+  fullName: string | null;
+  email: string | null;
+}
+
+/**
+ * Every cleaner who is both declared-available (weekly template +
+ * exceptions) and not already busy (real booked jobs, with the buffer
+ * rule) for one date+window -- the single source of truth reused by
+ * both the admin combined-schedule view and, in a later phase, the
+ * customer-facing quote flow.
+ */
+export async function listAvailableCleanersForSlot(
+  date: string,
+  windowKey: ArrivalWindowKey
+): Promise<AvailableCleaner[]> {
+  const admin = createAdminClient();
+  const { data: cleaners, error } = await admin
+    .from("profiles")
+    .select("id, full_name, email")
+    .eq("role", "cleaner");
+  if (error) throw new Error(error.message);
+
+  const checked = await Promise.all(
+    (cleaners ?? []).map(async (cleaner) => {
+      const [declared, busy] = await Promise.all([
+        resolveCleanerDeclaredAvailability(cleaner.id, date, windowKey),
+        resolveCleanerBusyWindows(cleaner.id, date),
+      ]);
+      return { cleaner, available: declared && !busy.has(windowKey) };
+    })
+  );
+
+  return checked
+    .filter((c) => c.available)
+    .map((c) => ({ id: c.cleaner.id, fullName: c.cleaner.full_name, email: c.cleaner.email }));
+}
+
+function toIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+export type ScheduleCellState = "available" | "busy" | "not_working";
+
+export interface ScheduleGridCleaner {
+  id: string;
+  fullName: string | null;
+}
+
+export interface ScheduleGridCell {
+  cleanerId: string;
+  date: string;
+  windowKey: ArrivalWindowKey;
+  state: ScheduleCellState;
+}
+
+/**
+ * The admin combined-schedule view's data, computed in bulk rather
+ * than by calling listAvailableCleanersForSlot() per cell -- that
+ * function does its own per-cleaner queries meant for checking a
+ * *single* slot, and would mean (days x 3 windows x cleaners) separate
+ * round trips for a whole grid. This fetches each of the 3 relevant
+ * tables once for the full date range and resolves every cell
+ * in-memory instead, reusing windowForScheduledAt() for the same
+ * window-bucketing + buffer rule as resolveCleanerBusyWindows().
+ */
+export async function getCleanerScheduleGrid(
+  startIso: string,
+  days: number
+): Promise<{ cleaners: ScheduleGridCleaner[]; cells: ScheduleGridCell[] }> {
+  const admin = createAdminClient();
+  const startDate = new Date(`${startIso}T00:00:00`);
+  const endDate = new Date(startDate.getTime() + days * 24 * 3_600_000);
+  const endIso = toIsoDate(endDate);
+
+  const [
+    { data: cleaners, error: cleanersError },
+    { data: weekly, error: weeklyError },
+    { data: exceptions, error: exceptionsError },
+    { data: jobs, error: jobsError },
+  ] = await Promise.all([
+    admin.from("profiles").select("id, full_name").eq("role", "cleaner").order("full_name"),
+    admin.from("cleaner_availability").select("cleaner_id, day_of_week, window_key"),
+    admin
+      .from("cleaner_availability_exceptions")
+      .select("cleaner_id, date, window_key, type")
+      .gte("date", startIso)
+      .lt("date", endIso),
+    admin
+      .from("cleanings")
+      .select("cleaner_id, scheduled_at")
+      .not("cleaner_id", "is", null)
+      .in("status", ["assigned", "in_progress", "in_review"])
+      .gte("scheduled_at", startDate.toISOString())
+      .lt("scheduled_at", endDate.toISOString()),
+  ]);
+  if (cleanersError) throw new Error(cleanersError.message);
+  if (weeklyError) throw new Error(weeklyError.message);
+  if (exceptionsError) throw new Error(exceptionsError.message);
+  if (jobsError) throw new Error(jobsError.message);
+
+  const weeklyByCleanerId = new Map<string, Set<string>>();
+  for (const w of weekly ?? []) {
+    const set = weeklyByCleanerId.get(w.cleaner_id) ?? new Set<string>();
+    set.add(`${w.day_of_week}-${w.window_key}`);
+    weeklyByCleanerId.set(w.cleaner_id, set);
+  }
+
+  const exceptionsByCleanerDate = new Map<string, { windowKey: string; type: string }[]>();
+  for (const e of exceptions ?? []) {
+    const key = `${e.cleaner_id}-${e.date}`;
+    const arr = exceptionsByCleanerDate.get(key) ?? [];
+    arr.push({ windowKey: e.window_key, type: e.type });
+    exceptionsByCleanerDate.set(key, arr);
+  }
+
+  const busyByCleanerDate = new Map<string, Set<ArrivalWindowKey>>();
+  for (const job of jobs ?? []) {
+    if (!job.cleaner_id) continue;
+    const dateIso = toIsoDate(new Date(job.scheduled_at));
+    const key = `${job.cleaner_id}-${dateIso}`;
+    const set = busyByCleanerDate.get(key) ?? new Set<ArrivalWindowKey>();
+    const window = windowForScheduledAt(job.scheduled_at);
+    set.add(window);
+    const idx = WINDOW_ORDER.indexOf(window);
+    if (idx < WINDOW_ORDER.length - 1) set.add(WINDOW_ORDER[idx + 1]);
+    busyByCleanerDate.set(key, set);
+  }
+
+  const cells: ScheduleGridCell[] = [];
+  for (const cleaner of cleaners ?? []) {
+    for (let i = 0; i < days; i++) {
+      const d = new Date(startDate.getTime() + i * 24 * 3_600_000);
+      const dateIso = toIsoDate(d);
+      const dayOfWeek = d.getDay();
+      const exceptionsForDay = exceptionsByCleanerDate.get(`${cleaner.id}-${dateIso}`) ?? [];
+      const busy = busyByCleanerDate.get(`${cleaner.id}-${dateIso}`) ?? new Set<ArrivalWindowKey>();
+
+      for (const windowKey of WINDOW_ORDER) {
+        const windowException = exceptionsForDay.find((e) => e.windowKey === windowKey);
+        const dayException = exceptionsForDay.find((e) => e.windowKey === "all_day");
+        let declared: boolean;
+        if (windowException) declared = windowException.type === "available";
+        else if (dayException) declared = dayException.type === "available";
+        else declared = (weeklyByCleanerId.get(cleaner.id) ?? new Set()).has(`${dayOfWeek}-${windowKey}`);
+
+        // "Busy" (a real nearby job) outranks "not working" for display
+        // purposes -- a buffered window from an overrunning job is a
+        // concrete reason the cleaner can't be booked there, which is
+        // more honest to show than a blanket "not working" that implies
+        // they'd never work that slot at all. Doesn't change matching:
+        // listAvailableCleanersForSlot() still requires declared AND
+        // not-busy independently of this display precedence.
+        const state: ScheduleCellState = busy.has(windowKey) ? "busy" : !declared ? "not_working" : "available";
+        cells.push({ cleanerId: cleaner.id, date: dateIso, windowKey, state });
+      }
+    }
+  }
+
+  return {
+    cleaners: (cleaners ?? []).map((c) => ({ id: c.id, fullName: c.full_name })),
+    cells,
+  };
 }
