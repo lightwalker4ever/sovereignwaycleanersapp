@@ -12,7 +12,12 @@ import type { Json } from "@/lib/supabase/database.types";
 import { nameSchema, emailSchema, requiredPhoneSchema } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
 import type { ArrivalWindowKey, AccessMethod } from "@/lib/quote-state";
-import { CONFIRMATION_WINDOW_HOURS, type TailoredServiceSlug } from "@/lib/quote-config";
+import { CONFIRMATION_WINDOW_HOURS, WINDOW_ORDER, type TailoredServiceSlug } from "@/lib/quote-config";
+import {
+  getCleanerScheduleGrid,
+  listAvailableCleanersForSlot,
+  resolveBookingCleaner,
+} from "@/lib/cleaner-availability";
 import {
   calculateEndOfTenancy,
   calculateDeepCleaning,
@@ -631,6 +636,68 @@ export async function resolveQuoteDraftByToken(token: string, postcode: string):
   return { success: false, error: "We couldn't find that quote." };
 }
 
+/**
+ * Which of the 3 arrival windows have at least one available cleaner,
+ * per date, across a range -- powers both the "when" step's calendar
+ * (whole months at a time) and its window picker (a single date).
+ * Reuses getCleanerScheduleGrid() (the admin Schedule page's own data
+ * source) rather than a separate implementation, but strips cleaner
+ * identities out of what's returned here -- this is a public action,
+ * nothing about which named cleaner is free should leave the server.
+ */
+export async function getQuoteWindowAvailability(
+  startIso: string,
+  days: number
+): Promise<Record<string, ArrivalWindowKey[]>> {
+  const { cells } = await getCleanerScheduleGrid(startIso, days);
+  const result: Record<string, ArrivalWindowKey[]> = {};
+  // Seed every date in range with an empty array first -- a date with
+  // zero available cells must still appear as a key (with []), not be
+  // missing entirely, or callers computing "which dates are
+  // unavailable" from Object.entries() would never see a fully-booked
+  // date at all (cells always covers every cleaner x date x window
+  // combination regardless of state, so this loop sees every date).
+  for (const cell of cells) {
+    result[cell.date] ??= [];
+  }
+  for (const cell of cells) {
+    if (cell.state !== "available") continue;
+    if (!result[cell.date].includes(cell.windowKey)) result[cell.date].push(cell.windowKey);
+  }
+  return result;
+}
+
+export interface QuoteCleanerOption {
+  id: string;
+  firstName: string;
+}
+
+/**
+ * The cleaner-picker step's option list -- every cleaner free for the
+ * requested date+window (or, when flexible, free for *any* window
+ * that day, unioned). Only a first name is returned, never the full
+ * identity (name/email) listAvailableCleanersForSlot() itself holds --
+ * this is public-facing.
+ */
+export async function getAvailableCleanersForQuote(
+  date: string,
+  windowKey: ArrivalWindowKey | null,
+  isFlexible: boolean
+): Promise<QuoteCleanerOption[]> {
+  const windowsToCheck = isFlexible || !windowKey ? WINDOW_ORDER : [windowKey];
+  const perWindow = await Promise.all(windowsToCheck.map((w) => listAvailableCleanersForSlot(date, w)));
+
+  const byId = new Map<string, QuoteCleanerOption>();
+  for (const list of perWindow) {
+    for (const cleaner of list) {
+      if (!byId.has(cleaner.id)) {
+        byId.set(cleaner.id, { id: cleaner.id, firstName: (cleaner.fullName ?? "Our team").split(" ")[0] });
+      }
+    }
+  }
+  return Array.from(byId.values());
+}
+
 export type SubmitInstantQuoteResult =
   | {
       success: true;
@@ -644,11 +711,16 @@ export type SubmitInstantQuoteResult =
  * Step 4's "Request this booking" for an instant-price service. Unlike
  * the old quote_bookings flow, this creates the Cleaning row directly
  * in 'awaiting_confirmation' (quote-handoff QUOTE_HANDOFF.md's
- * "Integration with the existing app") -- admin's "Confirm & schedule"
- * fills in cleaner_id/supervisor_id/the checklist later, it doesn't
- * create a second row. The price is recomputed server-side from a
- * fresh rate card and location resolution, never trusted from the
- * client, and stored as price_breakdown exactly as quoted -- it's
+ * "Integration with the existing app"). cleaner_id is now resolved and
+ * locked in right here too, via resolveBookingCleaner() -- re-checked
+ * against live availability at this exact moment rather than trusting
+ * whatever the cleaner-picker step showed earlier, since time has
+ * passed and someone else could have taken the slot. Admin's "Confirm
+ * & schedule" still runs afterwards (supervisor + exact time +
+ * checklist aren't decided here), it'll just show this cleaner
+ * pre-selected instead of empty. The price is recomputed server-side
+ * from a fresh rate card and location resolution, never trusted from
+ * the client, and stored as price_breakdown exactly as quoted -- it's
  * never recalculated again after this point.
  */
 export async function submitInstantQuoteRequest(input: {
@@ -659,6 +731,12 @@ export async function submitInstantQuoteRequest(input: {
   requestedDate: string;
   requestedWindow: ArrivalWindowKey | null;
   isFlexible: boolean;
+  /** The cleaner-picker step's choice -- "specific" tries cleanerId
+   *  first (falling back to a random pick if they're no longer free
+   *  by submission time), "any"/null picks randomly among whoever's
+   *  available. See resolveBookingCleaner(). */
+  cleanerId: string | null;
+  cleanerChoice: "specific" | "any" | null;
   name: string;
   email: string;
   phone: string;
@@ -711,7 +789,21 @@ export async function submitInstantQuoteRequest(input: {
   });
 
   const fullAddress = [input.addressLine.trim(), trimmedPostcode].filter(Boolean).join(", ");
-  const startTime = input.requestedWindow ? WINDOW_START_TIME[input.requestedWindow] : "09:00";
+
+  // Re-resolved here, not trusted from the cleaner-picker step's own
+  // (now possibly stale) snapshot of who was available -- see this
+  // function's own doc comment. A flexible booking's resolved window
+  // (if a match was found) gives it a real time instead of the old
+  // meaningless default; requestedWindow/isFlexible themselves still
+  // reflect what the customer actually said, unchanged.
+  const resolvedBooking = await resolveBookingCleaner(
+    input.requestedDate,
+    input.requestedWindow,
+    input.isFlexible,
+    input.cleanerChoice === "specific" ? input.cleanerId : null
+  );
+  const effectiveWindow = resolvedBooking.windowKey ?? input.requestedWindow;
+  const startTime = effectiveWindow ? WINDOW_START_TIME[effectiveWindow] : "09:00";
   const scheduledAt = new Date(`${input.requestedDate}T${startTime}:00`);
 
   // If this session already has a 'quoted' draft (saveInstantQuoteDraft,
@@ -748,6 +840,7 @@ export async function submitInstantQuoteRequest(input: {
           .from("cleanings")
           .update({
             client_id: draftClientId,
+            cleaner_id: resolvedBooking.cleanerId,
             status: "awaiting_confirmation",
             scheduled_at: scheduledAt.toISOString(),
             requested_date: input.requestedDate,
@@ -800,6 +893,7 @@ export async function submitInstantQuoteRequest(input: {
       .from("cleanings")
       .insert({
         client_id: clientId,
+        cleaner_id: resolvedBooking.cleanerId,
         status: "awaiting_confirmation",
         scheduled_at: scheduledAt.toISOString(),
         requested_date: input.requestedDate,

@@ -178,7 +178,12 @@ export async function clearAvailabilityException(
 export async function resolveCleanerBusyWindows(cleanerId: string, date: string): Promise<Set<ArrivalWindowKey>> {
   const admin = createAdminClient();
   const dayStart = new Date(`${date}T00:00:00`);
-  const dayEnd = new Date(dayStart.getTime() + 24 * 3_600_000);
+  // Calendar-field arithmetic, not +24h in epoch millis -- a fixed-ms
+  // offset lands an hour off true local midnight on a UK clock-change
+  // day (confirmed live-testing: Oct 25/26 2026, when BST ends, broke
+  // this exact pattern elsewhere in this file). setDate() is DST-safe.
+  const dayEnd = new Date(dayStart);
+  dayEnd.setDate(dayEnd.getDate() + 1);
 
   const { data: jobs, error } = await admin
     .from("cleanings")
@@ -265,7 +270,13 @@ export async function getCleanerScheduleGrid(
 ): Promise<{ cleaners: ScheduleGridCleaner[]; cells: ScheduleGridCell[] }> {
   const admin = createAdminClient();
   const startDate = new Date(`${startIso}T00:00:00`);
-  const endDate = new Date(startDate.getTime() + days * 24 * 3_600_000);
+  // Calendar-field arithmetic (setDate), not epoch-millis +N*24h --
+  // see resolveCleanerBusyWindows()'s identical comment. A fixed-ms
+  // offset drifts across a UK clock-change day, which single-handedly
+  // caused the last day of a 31-day October range to go missing
+  // entirely (confirmed live-testing against 2026-10-25/26's BST end).
+  const endDate = new Date(startDate);
+  endDate.setDate(endDate.getDate() + days);
   const endIso = toIsoDate(endDate);
 
   const [
@@ -325,7 +336,13 @@ export async function getCleanerScheduleGrid(
   const cells: ScheduleGridCell[] = [];
   for (const cleaner of cleaners ?? []) {
     for (let i = 0; i < days; i++) {
-      const d = new Date(startDate.getTime() + i * 24 * 3_600_000);
+      // Calendar-field arithmetic (setDate on a fresh copy each time),
+      // not epoch-millis +i*24h -- see this function's own `endDate`
+      // comment above. This loop is the one that actually dropped a
+      // date (the DST-transition day's "duplicate" iteration skipped
+      // the real final day of the range entirely).
+      const d = new Date(startDate);
+      d.setDate(d.getDate() + i);
       const dateIso = toIsoDate(d);
       const dayOfWeek = d.getDay();
       const exceptionsForDay = exceptionsByCleanerDate.get(`${cleaner.id}-${dateIso}`) ?? [];
@@ -356,4 +373,51 @@ export async function getCleanerScheduleGrid(
     cleaners: (cleaners ?? []).map((c) => ({ id: c.id, fullName: c.full_name })),
     cells,
   };
+}
+
+export interface ResolvedBookingCleaner {
+  cleanerId: string | null;
+  /** The window actually used -- for a flexible booking (no window
+   *  requested), this is the earliest free window found; for a fixed
+   *  window it's always that same window, unless nobody's free at all
+   *  (then null, and the caller keeps its own existing default time). */
+  windowKey: ArrivalWindowKey | null;
+}
+
+/**
+ * The actual cleaner-matching decision for an instant-quote booking,
+ * called at submission time (never trusting an earlier page's stale
+ * snapshot of who was available) -- see submitInstantQuoteRequest()'s
+ * race-condition handling. Tries the customer's preferred cleaner
+ * first, across whichever window(s) apply; falls back to a random
+ * pick among whoever's still free; returns nulls if nobody's free at
+ * all for any checked window, so the caller can fall back to its own
+ * existing "admin sorts it out" path rather than failing the booking.
+ */
+export async function resolveBookingCleaner(
+  date: string,
+  windowKey: ArrivalWindowKey | null,
+  isFlexible: boolean,
+  preferredCleanerId: string | null
+): Promise<ResolvedBookingCleaner> {
+  const windowsToTry = isFlexible || !windowKey ? WINDOW_ORDER : [windowKey];
+
+  if (preferredCleanerId) {
+    for (const w of windowsToTry) {
+      const available = await listAvailableCleanersForSlot(date, w);
+      if (available.some((c) => c.id === preferredCleanerId)) {
+        return { cleanerId: preferredCleanerId, windowKey: w };
+      }
+    }
+  }
+
+  for (const w of windowsToTry) {
+    const available = await listAvailableCleanersForSlot(date, w);
+    if (available.length > 0) {
+      const pick = available[Math.floor(Math.random() * available.length)];
+      return { cleanerId: pick.id, windowKey: w };
+    }
+  }
+
+  return { cleanerId: null, windowKey: null };
 }

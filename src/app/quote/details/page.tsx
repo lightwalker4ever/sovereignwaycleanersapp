@@ -155,6 +155,8 @@ export default function QuoteDetailsPage() {
         requestedDate: state.date ?? "",
         requestedWindow: state.flexible ? null : state.window,
         isFlexible: state.flexible,
+        cleanerId: state.cleanerId,
+        cleanerChoice: state.cleanerChoice,
         name: state.contact.name,
         email: state.contact.email,
         phone: state.contact.phone,
@@ -242,7 +244,7 @@ export default function QuoteDetailsPage() {
   if (!hasAnyService || (!isTailored && !breakdown)) {
     return (
       <>
-        <QuoteStepper tailored={isTailored} mobileLeading={{ icon: "back", onClick: () => router.push(isTailored ? "/quote/about-job" : "/quote/when") }} />
+        <QuoteStepper tailored={isTailored} mobileLeading={{ icon: "back", onClick: () => router.push(isTailored ? "/quote/about-job" : "/quote/cleaner") }} />
         <div className="flex flex-1 items-center justify-center gap-2 p-8 text-sm text-dash-muted">
           <Loader2 className="size-4 animate-spin" /> Loading…
         </div>
@@ -252,14 +254,14 @@ export default function QuoteDetailsPage() {
 
   return (
     <>
-      <QuoteStepper tailored={isTailored} mobileLeading={{ icon: "back", onClick: () => router.push(isTailored ? "/quote/about-job" : "/quote/when") }} />
+      <QuoteStepper tailored={isTailored} mobileLeading={{ icon: "back", onClick: () => router.push(isTailored ? "/quote/about-job" : "/quote/cleaner") }} />
 
       <div className="mx-auto flex w-full max-w-[1264px] flex-1 flex-wrap items-start gap-7 p-4 pb-28 sm:p-8 sm:pb-8">
         <main className="flex min-w-0 flex-[999_1_560px] flex-col gap-5">
           <div>
             <button
               type="button"
-              onClick={() => router.push(isTailored ? "/quote/about-job" : "/quote/when")}
+              onClick={() => router.push(isTailored ? "/quote/about-job" : "/quote/cleaner")}
               className="text-sm font-semibold"
             >
               ← Back
@@ -497,6 +499,12 @@ export default function QuoteDetailsPage() {
                   <div className="flex justify-between gap-2">
                     <span className="text-dash-muted">Where</span>
                     <span className="text-right font-bold">{state.postcode || "—"}</span>
+                  </div>
+                  <div className="flex justify-between gap-2">
+                    <span className="text-dash-muted">Cleaner</span>
+                    <span className="text-right font-bold">
+                      {state.cleanerChoice === "any" ? "We'll assign one" : state.cleanerFirstName || "—"}
+                    </span>
                   </div>
                 </div>
               }

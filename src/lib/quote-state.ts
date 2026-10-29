@@ -49,6 +49,14 @@ export interface QuoteState {
   date: string | null;
   window: ArrivalWindowKey | null;
   flexible: boolean;
+  /** The cleaner-picker step's choice -- null until that step is
+   *  reached. "any" means cleanerId stays null (picked randomly at
+   *  submission); "specific" carries the chosen cleaner's id.
+   *  cleanerFirstName is redisplay-only (the details step's summary),
+   *  captured at selection time rather than re-fetched by id. */
+  cleanerId: string | null;
+  cleanerChoice: "specific" | "any" | null;
+  cleanerFirstName: string | null;
   contact: QuoteContact;
   addressLine: string;
   accessMethod: AccessMethod | null;
@@ -74,6 +82,9 @@ export const DEFAULT_QUOTE_STATE: QuoteState = {
   date: null,
   window: null,
   flexible: false,
+  cleanerId: null,
+  cleanerChoice: null,
+  cleanerFirstName: null,
   contact: { name: "", email: "", phone: "" },
   addressLine: "",
   accessMethod: null,

@@ -93,6 +93,7 @@ export function RequestDrawer({
       }
       if (d?.requestedWindow) setProposeWindow(d.requestedWindow);
       setStandardListId(d?.currentStandardListId ?? "");
+      setCleanerId(d?.currentCleanerId ?? "");
     });
   }, [open, cleaningId]);
 

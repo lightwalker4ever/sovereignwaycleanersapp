@@ -435,6 +435,12 @@ export interface CleaningRequestDetail {
    *  confirm form pre-select it instead of leaving the picker empty
    *  (and blocking Confirm) for a returning client. */
   currentStandardListId: string | null;
+  /** Set when the instant-quote booking flow already matched (or
+   *  randomly assigned) a cleaner at submission time -- see
+   *  resolveBookingCleaner() in src/lib/cleaner-availability.ts. Lets
+   *  the confirm form pre-select it instead of leaving the picker
+   *  empty for a request that was already matched. */
+  currentCleanerId: string | null;
 }
 
 /**
@@ -450,7 +456,7 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
   const { data: cleaning, error } = await admin
     .from("cleanings")
     .select(
-      "id, reference, status, service, client_id, requested_date, requested_window, is_flexible, access_method, access_notes, notes, marketing_consent, property_answers, price_breakdown, decline_reason, created_at"
+      "id, reference, status, service, client_id, cleaner_id, requested_date, requested_window, is_flexible, access_method, access_notes, notes, marketing_consent, property_answers, price_breakdown, decline_reason, created_at"
     )
     .eq("id", cleaningId)
     .single();
@@ -487,6 +493,7 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
     declineReason: cleaning.decline_reason,
     createdAt: cleaning.created_at,
     currentStandardListId: assignment?.standard_list_id ?? null,
+    currentCleanerId: cleaning.cleaner_id,
   };
 }
 
