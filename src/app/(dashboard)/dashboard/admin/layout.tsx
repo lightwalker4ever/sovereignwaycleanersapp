@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import {
   LayoutDashboard,
   CalendarDays,
+  CalendarClock,
   Home,
   Users,
   ListChecks,
@@ -64,6 +65,7 @@ export default async function AdminLayout({
     },
     { href: "/dashboard/admin/clients", label: "Clients", icon: navIcon(Home) },
     { href: "/dashboard/admin/staff", label: "Staff", icon: navIcon(Users) },
+    { href: "/dashboard/admin/schedule", label: "Schedule", icon: navIcon(CalendarClock) },
     { href: "/dashboard/admin/standards", label: "Standards", icon: navIcon(ListChecks) },
     { href: "/dashboard/admin/feedback", label: "Feedback", icon: navIcon(MessageSquare) },
     {

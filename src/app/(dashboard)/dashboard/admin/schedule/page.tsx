@@ -1,0 +1,153 @@
+import Link from "next/link";
+import { PageContainer } from "@/components/shell/PageContainer";
+import { DataTable } from "@/components/ui/DataTable";
+import { getCleanerScheduleGrid, type ScheduleCellState } from "@/lib/cleaner-availability";
+import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
+
+const DAYS_SHOWN = 7;
+
+// "Morning" and "Midday" both start with "M" -- a single-letter
+// abbreviation would make the two sub-columns indistinguishable.
+const WINDOW_SHORT_LABEL: Record<string, string> = { morning: "AM", midday: "Mid", afternoon: "PM" };
+
+function toIsoDate(d: Date): string {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function addDays(iso: string, n: number): string {
+  const d = new Date(`${iso}T00:00:00`);
+  d.setDate(d.getDate() + n);
+  return toIsoDate(d);
+}
+
+// Same hex-driven approach as CLEANING_STATUS_INFO in cleaning-status.ts,
+// not Tailwind utility classes -- these 3 states aren't part of that
+// shared status language, so they get their own small palette here.
+const STATE_STYLE: Record<ScheduleCellState, { label: string; bg: string; text: string }> = {
+  available: { label: "Free", bg: "#DFF1E5", text: "#155B33" },
+  busy: { label: "Busy", bg: "#FFF1D1", text: "#7A4B00" },
+  not_working: { label: "—", bg: "#F3F4F4", text: "#8A948E" },
+};
+
+/**
+ * "For all cleaner's schedules to be combined in one place" -- a
+ * cleaner x (date x window) grid built from getCleanerScheduleGrid(),
+ * which already combines declared availability with real booked jobs
+ * (including the buffer rule). Shows one week at a time via ?start=,
+ * same searchParams-driven pagination convention used elsewhere in
+ * this app, rather than one unwieldy 14+-day-wide table.
+ */
+export default async function AdminSchedulePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ start?: string }>;
+}) {
+  const { start } = await searchParams;
+  const startIso = start && /^\d{4}-\d{2}-\d{2}$/.test(start) ? start : toIsoDate(new Date());
+
+  const { cleaners, cells } = await getCleanerScheduleGrid(startIso, DAYS_SHOWN);
+  const days = Array.from({ length: DAYS_SHOWN }, (_, i) => addDays(startIso, i));
+  const cellByKey = new Map(cells.map((c) => [`${c.cleanerId}-${c.date}-${c.windowKey}`, c]));
+
+  const prevStart = addDays(startIso, -DAYS_SHOWN);
+  const nextStart = addDays(startIso, DAYS_SHOWN);
+  const columnCount = 1 + days.length * ARRIVAL_WINDOWS.length;
+
+  return (
+    <PageContainer>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="m-0 text-2xl font-extrabold tracking-tight text-dash-ink">Schedule</h1>
+          <p className="mt-1 text-sm text-dash-muted">Every cleaner&apos;s declared availability and booked jobs, combined.</p>
+        </div>
+        <div className="flex gap-2">
+          <Link
+            href={`/dashboard/admin/schedule?start=${prevStart}`}
+            className="flex h-10 items-center rounded-[10px] border border-dash-input-border bg-white px-3.5 text-sm font-semibold text-dash-ink"
+          >
+            ← Previous week
+          </Link>
+          <Link
+            href={`/dashboard/admin/schedule?start=${nextStart}`}
+            className="flex h-10 items-center rounded-[10px] border border-dash-input-border bg-white px-3.5 text-sm font-semibold text-dash-ink"
+          >
+            Next week →
+          </Link>
+        </div>
+      </div>
+
+      <div className="flex flex-wrap gap-4 text-xs text-dash-muted">
+        {(Object.keys(STATE_STYLE) as ScheduleCellState[]).map((state) => (
+          <span key={state} className="flex items-center gap-1.5">
+            <span className="h-3 w-3 rounded" style={{ background: STATE_STYLE[state].bg }} />
+            {state === "available" ? "Free" : state === "busy" ? "Busy" : "Not working"}
+          </span>
+        ))}
+      </div>
+
+      <DataTable minWidth={280 + days.length * ARRIVAL_WINDOWS.length * 44}>
+        <thead>
+          <tr>
+            <th rowSpan={2} className="sticky left-0 z-10 bg-dash-surface px-4 py-2 text-left text-xs font-semibold text-dash-muted">
+              Cleaner
+            </th>
+            {days.map((d) => (
+              <th
+                key={d}
+                colSpan={ARRIVAL_WINDOWS.length}
+                className="border-l border-dash-border px-2 py-1.5 text-center text-xs font-bold text-dash-ink"
+              >
+                {new Date(`${d}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+              </th>
+            ))}
+          </tr>
+          <tr>
+            {days.map((d) =>
+              ARRIVAL_WINDOWS.map((w) => (
+                <th
+                  key={`${d}-${w.key}`}
+                  className="border-l border-dash-border-soft px-1 py-1 text-center text-[10px] font-semibold text-dash-muted"
+                  title={w.label}
+                >
+                  {WINDOW_SHORT_LABEL[w.key]}
+                </th>
+              ))
+            )}
+          </tr>
+        </thead>
+        <tbody>
+          {cleaners.map((cleaner) => (
+            <tr key={cleaner.id} className="border-t border-dash-border-soft">
+              <td className="sticky left-0 z-10 bg-dash-surface px-4 py-2 font-semibold whitespace-nowrap text-dash-ink">
+                {cleaner.fullName || "Unnamed"}
+              </td>
+              {days.map((d) =>
+                ARRIVAL_WINDOWS.map((w) => {
+                  const cell = cellByKey.get(`${cleaner.id}-${d}-${w.key}`);
+                  const style = STATE_STYLE[cell?.state ?? "not_working"];
+                  return (
+                    <td key={`${cleaner.id}-${d}-${w.key}`} className="border-l border-dash-border-soft p-1 text-center">
+                      <span
+                        className="inline-block w-full rounded px-1 py-1 text-[10px] font-bold"
+                        style={{ background: style.bg, color: style.text }}
+                      >
+                        {style.label}
+                      </span>
+                    </td>
+                  );
+                })
+              )}
+            </tr>
+          ))}
+          {cleaners.length === 0 && (
+            <tr>
+              <td colSpan={columnCount} className="px-4 py-8 text-center text-sm text-dash-muted">
+                No cleaners yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </DataTable>
+    </PageContainer>
+  );
+}

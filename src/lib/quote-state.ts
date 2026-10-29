@@ -2,9 +2,9 @@
 
 import { useCallback, useEffect, useState } from "react";
 import type { EndOfTenancyInput, DeepCleaningInput, OfficeCleaningInput, QuoteServiceKey } from "@/lib/quote-calculations";
-import type { TailoredServiceSlug } from "@/lib/quote-config";
+import type { TailoredServiceSlug, ArrivalWindowKey } from "@/lib/quote-config";
 
-export type ArrivalWindowKey = "morning" | "midday" | "afternoon";
+export type { ArrivalWindowKey };
 export type AccessMethod = "present" | "key_safe" | "agent_keys";
 
 export interface QuoteContact {
