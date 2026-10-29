@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { LogOut, Menu, X } from "lucide-react";
 import { signOut } from "@/app/(dashboard)/actions";
 import { cn } from "@/lib/utils";
+import { NavIcon } from "./NavLinkStatus";
 import type { ShellNavItem, ShellUser } from "./types";
 
 /**
@@ -101,7 +102,7 @@ export function Sidebar({ navItems, user }: { navItems: ShellNavItem[]; user: Sh
                   (active ? "bg-white/14 font-bold text-white" : "font-medium text-dash-sidebar-text hover:bg-white/8")
                 }
               >
-                {item.icon}
+                <NavIcon icon={item.icon} />
                 <span className="flex-1">{item.label}</span>
                 {!!item.badge && (
                   <span className="rounded-full bg-dash-gold px-2 py-0.5 text-xs font-bold text-dash-brand-900">

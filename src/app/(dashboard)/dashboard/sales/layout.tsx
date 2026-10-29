@@ -4,6 +4,7 @@ import { LogOut } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { capitalize } from "@/lib/utils";
 import { signOut } from "@/app/(dashboard)/actions";
+import { LinkPendingSpinner } from "@/components/shell/NavLinkStatus";
 
 /**
  * Role gate for everything under /dashboard/sales. Co-located with
@@ -45,9 +46,11 @@ export default async function SalesLayout({
             <nav className="flex items-center gap-4 text-sm font-medium text-gray-600">
               <Link href="/dashboard/sales" className="hover:text-gray-900">
                 Enquiries
+                <LinkPendingSpinner className="ml-1.5" />
               </Link>
               <Link href="/dashboard/sales/quote-requests" className="hover:text-gray-900">
                 Quote Requests
+                <LinkPendingSpinner className="ml-1.5" />
               </Link>
             </nav>
           </div>

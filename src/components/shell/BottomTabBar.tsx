@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { NavIcon } from "./NavLinkStatus";
 import type { ShellNavItem } from "./types";
 
 /**
@@ -37,7 +38,7 @@ export function BottomTabBar({ tabs }: { tabs: ShellNavItem[] }) {
               (active ? "text-dash-brand-700" : "text-dash-muted")
             }
           >
-            {tab.icon}
+            <NavIcon icon={tab.icon} />
             {tab.label}
           </Link>
         );
