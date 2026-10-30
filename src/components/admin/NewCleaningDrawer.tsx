@@ -11,7 +11,12 @@ import {
   DrawerClose,
 } from "@/components/ui/Drawer";
 import { CreateCleaningForm } from "@/components/admin/CreateCleaningForm";
-import type { AssignableStaff, CleanerBooking } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
+import type {
+  AssignableStaff,
+  CleanerBooking,
+  SupervisorWeeklyDuty,
+  SupervisorDutyException,
+} from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
 import type { ClientSummary } from "@/app/(dashboard)/dashboard/admin/clients/actions";
 
 export function NewCleaningDrawer({
@@ -19,6 +24,7 @@ export function NewCleaningDrawer({
   cleaners,
   supervisors,
   cleanerSchedule,
+  supervisorAvailability,
   standardLists,
   initialClientId,
 }: {
@@ -26,6 +32,7 @@ export function NewCleaningDrawer({
   cleaners: AssignableStaff[];
   supervisors: AssignableStaff[];
   cleanerSchedule: CleanerBooking[];
+  supervisorAvailability: { weekly: SupervisorWeeklyDuty[]; exceptions: SupervisorDutyException[] };
   standardLists: { id: string; name: string }[];
   initialClientId?: string;
 }) {
@@ -50,6 +57,7 @@ export function NewCleaningDrawer({
           cleaners={cleaners}
           supervisors={supervisors}
           cleanerSchedule={cleanerSchedule}
+          supervisorAvailability={supervisorAvailability}
           standardLists={standardLists}
           initialClientId={initialClientId}
           onSuccess={() => setOpen(false)}

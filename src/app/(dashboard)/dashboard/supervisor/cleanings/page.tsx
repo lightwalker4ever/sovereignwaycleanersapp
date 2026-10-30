@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardCheck, CalendarDays } from "lucide-react";
+import { ClipboardCheck, CalendarDays, CalendarCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { listAllMyCleanings } from "../actions";
 import { AppShell } from "@/components/shell/AppShell";
@@ -20,6 +20,7 @@ export default async function SupervisorCleaningsPage() {
   const navItems: ShellNavItem[] = [
     { href: "/dashboard/supervisor", label: "Review queue", icon: <ClipboardCheck size={20} strokeWidth={1.8} aria-hidden="true" /> },
     { href: "/dashboard/supervisor/cleanings", label: "Cleanings", icon: <CalendarDays size={20} strokeWidth={1.8} aria-hidden="true" /> },
+    { href: "/dashboard/supervisor/availability", label: "Availability", icon: <CalendarCheck size={20} strokeWidth={1.8} aria-hidden="true" /> },
   ];
 
   return (

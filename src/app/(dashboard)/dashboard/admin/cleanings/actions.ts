@@ -28,6 +28,17 @@ export interface CleanerBooking {
   scheduledAt: string;
 }
 
+export interface SupervisorWeeklyDuty {
+  supervisorId: string;
+  dayOfWeek: number;
+}
+
+export interface SupervisorDutyException {
+  supervisorId: string;
+  date: string;
+  type: "available" | "unavailable";
+}
+
 export async function listAssignableStaff(): Promise<{
   cleaners: AssignableStaff[];
   supervisors: AssignableStaff[];
@@ -35,14 +46,22 @@ export async function listAssignableStaff(): Promise<{
    *  drawer's availability hint -- small enough to fetch once up front
    *  rather than round-tripping on every date/time change. */
   cleanerSchedule: CleanerBooking[];
+  /** Every supervisor's weekly on-duty days plus near-future exceptions,
+   *  for the same advisory-hint treatment via isSupervisorOnDuty()
+   *  (src/lib/supervisor-duty.ts) -- small enough to fetch once up
+   *  front, same reasoning as cleanerSchedule above. */
+  supervisorAvailability: { weekly: SupervisorWeeklyDuty[]; exceptions: SupervisorDutyException[] };
 }> {
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
+  const ninetyDaysOut = new Date(Date.now() + 90 * 24 * 3_600_000).toISOString().slice(0, 10);
   const [
     { data: cleaners, error: cleanerError },
     { data: supervisors, error: supervisorError },
     { data: upcoming, error: upcomingError },
+    { data: supervisorWeekly, error: supervisorWeeklyError },
+    { data: supervisorExceptions, error: supervisorExceptionsError },
   ] = await Promise.all([
     admin.from("profiles").select("id, full_name, email").eq("role", "cleaner").order("full_name"),
     admin.from("profiles").select("id, full_name, email").eq("role", "supervisor").order("full_name"),
@@ -51,10 +70,17 @@ export async function listAssignableStaff(): Promise<{
       .select("cleaner_id, scheduled_at")
       .gte("scheduled_at", new Date(Date.now() - 24 * 3_600_000).toISOString())
       .neq("status", "completed"),
+    admin.from("supervisor_availability").select("supervisor_id, day_of_week"),
+    admin
+      .from("supervisor_availability_exceptions")
+      .select("supervisor_id, date, type")
+      .lte("date", ninetyDaysOut),
   ]);
   if (cleanerError) throw new Error(cleanerError.message);
   if (supervisorError) throw new Error(supervisorError.message);
   if (upcomingError) throw new Error(upcomingError.message);
+  if (supervisorWeeklyError) throw new Error(supervisorWeeklyError.message);
+  if (supervisorExceptionsError) throw new Error(supervisorExceptionsError.message);
 
   return {
     cleaners: (cleaners ?? []).map((c) => ({ id: c.id, fullName: c.full_name, email: c.email })),
@@ -64,6 +90,14 @@ export async function listAssignableStaff(): Promise<{
     cleanerSchedule: (upcoming ?? [])
       .filter((u): u is { cleaner_id: string; scheduled_at: string } => u.cleaner_id !== null)
       .map((u) => ({ cleanerId: u.cleaner_id, scheduledAt: u.scheduled_at })),
+    supervisorAvailability: {
+      weekly: (supervisorWeekly ?? []).map((w) => ({ supervisorId: w.supervisor_id, dayOfWeek: w.day_of_week })),
+      exceptions: (supervisorExceptions ?? []).map((e) => ({
+        supervisorId: e.supervisor_id,
+        date: e.date,
+        type: e.type as "available" | "unavailable",
+      })),
+    },
   };
 }
 

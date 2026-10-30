@@ -11,7 +11,12 @@ import { StatusPill } from "@/components/ui/StatusPill";
 import { RequestDrawer } from "@/components/admin/RequestDrawer";
 import { DISPLAY_CLEANING_STATUSES, CLEANING_STATUS_INFO } from "@/lib/cleaning-status";
 import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
-import type { CleaningRow, AssignableStaff } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
+import type {
+  CleaningRow,
+  AssignableStaff,
+  SupervisorWeeklyDuty,
+  SupervisorDutyException,
+} from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
 
 const REQUEST_STATUSES = new Set(["quoted", "awaiting_confirmation", "declined"]);
 
@@ -27,11 +32,13 @@ export function CleaningsList({
   rows,
   cleaners,
   supervisors,
+  supervisorAvailability,
   standardLists,
 }: {
   rows: CleaningRow[];
   cleaners: AssignableStaff[];
   supervisors: AssignableStaff[];
+  supervisorAvailability: { weekly: SupervisorWeeklyDuty[]; exceptions: SupervisorDutyException[] };
   standardLists: { id: string; name: string }[];
 }) {
   const searchParams = useSearchParams();
@@ -202,6 +209,7 @@ export function CleaningsList({
           onOpenChange={(open) => !open && setOpenRequestId(null)}
           cleaners={cleaners}
           supervisors={supervisors}
+          supervisorAvailability={supervisorAvailability}
           standardLists={standardLists}
         />
       )}

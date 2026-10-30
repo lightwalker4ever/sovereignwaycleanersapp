@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { ClipboardCheck, CalendarDays } from "lucide-react";
+import { ClipboardCheck, CalendarDays, CalendarCheck } from "lucide-react";
 import { AppShell } from "@/components/shell/AppShell";
 import { PageContainer } from "@/components/shell/PageContainer";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -37,6 +37,7 @@ export default async function SupervisorReviewDetailPage({
   const navItems: ShellNavItem[] = [
     { href: "/dashboard/supervisor", label: "Review queue", icon: <ClipboardCheck size={20} strokeWidth={1.8} aria-hidden="true" /> },
     { href: "/dashboard/supervisor/cleanings", label: "Cleanings", icon: <CalendarDays size={20} strokeWidth={1.8} aria-hidden="true" /> },
+    { href: "/dashboard/supervisor/availability", label: "Availability", icon: <CalendarCheck size={20} strokeWidth={1.8} aria-hidden="true" /> },
   ];
 
   const hasNotMet = cleaning.checklist.some((i) => i.reviewStatus === "not_met");

@@ -21,9 +21,32 @@ import {
   sendQuoteReminder,
   type CleaningRequestDetail,
   type AssignableStaff,
+  type SupervisorWeeklyDuty,
+  type SupervisorDutyException,
 } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
 import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
 import { formatPropertyAnswers, type QuoteServiceKey } from "@/lib/quote-calculations";
+import { isSupervisorOnDuty } from "@/lib/supervisor-duty";
+
+/**
+ * "X is on duty that day" / "X isn't normally on duty that day" --
+ * advisory only, same reasoning and shape as CreateCleaningForm.tsx's
+ * own supervisorHint(): Confirm & schedule is where a supervisor is
+ * durably assigned, but admin can still override if they know better.
+ */
+function supervisorHint(
+  supervisorId: string,
+  supervisorName: string | null | undefined,
+  date: string,
+  weekly: SupervisorWeeklyDuty[],
+  exceptions: SupervisorDutyException[]
+): { text: string; ok: boolean } | null {
+  if (!supervisorId || !date || !supervisorName) return null;
+  const onDuty = isSupervisorOnDuty(supervisorId, date, weekly, exceptions);
+  return onDuty
+    ? { text: `${supervisorName} is on duty that day`, ok: true }
+    : { text: `${supervisorName} isn't normally on duty that day`, ok: false };
+}
 
 const fieldClassName =
   "h-11 w-full rounded-[10px] border border-dash-input-border px-3 text-sm text-dash-ink outline-none focus:border-dash-brand-700";
@@ -47,6 +70,7 @@ export function RequestDrawer({
   onOpenChange,
   cleaners,
   supervisors,
+  supervisorAvailability,
   standardLists,
 }: {
   cleaningId: string;
@@ -54,6 +78,7 @@ export function RequestDrawer({
   onOpenChange: (open: boolean) => void;
   cleaners: AssignableStaff[];
   supervisors: AssignableStaff[];
+  supervisorAvailability: { weekly: SupervisorWeeklyDuty[]; exceptions: SupervisorDutyException[] };
   standardLists: { id: string; name: string }[];
 }) {
   const router = useRouter();
@@ -73,6 +98,15 @@ export function RequestDrawer({
   const [reason, setReason] = useState("");
   const [reminderSent, setReminderSent] = useState(false);
   const [sendingReminder, startSendingReminder] = useTransition();
+
+  const selectedSupervisor = supervisors.find((s) => s.id === supervisorId);
+  const supervisorHintResult = supervisorHint(
+    supervisorId,
+    selectedSupervisor?.fullName ?? selectedSupervisor?.email,
+    date,
+    supervisorAvailability.weekly,
+    supervisorAvailability.exceptions
+  );
 
   useEffect(() => {
     if (!open) return;
@@ -337,6 +371,12 @@ export function RequestDrawer({
                       </Select>
                     </div>
                   </div>
+                  {supervisorHintResult && (
+                    <span className={`text-[13px] font-semibold ${supervisorHintResult.ok ? "text-[#155B33]" : "text-[#9A3A0B]"}`}>
+                      {supervisorHintResult.ok ? "✓ " : ""}
+                      {supervisorHintResult.text}
+                    </span>
+                  )}
                   <div className="grid grid-cols-2 gap-2.5">
                     <div className="space-y-1.5">
                       <label className={labelClassName} htmlFor="confirm-date">Date</label>

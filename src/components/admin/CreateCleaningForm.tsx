@@ -20,9 +20,12 @@ import {
   type CreateCleaningState,
   type AssignableStaff,
   type CleanerBooking,
+  type SupervisorWeeklyDuty,
+  type SupervisorDutyException,
 } from "@/app/(dashboard)/dashboard/admin/cleanings/actions";
 import type { ClientSummary } from "@/app/(dashboard)/dashboard/admin/clients/actions";
 import { windowForScheduledAt, expandBusyWindowsWithBuffer, ARRIVAL_WINDOWS } from "@/lib/quote-config";
+import { isSupervisorOnDuty } from "@/lib/supervisor-duty";
 
 const emptyValues = {
   clientMode: "existing" as "existing" | "new",
@@ -79,11 +82,32 @@ function availabilityHint(
   return { text: `${cleanerName} is free around this time`, ok: true };
 }
 
+/**
+ * "X is on duty that day" / "X isn't normally on duty that day" --
+ * advisory only, same as availabilityHint() above: this form never
+ * blocks on it, admin can assign a supervisor who's technically off
+ * if they know better (e.g. covering for someone).
+ */
+function supervisorHint(
+  supervisorId: string,
+  supervisorName: string | null | undefined,
+  date: string,
+  weekly: SupervisorWeeklyDuty[],
+  exceptions: SupervisorDutyException[]
+): { text: string; ok: boolean } | null {
+  if (!supervisorId || !date || !supervisorName) return null;
+  const onDuty = isSupervisorOnDuty(supervisorId, date, weekly, exceptions);
+  return onDuty
+    ? { text: `${supervisorName} is on duty that day`, ok: true }
+    : { text: `${supervisorName} isn't normally on duty that day`, ok: false };
+}
+
 export function CreateCleaningForm({
   clients,
   cleaners,
   supervisors,
   cleanerSchedule,
+  supervisorAvailability,
   standardLists,
   initialClientId,
   onSuccess,
@@ -92,6 +116,7 @@ export function CreateCleaningForm({
   cleaners: AssignableStaff[];
   supervisors: AssignableStaff[];
   cleanerSchedule: CleanerBooking[];
+  supervisorAvailability: { weekly: SupervisorWeeklyDuty[]; exceptions: SupervisorDutyException[] };
   standardLists: { id: string; name: string }[];
   initialClientId?: string;
   onSuccess?: () => void;
@@ -135,6 +160,19 @@ export function CreateCleaningForm({
         cleanerSchedule
       ),
     [values.cleanerId, values.date, values.time, selectedCleaner, cleanerSchedule]
+  );
+
+  const selectedSupervisor = supervisors.find((s) => s.id === values.supervisorId);
+  const supervisorHintResult = useMemo(
+    () =>
+      supervisorHint(
+        values.supervisorId,
+        selectedSupervisor?.fullName ?? selectedSupervisor?.email,
+        values.date,
+        supervisorAvailability.weekly,
+        supervisorAvailability.exceptions
+      ),
+    [values.supervisorId, values.date, selectedSupervisor, supervisorAvailability]
   );
 
   return (
@@ -335,6 +373,12 @@ export function CreateCleaningForm({
             <span className={`text-[13px] font-semibold ${hint.ok ? "text-[#155B33]" : "text-[#9A3A0B]"}`}>
               {hint.ok ? "✓ " : ""}
               {hint.text}
+            </span>
+          )}
+          {supervisorHintResult && (
+            <span className={`text-[13px] font-semibold ${supervisorHintResult.ok ? "text-[#155B33]" : "text-[#9A3A0B]"}`}>
+              {supervisorHintResult.ok ? "✓ " : ""}
+              {supervisorHintResult.text}
             </span>
           )}
         </DrawerSection>

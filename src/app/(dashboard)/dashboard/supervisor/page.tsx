@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ClipboardCheck, CalendarDays } from "lucide-react";
+import { ClipboardCheck, CalendarDays, CalendarCheck } from "lucide-react";
 import { getCurrentUser } from "@/lib/supabase/current-user";
 import { getSupervisorQueueData } from "@/lib/supervisor-queue";
 import { AppShell } from "@/components/shell/AppShell";
@@ -32,6 +32,7 @@ export default async function SupervisorPage() {
       badge: data.kpis.waitingCount || undefined,
     },
     { href: "/dashboard/supervisor/cleanings", label: "Cleanings", icon: <CalendarDays size={20} strokeWidth={1.8} aria-hidden="true" /> },
+    { href: "/dashboard/supervisor/availability", label: "Availability", icon: <CalendarCheck size={20} strokeWidth={1.8} aria-hidden="true" /> },
     // "Team" (pass rate by cleaner) is in the handoff's nav but has no
     // mockup or spec beyond the label, and isn't part of this phase's
     // build order -- left out rather than linking to a page that
