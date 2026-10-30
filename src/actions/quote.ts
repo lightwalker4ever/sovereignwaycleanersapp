@@ -1326,6 +1326,8 @@ export async function acceptQuoteRequest(input: {
   requestedDate: string;
   requestedWindow: ArrivalWindowKey | null;
   isFlexible: boolean;
+  cleanerId: string | null;
+  cleanerChoice: "specific" | "any" | null;
 }): Promise<QuoteResponseActionResult> {
   const trimmedToken = input.token.trim();
   const trimmedPostcode = input.postcode.trim();
@@ -1360,7 +1362,21 @@ export async function acceptQuoteRequest(input: {
     .update({ phone: parsedPhone.data, address: fullAddress })
     .eq("id", request.client_id);
 
-  const startTime = input.requestedWindow ? WINDOW_START_TIME[input.requestedWindow] : "09:00";
+  // Re-resolved here, not trusted from the cleaner-picker step's own
+  // (now possibly stale) snapshot of who was available -- same
+  // race-condition handling as submitInstantQuoteRequest(). A flexible
+  // acceptance's resolved window (if a match was found) gives it a
+  // real time instead of the old hardcoded "09:00" fallback.
+  const coveringCleanerIds = await resolveGeoCoverage(request.postcode);
+  const resolvedBooking = await resolveBookingCleaner(
+    input.requestedDate,
+    input.requestedWindow,
+    input.isFlexible,
+    input.cleanerChoice === "specific" ? input.cleanerId : null,
+    coveringCleanerIds
+  );
+  const effectiveWindow = resolvedBooking.windowKey ?? input.requestedWindow;
+  const startTime = effectiveWindow ? WINDOW_START_TIME[effectiveWindow] : "09:00";
   const scheduledAt = new Date(`${input.requestedDate}T${startTime}:00`);
 
   const breakdown = {
@@ -1375,6 +1391,7 @@ export async function acceptQuoteRequest(input: {
     .from("cleanings")
     .insert({
       client_id: request.client_id,
+      cleaner_id: resolvedBooking.cleanerId,
       status: "awaiting_confirmation",
       scheduled_at: scheduledAt.toISOString(),
       requested_date: input.requestedDate,
