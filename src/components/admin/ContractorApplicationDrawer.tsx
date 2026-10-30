@@ -168,7 +168,7 @@ export function ContractorApplicationDrawer({
                   <table className="w-full min-w-[360px] border-collapse text-center text-xs">
                     <thead>
                       <tr>
-                        <th className="w-14" />
+                        <th className="w-20" />
                         {RECRUITMENT_DAYS.map((day) => (
                           <th key={day} className="pb-1 font-bold text-dash-muted">
                             {RECRUITMENT_DAY_LABEL[day]}
@@ -179,7 +179,10 @@ export function ContractorApplicationDrawer({
                     <tbody>
                       {RECRUITMENT_PERIODS.map((period) => (
                         <tr key={period.key}>
-                          <td className="py-1 pr-1 text-left font-semibold text-dash-muted">{period.label}</td>
+                          <td className="py-1 pr-1 text-left">
+                            <span className="block font-semibold text-dash-muted">{period.label}</span>
+                            <span className="block text-[10px] text-dash-muted">{period.time}</span>
+                          </td>
                           {RECRUITMENT_DAYS.map((day) => {
                             const on = detail.availability.some((a) => a.dayOfWeek === day && a.periodKey === period.key);
                             return (
