@@ -34,3 +34,21 @@ export async function getSalesNotificationEmail(): Promise<string> {
     .single();
   return typeof data?.value === "string" ? data.value : DEFAULT_SALES_NOTIFICATION_EMAIL;
 }
+
+const DEFAULT_CAREERS_PIPELINE_TEASER = "We're growing — join our approved contractor network.";
+
+/**
+ * Admin-set, not live-computed -- a precisely-computed pipeline count,
+ * even rounded, could let a competitor infer growth trends by checking
+ * the public Careers page repeatedly over time. Same fail-soft shape as
+ * getSalesNotificationEmail() above.
+ */
+export async function getCareersPipelineTeaser(): Promise<string> {
+  const admin = createAdminClient();
+  const { data } = await admin
+    .from("app_settings")
+    .select("value")
+    .eq("key", "careers_pipeline_teaser")
+    .single();
+  return typeof data?.value === "string" ? data.value : DEFAULT_CAREERS_PIPELINE_TEASER;
+}

@@ -34,3 +34,20 @@ export async function setSalesNotificationEmail(email: string) {
 
   revalidatePath("/dashboard/admin/settings");
 }
+
+export async function setCareersPipelineTeaser(text: string) {
+  await assertIsRole(["admin"]);
+
+  const trimmed = text.trim();
+  if (!trimmed) throw new Error("Teaser text is required");
+
+  const admin = createAdminClient();
+  const { error } = await admin
+    .from("app_settings")
+    .update({ value: trimmed })
+    .eq("key", "careers_pipeline_teaser");
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard/admin/settings");
+  revalidatePath("/careers");
+}

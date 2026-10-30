@@ -1,8 +1,9 @@
 "use server";
 
+import { randomUUID } from "crypto";
 import { z } from "zod";
 import { createAdminClient } from "@/lib/supabase/admin";
-import { nameSchema, requiredPhoneSchema } from "@/lib/validation";
+import { nameSchema, emailSchema, requiredPhoneSchema } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
 import {
   RECRUITMENT_DAYS,
@@ -130,4 +131,75 @@ export async function submitContractorApplication(input: {
   }
 
   return { success: true, reference: application.reference };
+}
+
+const jobApplicantSchema = z.object({
+  fullName: nameSchema,
+  email: emailSchema,
+  phone: z.string().transform(normalizeUkPhone).pipe(requiredPhoneSchema),
+});
+
+const MAX_CV_BYTES = 5 * 1024 * 1024;
+
+export type SubmitJobApplicationResult = { success: true } | { success: false; error: string };
+
+/**
+ * One atomic form submit (not a multi-step journey like the tailored
+ * quote flow's photo uploads), so the optional CV uploads inside this
+ * same call rather than via a separate pre-row-exists action --
+ * FormData is still the right shape since it carries a File, same
+ * uploadTailoredPhoto() mechanic (service-role client, no bucket
+ * policy needed).
+ */
+export async function submitJobApplication(formData: FormData): Promise<SubmitJobApplicationResult> {
+  const jobPostingId = String(formData.get("jobPostingId") ?? "").trim();
+  if (!jobPostingId) return { success: false, error: "Missing job posting" };
+
+  const parsed = jobApplicantSchema.safeParse({
+    fullName: formData.get("fullName"),
+    email: formData.get("email"),
+    phone: formData.get("phone"),
+  });
+  if (!parsed.success) return { success: false, error: parsed.error.issues[0].message };
+
+  const message = String(formData.get("message") ?? "").trim();
+
+  const admin = createAdminClient();
+
+  const { data: posting } = await admin
+    .from("job_postings")
+    .select("id, status")
+    .eq("id", jobPostingId)
+    .maybeSingle();
+  if (!posting || posting.status !== "open") {
+    return { success: false, error: "This role is no longer accepting applications." };
+  }
+
+  let cvStoragePath: string | null = null;
+  const file = formData.get("cv");
+  if (file instanceof File && file.size > 0) {
+    if (file.size > MAX_CV_BYTES) return { success: false, error: "CV is too large (max 5MB)" };
+    const ext = file.name.includes(".") ? file.name.split(".").pop() : "pdf";
+    const storagePath = `job-applications/${randomUUID()}.${ext}`;
+    const { error: uploadError } = await admin.storage
+      .from("recruitment-documents")
+      .upload(storagePath, file, { contentType: file.type });
+    if (uploadError) return { success: false, error: "Unable to upload your CV. Please try again." };
+    cvStoragePath = storagePath;
+  }
+
+  const { error } = await admin.from("job_applications").insert({
+    job_posting_id: jobPostingId,
+    full_name: parsed.data.fullName,
+    email: parsed.data.email,
+    phone: parsed.data.phone,
+    message: message || null,
+    cv_storage_path: cvStoragePath,
+  });
+  if (error) {
+    console.error("Failed to create job application", error);
+    return { success: false, error: "Unable to submit your application right now. Please try again." };
+  }
+
+  return { success: true };
 }

@@ -1,14 +1,15 @@
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { ContactFormToggle } from "@/components/admin/ContactFormToggle";
 import { EditableTextCell } from "@/components/admin/EditableTextCell";
-import { getContactFormEnabled, getSalesNotificationEmail } from "@/lib/app-settings";
-import { setSalesNotificationEmail } from "./actions";
+import { getContactFormEnabled, getSalesNotificationEmail, getCareersPipelineTeaser } from "@/lib/app-settings";
+import { setSalesNotificationEmail, setCareersPipelineTeaser } from "./actions";
 import { PageContainer } from "@/components/shell/PageContainer";
 
 export default async function AdminSettingsPage() {
-  const [contactFormEnabled, salesNotificationEmail] = await Promise.all([
+  const [contactFormEnabled, salesNotificationEmail, careersPipelineTeaser] = await Promise.all([
     getContactFormEnabled(),
     getSalesNotificationEmail(),
+    getCareersPipelineTeaser(),
   ]);
 
   return (
@@ -44,6 +45,19 @@ export default async function AdminSettingsPage() {
             type="email"
             onSave={setSalesNotificationEmail}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="p-5">
+        <CardHeader>
+          <CardTitle>Careers page teaser</CardTitle>
+          <CardDescription>
+            A short line shown on the public Careers page to signal demand without revealing exact
+            figures — set this by hand, it&apos;s never computed from live data.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <EditableTextCell value={careersPipelineTeaser} onSave={setCareersPipelineTeaser} />
         </CardContent>
       </Card>
     </PageContainer>
