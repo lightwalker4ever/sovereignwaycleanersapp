@@ -328,7 +328,7 @@ export function ContractorApplicationForm() {
           <table className="w-full min-w-[480px] border-collapse text-center text-sm">
             <thead>
               <tr>
-                <th className="w-20" />
+                <th className="w-28" />
                 {RECRUITMENT_DAYS.map((day) => (
                   <th key={day} className="pb-2 text-xs font-bold text-gray-500">
                     {RECRUITMENT_DAY_LABEL[day]}
@@ -339,7 +339,10 @@ export function ContractorApplicationForm() {
             <tbody>
               {RECRUITMENT_PERIODS.map((period) => (
                 <tr key={period.key}>
-                  <td className="py-1 pr-2 text-left text-xs font-semibold text-gray-500">{period.label}</td>
+                  <td className="py-1 pr-2 text-left">
+                    <span className="block text-xs font-semibold text-gray-500">{period.label}</span>
+                    <span className="block text-[11px] text-gray-400">{period.time}</span>
+                  </td>
                   {RECRUITMENT_DAYS.map((day) => {
                     const on = availability.has(slotKey(day, period.key));
                     return (
