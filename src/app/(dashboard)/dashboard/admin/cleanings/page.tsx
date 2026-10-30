@@ -11,7 +11,7 @@ export default async function CleaningsPage({
 }: {
   searchParams: Promise<{ clientId?: string }>;
 }) {
-  const [{ clientId }, rows, { cleaners, supervisors, cleanerSchedule }, clients, standardLists] =
+  const [{ clientId }, rows, { cleaners, supervisors, cleanerSchedule, supervisorAvailability }, clients, standardLists] =
     await Promise.all([
       searchParams,
       listCleanings(),
@@ -45,13 +45,20 @@ export default async function CleaningsPage({
           cleaners={cleaners}
           supervisors={supervisors}
           cleanerSchedule={cleanerSchedule}
+          supervisorAvailability={supervisorAvailability}
           standardLists={standardLists}
           initialClientId={clientId}
         />
       </header>
 
       <Suspense fallback={null}>
-        <CleaningsList rows={rows} cleaners={cleaners} supervisors={supervisors} standardLists={standardLists} />
+        <CleaningsList
+          rows={rows}
+          cleaners={cleaners}
+          supervisors={supervisors}
+          supervisorAvailability={supervisorAvailability}
+          standardLists={standardLists}
+        />
       </Suspense>
     </PageContainer>
   );

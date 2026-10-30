@@ -2,6 +2,7 @@ import Link from "next/link";
 import { PageContainer } from "@/components/shell/PageContainer";
 import { DataTable } from "@/components/ui/DataTable";
 import { getCleanerScheduleGrid, type ScheduleCellState } from "@/lib/cleaner-availability";
+import { getSupervisorScheduleGrid, type SupervisorScheduleCellState } from "@/lib/supervisor-availability";
 import { ARRIVAL_WINDOWS } from "@/lib/quote-config";
 
 const DAYS_SHOWN = 7;
@@ -29,6 +30,11 @@ const STATE_STYLE: Record<ScheduleCellState, { label: string; bg: string; text: 
   not_working: { label: "—", bg: "#F3F4F4", text: "#8A948E" },
 };
 
+const SUPERVISOR_STATE_STYLE: Record<SupervisorScheduleCellState, { label: string; bg: string; text: string }> = {
+  on_duty: { label: "On duty", bg: "#DFF1E5", text: "#155B33" },
+  not_on_duty: { label: "—", bg: "#F3F4F4", text: "#8A948E" },
+};
+
 /**
  * "For all cleaner's schedules to be combined in one place" -- a
  * cleaner x (date x window) grid built from getCleanerScheduleGrid(),
@@ -46,8 +52,10 @@ export default async function AdminSchedulePage({
   const startIso = start && /^\d{4}-\d{2}-\d{2}$/.test(start) ? start : toIsoDate(new Date());
 
   const { cleaners, cells } = await getCleanerScheduleGrid(startIso, DAYS_SHOWN);
+  const { supervisors, cells: supervisorCells } = await getSupervisorScheduleGrid(startIso, DAYS_SHOWN);
   const days = Array.from({ length: DAYS_SHOWN }, (_, i) => addDays(startIso, i));
   const cellByKey = new Map(cells.map((c) => [`${c.cleanerId}-${c.date}-${c.windowKey}`, c]));
+  const supervisorCellByKey = new Map(supervisorCells.map((c) => [`${c.supervisorId}-${c.date}`, c]));
 
   const prevStart = addDays(startIso, -DAYS_SHOWN);
   const nextStart = addDays(startIso, DAYS_SHOWN);
@@ -143,6 +151,62 @@ export default async function AdminSchedulePage({
             <tr>
               <td colSpan={columnCount} className="px-4 py-8 text-center text-sm text-dash-muted">
                 No cleaners yet.
+              </td>
+            </tr>
+          )}
+        </tbody>
+      </DataTable>
+
+      <div>
+        <h2 className="m-0 text-xl font-extrabold tracking-tight text-dash-ink">Supervisors</h2>
+        <p className="mt-1 text-sm text-dash-muted">
+          Declared on-duty days, advisory only -- the supervisor pickers in New cleaning and Confirm &amp;
+          schedule still let admin pick anyone, regardless of this.
+        </p>
+      </div>
+
+      <DataTable minWidth={280 + days.length * 90}>
+        <thead>
+          <tr>
+            <th className="sticky left-0 z-10 bg-dash-surface px-4 py-2 text-left text-xs font-semibold text-dash-muted">
+              Supervisor
+            </th>
+            {days.map((d) => (
+              <th
+                key={d}
+                className="border-l border-dash-border px-2 py-1.5 text-center text-xs font-bold text-dash-ink"
+              >
+                {new Date(`${d}T00:00:00`).toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" })}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {supervisors.map((supervisor) => (
+            <tr key={supervisor.id} className="border-t border-dash-border-soft">
+              <td className="sticky left-0 z-10 bg-dash-surface px-4 py-2 font-semibold whitespace-nowrap text-dash-ink">
+                {supervisor.fullName || "Unnamed"}
+              </td>
+              {days.map((d) => {
+                const cell = supervisorCellByKey.get(`${supervisor.id}-${d}`);
+                const style = SUPERVISOR_STATE_STYLE[cell?.state ?? "not_on_duty"];
+                return (
+                  <td key={`${supervisor.id}-${d}`} className="border-l border-dash-border-soft p-1 text-center">
+                    <span
+                      className="inline-block w-full rounded px-1 py-1 text-[10px] font-bold"
+                      style={{ background: style.bg, color: style.text }}
+                    >
+                      {style.label}
+                    </span>
+                  </td>
+                );
+              })}
+            </tr>
+          ))}
+          {supervisors.length === 0 && (
+            <tr>
+              <td colSpan={1 + days.length} className="px-4 py-8 text-center text-sm text-dash-muted">
+                No supervisors yet.
               </td>
             </tr>
           )}

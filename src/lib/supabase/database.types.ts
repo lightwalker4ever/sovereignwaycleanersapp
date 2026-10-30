@@ -122,6 +122,51 @@ export type Database = {
         };
         Relationships: [];
       };
+      supervisor_availability: {
+        Row: {
+          id: string;
+          supervisor_id: string;
+          day_of_week: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          supervisor_id: string;
+          day_of_week: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          supervisor_id?: string;
+          day_of_week?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      supervisor_availability_exceptions: {
+        Row: {
+          id: string;
+          supervisor_id: string;
+          date: string;
+          type: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          supervisor_id: string;
+          date: string;
+          type: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          supervisor_id?: string;
+          date?: string;
+          type?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       clients: {
         Row: {
           id: string;
