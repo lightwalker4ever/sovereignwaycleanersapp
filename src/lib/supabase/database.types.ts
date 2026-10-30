@@ -167,6 +167,133 @@ export type Database = {
         };
         Relationships: [];
       };
+      contractor_applications: {
+        Row: {
+          id: string;
+          full_name: string;
+          phone: string;
+          address: string;
+          has_dbs: boolean;
+          has_liability_insurance: boolean;
+          has_iso: boolean;
+          other_evidence_notes: string | null;
+          years_experience: number;
+          areas_of_experience: Json;
+          other_area_of_experience: string | null;
+          business_structure: "sole_trader" | "company";
+          company_employee_count: number | null;
+          notes: string | null;
+          status: "submitted" | "evidence_requested" | "under_review" | "approved" | "rejected";
+          resume_token: string;
+          evidence_requested_at: string | null;
+          evidence_notes: string | null;
+          evidence_submitted_at: string | null;
+          reviewed_by: string | null;
+          decided_at: string | null;
+          created_cleaner_profile_id: string | null;
+          created_at: string;
+          updated_at: string;
+          reference: string;
+        };
+        Insert: {
+          id?: string;
+          full_name: string;
+          phone: string;
+          address: string;
+          has_dbs?: boolean;
+          has_liability_insurance?: boolean;
+          has_iso?: boolean;
+          other_evidence_notes?: string | null;
+          years_experience: number;
+          areas_of_experience?: Json;
+          other_area_of_experience?: string | null;
+          business_structure: "sole_trader" | "company";
+          company_employee_count?: number | null;
+          notes?: string | null;
+          status?: "submitted" | "evidence_requested" | "under_review" | "approved" | "rejected";
+          resume_token?: string;
+          evidence_requested_at?: string | null;
+          evidence_notes?: string | null;
+          evidence_submitted_at?: string | null;
+          reviewed_by?: string | null;
+          decided_at?: string | null;
+          created_cleaner_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          full_name?: string;
+          phone?: string;
+          address?: string;
+          has_dbs?: boolean;
+          has_liability_insurance?: boolean;
+          has_iso?: boolean;
+          other_evidence_notes?: string | null;
+          years_experience?: number;
+          areas_of_experience?: Json;
+          other_area_of_experience?: string | null;
+          business_structure?: "sole_trader" | "company";
+          company_employee_count?: number | null;
+          notes?: string | null;
+          status?: "submitted" | "evidence_requested" | "under_review" | "approved" | "rejected";
+          resume_token?: string;
+          evidence_requested_at?: string | null;
+          evidence_notes?: string | null;
+          evidence_submitted_at?: string | null;
+          reviewed_by?: string | null;
+          decided_at?: string | null;
+          created_cleaner_profile_id?: string | null;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      contractor_availability: {
+        Row: {
+          id: string;
+          application_id: string;
+          day_of_week: number;
+          period_key: "early" | "day" | "evening";
+        };
+        Insert: {
+          id?: string;
+          application_id: string;
+          day_of_week: number;
+          period_key: "early" | "day" | "evening";
+        };
+        Update: {
+          id?: string;
+          application_id?: string;
+          day_of_week?: number;
+          period_key?: "early" | "day" | "evening";
+        };
+        Relationships: [];
+      };
+      contractor_evidence_documents: {
+        Row: {
+          id: string;
+          application_id: string;
+          storage_path: string;
+          original_filename: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          application_id: string;
+          storage_path: string;
+          original_filename: string;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          application_id?: string;
+          storage_path?: string;
+          original_filename?: string;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
       clients: {
         Row: {
           id: string;
