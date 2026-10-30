@@ -7,6 +7,7 @@ import { createAdminClient } from "@/lib/supabase/admin";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { nameSchema, emailSchema, passwordSchema } from "@/lib/validation";
 import { staffRoleSchema, type StaffRole } from "@/lib/roles";
+import { createStaffAccount } from "@/lib/staff";
 
 // No email-invite flow yet (that's a planned follow-up): account
 // creation sets a password the admin chooses directly, so they can
@@ -43,40 +44,8 @@ export async function inviteUser(
   }
   const { email, password, fullName, role } = parsed.data;
 
-  const admin = createAdminClient();
-
-  // email_confirm: true activates the account immediately -- there's
-  // no confirmation email step yet, so this is what makes the account
-  // usable right away with the password the admin just set.
-  const { data, error } = await admin.auth.admin.createUser({
-    email,
-    password,
-    email_confirm: true,
-    user_metadata: { full_name: fullName },
-  });
-  if (error) {
-    return { success: false, error: error.message };
-  }
-  if (!data.user) {
-    return { success: false, error: "Account created, but no user record was returned." };
-  }
-
-  // The new auth user already got a 'client' profile via the
-  // handle_new_user trigger (full_name/email populated from the
-  // values above) -- now set the role the admin actually chose. This
-  // update runs through the service-role client, which bypasses RLS
-  // and the profiles_guard_role_change trigger allows it since
-  // auth.uid() is null in this context (see the migration).
-  const { error: roleError } = await admin
-    .from("profiles")
-    .update({ role })
-    .eq("id", data.user.id);
-  if (roleError) {
-    return {
-      success: false,
-      error: `Account created, but couldn't set their role: ${roleError.message}`,
-    };
-  }
+  const result = await createStaffAccount({ email, password, fullName, role });
+  if (!result.success) return result;
 
   revalidatePath("/dashboard/admin");
   return { success: true };

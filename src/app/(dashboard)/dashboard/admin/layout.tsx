@@ -13,6 +13,7 @@ import {
   MapPin,
   Globe,
   Briefcase,
+  UserPlus,
   Settings as SettingsIcon,
   type LucideIcon,
 } from "lucide-react";
@@ -83,6 +84,7 @@ export default async function AdminLayout({
       badge: quoteRequestsAwaiting || undefined,
     },
     { href: "/dashboard/admin/job-postings", label: "Job Postings", icon: navIcon(Briefcase) },
+    { href: "/dashboard/admin/recruitment", label: "Recruitment", icon: navIcon(UserPlus) },
     { href: "/dashboard/admin/rate-card", label: "Rate Card", icon: navIcon(Tag) },
     { href: "/dashboard/admin/location-pricing", label: "Location Pricing", icon: navIcon(MapPin) },
     { href: "/dashboard/admin/service-areas", label: "Service Areas", icon: navIcon(Globe) },

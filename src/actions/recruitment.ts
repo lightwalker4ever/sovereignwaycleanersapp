@@ -2,9 +2,11 @@
 
 import { randomUUID } from "crypto";
 import { z } from "zod";
+import { Resend } from "resend";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, emailSchema, requiredPhoneSchema } from "@/lib/validation";
 import { normalizeUkPhone } from "@/lib/quote-phone";
+import { getSalesNotificationEmail } from "@/lib/app-settings";
 import {
   RECRUITMENT_DAYS,
   RECRUITMENT_PERIOD_KEYS,
@@ -15,6 +17,7 @@ import {
 
 const contractorContactSchema = z.object({
   fullName: nameSchema,
+  email: emailSchema,
   phone: z.string().transform(normalizeUkPhone).pipe(requiredPhoneSchema),
 });
 
@@ -37,6 +40,7 @@ export type SubmitContractorApplicationResult =
  */
 export async function submitContractorApplication(input: {
   fullName: string;
+  email: string;
   phone: string;
   address: string;
   hasDbs: boolean;
@@ -51,7 +55,11 @@ export async function submitContractorApplication(input: {
   notes: string;
   availability: ContractorAvailabilityEntry[];
 }): Promise<SubmitContractorApplicationResult> {
-  const parsedContact = contractorContactSchema.safeParse({ fullName: input.fullName, phone: input.phone });
+  const parsedContact = contractorContactSchema.safeParse({
+    fullName: input.fullName,
+    email: input.email,
+    phone: input.phone,
+  });
   if (!parsedContact.success) {
     return { success: false, error: parsedContact.error.issues[0].message };
   }
@@ -97,6 +105,7 @@ export async function submitContractorApplication(input: {
     .from("contractor_applications")
     .insert({
       full_name: parsedContact.data.fullName,
+      email: parsedContact.data.email,
       phone: parsedContact.data.phone,
       address,
       has_dbs: input.hasDbs,
@@ -199,6 +208,175 @@ export async function submitJobApplication(formData: FormData): Promise<SubmitJo
   if (error) {
     console.error("Failed to create job application", error);
     return { success: false, error: "Unable to submit your application right now. Please try again." };
+  }
+
+  return { success: true };
+}
+
+/**
+ * Token alone is never trusted -- every lookup below also re-verifies
+ * the applicant's own phone number, same "token + a second fact"
+ * pattern as the quote flow's getQuoteResponseByToken() (token +
+ * postcode). Shared by every /careers/evidence action so the check
+ * lives in exactly one place.
+ */
+async function resolveContractorApplicationByToken(
+  admin: ReturnType<typeof createAdminClient>,
+  token: string,
+  phone: string
+): Promise<{ id: string; reference: string; fullName: string; status: string } | null> {
+  const trimmedToken = token.trim();
+  if (!trimmedToken) return null;
+
+  const { data: app } = await admin
+    .from("contractor_applications")
+    .select("id, reference, full_name, phone, status")
+    .eq("resume_token", trimmedToken)
+    .maybeSingle();
+  if (!app) return null;
+  if (normalizeUkPhone(phone.trim()) !== app.phone) return null;
+
+  return { id: app.id, reference: app.reference, fullName: app.full_name, status: app.status };
+}
+
+export interface ContractorEvidenceDetail {
+  reference: string;
+  fullName: string;
+  status: string;
+  evidenceNotes: string | null;
+  evidenceSubmittedAt: string | null;
+  documents: { id: string; originalFilename: string }[];
+}
+
+export type GetContractorEvidenceResult =
+  | { success: true; detail: ContractorEvidenceDetail }
+  | { success: false; error: string };
+
+export async function getContractorApplicationByToken(token: string, phone: string): Promise<GetContractorEvidenceResult> {
+  if (!phone.trim()) return { success: false, error: "Enter the phone number from your application." };
+
+  const admin = createAdminClient();
+  const app = await resolveContractorApplicationByToken(admin, token, phone);
+  if (!app) {
+    return { success: false, error: "We couldn't find that application. Check your link and phone number." };
+  }
+
+  const { data: full } = await admin
+    .from("contractor_applications")
+    .select("evidence_notes, evidence_submitted_at")
+    .eq("id", app.id)
+    .single();
+  const { data: documents } = await admin
+    .from("contractor_evidence_documents")
+    .select("id, original_filename")
+    .eq("application_id", app.id)
+    .order("created_at", { ascending: true });
+
+  return {
+    success: true,
+    detail: {
+      reference: app.reference,
+      fullName: app.fullName,
+      status: app.status,
+      evidenceNotes: full?.evidence_notes ?? null,
+      evidenceSubmittedAt: full?.evidence_submitted_at ?? null,
+      documents: (documents ?? []).map((d) => ({ id: d.id, originalFilename: d.original_filename })),
+    },
+  };
+}
+
+const MAX_EVIDENCE_BYTES = 10 * 1024 * 1024;
+
+export type UploadEvidenceResult =
+  | { success: true; document: { id: string; originalFilename: string } }
+  | { success: false; error: string };
+
+export async function uploadContractorEvidenceDocument(
+  token: string,
+  phone: string,
+  formData: FormData
+): Promise<UploadEvidenceResult> {
+  const admin = createAdminClient();
+  const app = await resolveContractorApplicationByToken(admin, token, phone);
+  if (!app) return { success: false, error: "We couldn't find that application." };
+
+  const file = formData.get("file");
+  if (!(file instanceof File)) return { success: false, error: "No file provided" };
+  if (file.size > MAX_EVIDENCE_BYTES) return { success: false, error: "File is too large (max 10MB)" };
+
+  const ext = file.name.includes(".") ? file.name.split(".").pop() : "pdf";
+  const storagePath = `contractor/${app.id}/${randomUUID()}.${ext}`;
+  const { error: uploadError } = await admin.storage
+    .from("recruitment-documents")
+    .upload(storagePath, file, { contentType: file.type });
+  if (uploadError) return { success: false, error: "Unable to upload that file. Please try again." };
+
+  const { data: document, error } = await admin
+    .from("contractor_evidence_documents")
+    .insert({ application_id: app.id, storage_path: storagePath, original_filename: file.name })
+    .select("id, original_filename")
+    .single();
+  if (error || !document) {
+    await admin.storage.from("recruitment-documents").remove([storagePath]);
+    return { success: false, error: "Unable to save that file. Please try again." };
+  }
+
+  return { success: true, document: { id: document.id, originalFilename: document.original_filename } };
+}
+
+export type RemoveEvidenceResult = { success: true } | { success: false; error: string };
+
+export async function removeContractorEvidenceDocument(
+  token: string,
+  phone: string,
+  documentId: string
+): Promise<RemoveEvidenceResult> {
+  const admin = createAdminClient();
+  const app = await resolveContractorApplicationByToken(admin, token, phone);
+  if (!app) return { success: false, error: "We couldn't find that application." };
+
+  const { data: document } = await admin
+    .from("contractor_evidence_documents")
+    .select("id, storage_path")
+    .eq("id", documentId)
+    .eq("application_id", app.id)
+    .maybeSingle();
+  if (!document) return { success: false, error: "File not found" };
+
+  await admin.storage.from("recruitment-documents").remove([document.storage_path]);
+  const { error } = await admin.from("contractor_evidence_documents").delete().eq("id", documentId);
+  if (error) return { success: false, error: error.message };
+
+  return { success: true };
+}
+
+/**
+ * The applicant's "I'm done" button -- marks evidence_submitted_at and
+ * pings admin by email so the case comes back onto their radar, rather
+ * than admin having to poll the Recruitment list for changes.
+ */
+export async function markContractorEvidenceSubmitted(token: string, phone: string): Promise<RemoveEvidenceResult> {
+  const admin = createAdminClient();
+  const app = await resolveContractorApplicationByToken(admin, token, phone);
+  if (!app) return { success: false, error: "We couldn't find that application." };
+
+  const { error } = await admin
+    .from("contractor_applications")
+    .update({ evidence_submitted_at: new Date().toISOString() })
+    .eq("id", app.id);
+  if (error) return { success: false, error: error.message };
+
+  try {
+    const resend = new Resend(process.env.RESEND_API_KEY);
+    const notifyEmail = await getSalesNotificationEmail();
+    await resend.emails.send({
+      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      to: notifyEmail,
+      subject: `Evidence submitted for contractor application (${app.reference})`,
+      html: `<p>${app.fullName} has uploaded the requested evidence for their contractor application. Please review it in Recruitment.</p>`,
+    });
+  } catch (e) {
+    console.error("Failed to send evidence-submitted notification", e);
   }
 
   return { success: true };
