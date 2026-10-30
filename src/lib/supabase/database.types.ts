@@ -171,6 +171,7 @@ export type Database = {
         Row: {
           id: string;
           full_name: string;
+          email: string;
           phone: string;
           address: string;
           has_dbs: boolean;
@@ -198,6 +199,7 @@ export type Database = {
         Insert: {
           id?: string;
           full_name: string;
+          email: string;
           phone: string;
           address: string;
           has_dbs?: boolean;
@@ -224,6 +226,7 @@ export type Database = {
         Update: {
           id?: string;
           full_name?: string;
+          email?: string;
           phone?: string;
           address?: string;
           has_dbs?: boolean;

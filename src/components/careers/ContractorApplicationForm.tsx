@@ -9,7 +9,7 @@ import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { FieldError } from "@/components/ui/field-error";
 import { submitContractorApplication, type ContractorAvailabilityEntry } from "@/actions/recruitment";
-import { nameSchema, phoneSchema, schemaFieldError } from "@/lib/validation";
+import { nameSchema, emailSchema, phoneSchema, schemaFieldError } from "@/lib/validation";
 import {
   RECRUITMENT_PERIODS,
   RECRUITMENT_DAYS,
@@ -43,9 +43,10 @@ export function ContractorApplicationForm() {
   const [reference, setReference] = useState<string | null>(null);
 
   const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
-  const [touched, setTouched] = useState({ fullName: false, phone: false });
+  const [touched, setTouched] = useState({ fullName: false, email: false, phone: false });
 
   const [hasDbs, setHasDbs] = useState(false);
   const [hasLiabilityInsurance, setHasLiabilityInsurance] = useState(false);
@@ -64,6 +65,7 @@ export function ContractorApplicationForm() {
   const [notes, setNotes] = useState("");
 
   const nameError = schemaFieldError(nameSchema, fullName);
+  const emailError = schemaFieldError(emailSchema, email);
   const phoneError = schemaFieldError(phoneSchema, phone);
 
   function toggleArea(key: string) {
@@ -87,10 +89,10 @@ export function ContractorApplicationForm() {
 
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    setTouched({ fullName: true, phone: true });
+    setTouched({ fullName: true, email: true, phone: true });
     setError(null);
 
-    if (nameError || phoneError) return;
+    if (nameError || emailError || phoneError) return;
     if (!address.trim()) {
       setError("Enter your address");
       return;
@@ -126,6 +128,7 @@ export function ContractorApplicationForm() {
     startTransition(async () => {
       const result = await submitContractorApplication({
         fullName,
+        email,
         phone,
         address,
         hasDbs,
@@ -178,6 +181,19 @@ export function ContractorApplicationForm() {
               aria-invalid={touched.fullName && !!nameError}
             />
             <FieldError message={touched.fullName ? nameError : null} />
+          </div>
+          <div className="space-y-1.5">
+            <Label htmlFor="ca-email">Email *</Label>
+            <Input
+              id="ca-email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              onBlur={() => setTouched((t) => ({ ...t, email: true }))}
+              className={cn(touched.email && emailError && "border-red-400 focus-visible:ring-red-300")}
+              aria-invalid={touched.email && !!emailError}
+            />
+            <FieldError message={touched.email ? emailError : null} />
           </div>
           <div className="space-y-1.5">
             <Label htmlFor="ca-phone">Phone Number *</Label>
