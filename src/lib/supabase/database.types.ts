@@ -294,6 +294,78 @@ export type Database = {
         };
         Relationships: [];
       };
+      job_postings: {
+        Row: {
+          id: string;
+          title: string;
+          summary: string;
+          description: string;
+          location: string;
+          status: "open" | "closed";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          summary: string;
+          description: string;
+          location?: string;
+          status?: "open" | "closed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          title?: string;
+          summary?: string;
+          description?: string;
+          location?: string;
+          status?: "open" | "closed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      job_applications: {
+        Row: {
+          id: string;
+          job_posting_id: string;
+          full_name: string;
+          email: string;
+          phone: string;
+          message: string | null;
+          cv_storage_path: string | null;
+          status: "new" | "contacted" | "closed";
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          job_posting_id: string;
+          full_name: string;
+          email: string;
+          phone: string;
+          message?: string | null;
+          cv_storage_path?: string | null;
+          status?: "new" | "contacted" | "closed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          job_posting_id?: string;
+          full_name?: string;
+          email?: string;
+          phone?: string;
+          message?: string | null;
+          cv_storage_path?: string | null;
+          status?: "new" | "contacted" | "closed";
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
       clients: {
         Row: {
           id: string;
