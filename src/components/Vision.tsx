@@ -1,38 +1,8 @@
 import Image from "next/image";
 import Link from "next/link";
-import { Award, Users, Heart, Leaf } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { buttonVariants } from "@/lib/button-variants";
 import { cn } from "@/lib/utils";
-
-interface Highlight {
-  icon: LucideIcon;
-  label: string;
-  text: string;
-}
-
-const highlights: Highlight[] = [
-  {
-    icon: Award,
-    label: "Professional Standards",
-    text: "Delivering the highest standards in every job, every time.",
-  },
-  {
-    icon: Users,
-    label: "Empowering People",
-    text: "Training and growing the next generation of cleaning professionals.",
-  },
-  {
-    icon: Heart,
-    label: "Community Focused",
-    text: "Actively engaging with and giving back to local communities.",
-  },
-  {
-    icon: Leaf,
-    label: "Sustainable Future",
-    text: "Eco-friendly products for healthier homes and a cleaner planet.",
-  },
-];
+import { BRAND_HIGHLIGHTS } from "@/lib/brand-content";
 
 export default function Vision() {
   return (
@@ -88,7 +58,7 @@ export default function Vision() {
               What We Stand For
             </p>
             <ul className="space-y-5">
-              {highlights.map(({ icon: Icon, label, text }) => (
+              {BRAND_HIGHLIGHTS.map(({ icon: Icon, label, text }) => (
                 <li key={label} className="flex items-start gap-3">
                   <div
                     className="mt-0.5 inline-flex shrink-0 items-center justify-center rounded-full p-2"
