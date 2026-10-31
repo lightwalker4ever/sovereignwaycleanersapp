@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { CareersIntro } from "@/components/careers/CareersIntro";
+import { WhyWorkWithUs } from "@/components/careers/WhyWorkWithUs";
 import { JobPostingsList } from "@/components/careers/JobPostingsList";
 import { ContractorPoolCallout } from "@/components/careers/ContractorPoolCallout";
 import { getCareersPipelineTeaser } from "@/lib/app-settings";
@@ -15,6 +16,7 @@ export default async function CareersPage() {
   return (
     <>
       <CareersIntro pipelineTeaser={pipelineTeaser} />
+      <WhyWorkWithUs />
       <JobPostingsList />
       <ContractorPoolCallout />
     </>
