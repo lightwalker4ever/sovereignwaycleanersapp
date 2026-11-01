@@ -17,7 +17,10 @@ export default function Gallery() {
   const handleTouchEnd = (e: React.TouchEvent) => {
     if (touchStartX === null) return;
     const delta = touchStartX - e.changedTouches[0].clientX;
-    if (Math.abs(delta) > 50) delta > 0 ? next() : prev();
+    if (Math.abs(delta) > 50) {
+      if (delta > 0) next();
+      else prev();
+    }
     setTouchStartX(null);
   };
 
