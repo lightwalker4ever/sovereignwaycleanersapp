@@ -75,8 +75,8 @@ export function ContractorPoolCallout() {
 
           <div className="relative hidden min-h-80 overflow-hidden rounded-2xl shadow-lg lg:block">
             <Image
-              src="/images/Sovereign%20Way%20Cleaners%20-%20Staff%201.png"
-              alt="A Sovereign Way Cleaners contractor at work"
+              src="/images/Professional%20Bedroom%20Cleaning%20Scene.png"
+              alt="Professional bedroom cleaning"
               fill
               sizes="(max-width: 1024px) 100vw, 35vw"
               className="object-cover"

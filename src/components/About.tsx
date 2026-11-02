@@ -18,8 +18,8 @@ export default function About() {
           {/* Image — first in DOM so it's on top on mobile and left on desktop */}
           <div className="relative h-96 overflow-hidden rounded-2xl shadow-lg lg:h-[480px]">
             <Image
-              src="/images/Sovereign%20Way%20Cleaners%20-%20Staff%202.png"
-              alt="Our cleaning team"
+              src="/images/Professional%20Office%20Desk%20Cleaning.png"
+              alt="Professional office desk cleaning"
               fill
               className="object-cover"
             />

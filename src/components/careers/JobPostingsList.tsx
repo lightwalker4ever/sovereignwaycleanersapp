@@ -17,12 +17,12 @@ export async function JobPostingsList() {
               <Users size={24} style={{ color: "var(--color-brand)" }} aria-hidden="true" />
             </div>
             <h2 className="mt-4 text-2xl font-extrabold tracking-tight text-gray-900 sm:text-3xl">
-              We&apos;re not hiring employees right now
+              No open positions at the moment
             </h2>
             <p className="mx-auto mt-4 max-w-xl text-base leading-7 text-gray-600">
-              Right now, our focus is on growing a select, approved network of contractors rather
-              than an employed team — so we&apos;re being deliberate about when and who we bring
-              on directly. If that changes, a role will appear here.
+              We don&apos;t have any roles open right now, but we&apos;re growing. New positions
+              are posted here as soon as they&apos;re available — check back soon, or explore
+              joining our approved contractor network below.
             </p>
           </div>
         </div>
