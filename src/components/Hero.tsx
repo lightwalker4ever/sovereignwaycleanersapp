@@ -34,7 +34,7 @@ export default function Hero() {
   }, []);
 
   return (
-    <section className="relative flex min-h-screen flex-col items-center" id="hero">
+    <section className="relative -mt-24 flex min-h-screen flex-col items-center" id="hero">
       {HERO_IMAGES.map((img, i) => (
         <div
           key={img.src}

@@ -22,7 +22,7 @@ export default function MarketingLayout({
   return (
     <>
       <Header />
-      <main>{children}</main>
+      <main className="pt-24">{children}</main>
       <Footer />
     </>
   );
