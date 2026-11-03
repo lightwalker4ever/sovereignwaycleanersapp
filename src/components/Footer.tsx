@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { FooterLocations } from "@/components/FooterLocations";
 
 export default function Footer() {
   return (
@@ -71,6 +72,8 @@ export default function Footer() {
             </ul>
           </div>
         </div>
+
+        <FooterLocations />
 
         <div className="mt-12 border-t border-gray-700 pt-6 flex flex-col items-center gap-2 sm:flex-row sm:justify-between text-xs text-gray-500">
           <p>&copy; {new Date().getFullYear()} Sovereign Way Cleaners. All rights reserved.</p>
