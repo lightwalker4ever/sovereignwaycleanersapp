@@ -26,11 +26,16 @@ jobs:
 
       - name: Start Supabase, seed test users, build + run the app, run regression tests
         run: |
-          supabase start
+          escape() { python3 -c "import sys; print(sys.stdin.read().replace('%','%25').replace(chr(13),'%0D').replace(chr(10),'%0A'), end='')"; }
+          checkpoint() { echo "::warning::CHECKPOINT $1"; }
+          fail() { echo "::error::FAILED at $1: $(echo "$2" | tail -c 3000 | escape)"; exit 1; }
 
-          # set -a: `supabase status -o env` prints plain NAME="value"
-          # lines, not `export NAME=value` -- without this, child
-          # processes below (node, npm run build, next start) won't
+          supabase start
+          checkpoint "supabase start OK"
+
+          # `supabase status -o env` prints plain NAME="value" lines,
+          # not `export NAME=value` -- `set -a` auto-exports them so
+          # child processes below (node, npm run build, next start)
           # see them. NEXT_PUBLIC_* vars specifically must be exported
           # *before* `npm run build`, since Next.js inlines them into
           # the build output rather than reading them at runtime.
@@ -40,22 +45,30 @@ jobs:
             --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
             --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
           set +a
+          checkpoint "env exported, NEXT_PUBLIC_SUPABASE_URL set: $([ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no)"
 
-          node e2e/regression/test-users.mjs
+          SEED_OUT=$(node e2e/regression/test-users.mjs 2>&1) || fail "seed test users" "$SEED_OUT"
+          checkpoint "seed test users OK"
 
-          npm run build
-          npm run start &
+          BUILD_OUT=$(npm run build 2>&1) || fail "npm run build" "$BUILD_OUT"
+          checkpoint "npm run build OK"
+
+          npm run start > /tmp/next-start.log 2>&1 &
           SERVER_PID=$!
 
+          READY=no
           for i in $(seq 1 30); do
-            if curl -s -o /dev/null http://localhost:3000/; then break; fi
+            if curl -s -o /dev/null http://localhost:3000/; then READY=yes; break; fi
             sleep 1
           done
+          if [ "$READY" != "yes" ]; then fail "server readiness wait" "$(cat /tmp/next-start.log)"; fi
+          checkpoint "server ready after wait"
 
           set +e
           BASE_URL=http://localhost:3000 npm run test:regression
           TEST_EXIT=$?
           set -e
+          checkpoint "test:regression exit code $TEST_EXIT"
 
           kill "$SERVER_PID" 2>/dev/null || true
           exit $TEST_EXIT
