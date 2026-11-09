@@ -73,10 +73,13 @@ jobs:
           checkpoint "server ready after wait"
 
           set +e
-          BASE_URL=http://localhost:3000 npm run test:regression
+          TEST_OUT=$(BASE_URL=http://localhost:3000 npm run test:regression 2>&1)
           TEST_EXIT=$?
           set -e
           checkpoint "test:regression exit code $TEST_EXIT"
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "::error::TEST OUTPUT: $(echo "$TEST_OUT" | tail -c 3000 | escape)"
+          fi
 
           kill "$SERVER_PID" 2>/dev/null || true
           exit $TEST_EXIT
