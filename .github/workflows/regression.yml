@@ -55,7 +55,7 @@ jobs:
           set +a
           checkpoint "env exported, NEXT_PUBLIC_SUPABASE_URL set: $([ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no)"
 
-          SEED_OUT=$(node e2e/regression/test-users.mjs 2>&1) || fail "seed test users" "$SEED_OUT"
+          SEED_OUT=$(node e2e/regression/seed-test-users.mjs 2>&1) || fail "seed test users" "$SEED_OUT"
           checkpoint "seed test users OK"
 
           BUILD_OUT=$(npm run build 2>&1) || fail "npm run build" "$BUILD_OUT"
