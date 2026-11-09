@@ -20,15 +20,26 @@ jobs:
 
       - uses: supabase/setup-cli@v1
         with:
-          version: latest
+          # Pinned to match the version this project's own devDependency
+          # and the status-env flag syntax below were verified against
+          # locally -- "latest" previously resolved to a newer major
+          # version whose `status -o env` output this didn't account for.
+          version: 2.119.0
 
       - name: Start local Supabase and run integration tests
         run: |
           supabase start
+          echo "--- supabase status -o env output ---"
+          supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY
+          echo "--- end output ---"
           eval "$(supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
             --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+          echo "NEXT_PUBLIC_SUPABASE_URL is set: $([ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no)"
           npm run test:integration
 
       - name: Stop local Supabase
