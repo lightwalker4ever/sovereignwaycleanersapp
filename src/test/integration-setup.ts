@@ -5,10 +5,14 @@
  *
  * To run these tests locally (once Docker is available):
  *   supabase start
+ *   set -a  # `status -o env` prints plain NAME="value" lines, not
+ *           # `export NAME=value` -- without this, npm (a child
+ *           # process) won't see them at all.
  *   eval "$(supabase status -o env \
  *     --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
  *     --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
  *     --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+ *   set +a
  *   npm run test:integration
  *   supabase stop
  */

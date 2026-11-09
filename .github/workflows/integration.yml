@@ -29,27 +29,20 @@ jobs:
       - name: Start local Supabase
         run: supabase start
 
-      # TEMPORARY diagnostic step: the previous two runs' env export
-      # silently produced nothing and plain stdout isn't visible
-      # without admin API access, so force the real output into a
-      # ::warning:: annotation (which is readable via the Checks API)
-      # instead of guessing again blind. Removed once this is working.
-      - name: Debug -- surface supabase status output as an annotation
-        run: |
-          escape() { python3 -c "import sys; print(sys.stdin.read().replace('%','%25').replace(chr(13),'%0D').replace(chr(10),'%0A'), end='')"; }
-          JSON_OUT=$(supabase status -o json 2>&1)
-          echo "::warning::JSON_OUT=$(echo "$JSON_OUT" | escape)"
-          ENV_DEFAULT=$(supabase status -o env 2>&1)
-          echo "::warning::ENV_DEFAULT=$(echo "$ENV_DEFAULT" | escape)"
-          ENV_OVERRIDE=$(supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY 2>&1)
-          echo "::warning::ENV_OVERRIDE=$(echo "$ENV_OVERRIDE" | escape)"
-
       - name: Run integration tests
         run: |
+          # `supabase status -o env` prints plain NAME="value" lines,
+          # not `export NAME=value` -- eval'ing them directly only
+          # creates local shell variables, invisible to the
+          # `npm run test:integration` child process below. `set -a`
+          # auto-exports every variable assigned while it's on, which
+          # is what makes them visible to that child process.
+          set -a
           eval "$(supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
             --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+          set +a
           npm run test:integration
 
       - name: Stop local Supabase
