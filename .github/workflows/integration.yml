@@ -26,20 +26,30 @@ jobs:
           # version whose `status -o env` output this didn't account for.
           version: 2.119.0
 
-      - name: Start local Supabase and run integration tests
+      - name: Start local Supabase
+        run: supabase start
+
+      # TEMPORARY diagnostic step: the previous two runs' env export
+      # silently produced nothing and plain stdout isn't visible
+      # without admin API access, so force the real output into a
+      # ::warning:: annotation (which is readable via the Checks API)
+      # instead of guessing again blind. Removed once this is working.
+      - name: Debug -- surface supabase status output as an annotation
         run: |
-          supabase start
-          echo "--- supabase status -o env output ---"
-          supabase status -o env \
-            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
-            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
-            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY
-          echo "--- end output ---"
+          escape() { python3 -c "import sys; print(sys.stdin.read().replace('%','%25').replace(chr(13),'%0D').replace(chr(10),'%0A'), end='')"; }
+          JSON_OUT=$(supabase status -o json 2>&1)
+          echo "::warning::JSON_OUT=$(echo "$JSON_OUT" | escape)"
+          ENV_DEFAULT=$(supabase status -o env 2>&1)
+          echo "::warning::ENV_DEFAULT=$(echo "$ENV_DEFAULT" | escape)"
+          ENV_OVERRIDE=$(supabase status -o env --override-name api.url=NEXT_PUBLIC_SUPABASE_URL --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY 2>&1)
+          echo "::warning::ENV_OVERRIDE=$(echo "$ENV_OVERRIDE" | escape)"
+
+      - name: Run integration tests
+        run: |
           eval "$(supabase status -o env \
             --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
             --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
             --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
-          echo "NEXT_PUBLIC_SUPABASE_URL is set: $([ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no)"
           npm run test:integration
 
       - name: Stop local Supabase
