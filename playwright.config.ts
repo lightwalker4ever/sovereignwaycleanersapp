@@ -14,6 +14,12 @@ export default defineConfig({
   use: {
     baseURL: process.env.BASE_URL,
     trace: "retain-on-failure",
+    // Lets CI reach a Vercel deployment that has "Deployment
+    // Protection" enabled -- unset locally/for any URL that isn't
+    // protection-gated, where it's simply not sent.
+    extraHTTPHeaders: process.env.VERCEL_AUTOMATION_BYPASS_SECRET
+      ? { "x-vercel-protection-bypass": process.env.VERCEL_AUTOMATION_BYPASS_SECRET }
+      : undefined,
   },
   projects: [
     {
