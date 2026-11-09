@@ -26,5 +26,9 @@ export default defineConfig({
       name: "smoke",
       testMatch: "smoke/**/*.spec.ts",
     },
+    {
+      name: "regression",
+      testMatch: "regression/**/*.spec.ts",
+    },
   ],
 });

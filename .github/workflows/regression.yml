@@ -1,0 +1,72 @@
+name: Regression tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+
+      - name: Start Supabase, seed test users, build + run the app, run regression tests
+        run: |
+          supabase start
+
+          # set -a: `supabase status -o env` prints plain NAME="value"
+          # lines, not `export NAME=value` -- without this, child
+          # processes below (node, npm run build, next start) won't
+          # see them. NEXT_PUBLIC_* vars specifically must be exported
+          # *before* `npm run build`, since Next.js inlines them into
+          # the build output rather than reading them at runtime.
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+          set +a
+
+          node e2e/regression/test-users.mjs
+
+          npm run build
+          npm run start &
+          SERVER_PID=$!
+
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://localhost:3000/; then break; fi
+            sleep 1
+          done
+
+          set +e
+          BASE_URL=http://localhost:3000 npm run test:regression
+          TEST_EXIT=$?
+          set -e
+
+          kill "$SERVER_PID" 2>/dev/null || true
+          exit $TEST_EXIT
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-regression-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop

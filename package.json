@@ -9,6 +9,7 @@
     "lint": "eslint",
     "test": "vitest run",
     "test:smoke": "playwright test --project=smoke",
+    "test:regression": "playwright test --project=regression",
     "test:integration": "vitest run -c vitest.integration.config.ts",
     "supabase:start": "supabase start",
     "supabase:stop": "supabase stop"
