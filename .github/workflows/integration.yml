@@ -1,0 +1,50 @@
+name: Integration tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  integration:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - uses: supabase/setup-cli@v1
+        with:
+          # Pinned to match the version this project's own devDependency
+          # and the status-env flag syntax below were verified against
+          # locally -- "latest" previously resolved to a newer major
+          # version whose `status -o env` output this didn't account for.
+          version: 2.119.0
+
+      - name: Start local Supabase
+        run: supabase start
+
+      - name: Run integration tests
+        run: |
+          # `supabase status -o env` prints plain NAME="value" lines,
+          # not `export NAME=value` -- eval'ing them directly only
+          # creates local shell variables, invisible to the
+          # `npm run test:integration` child process below. `set -a`
+          # auto-exports every variable assigned while it's on, which
+          # is what makes them visible to that child process.
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+          set +a
+          npm run test:integration
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
