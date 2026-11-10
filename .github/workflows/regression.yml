@@ -3,7 +3,7 @@ name: Regression tests
 on:
   pull_request:
   push:
-    branches: [main, net/regression-tests] # TODO: drop the feature branch before merging -- temporary, to verify this phase via CI (no local Docker)
+    branches: [main]
 
 jobs:
   regression:
