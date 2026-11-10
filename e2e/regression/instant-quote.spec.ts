@@ -70,12 +70,15 @@ test("a customer can request an End of Tenancy booking end to end", async ({ pag
     .click();
   await asideButton(page, "Add your details").click();
 
-  // /quote/details
+  // /quote/details -- getByLabel does case-insensitive substring
+  // matching by default, and this page's "Track this clean online.
+  // We'll *email* you a link..." checkbox label would otherwise also
+  // match a loose "Email" query.
   await expect(page).toHaveURL(/\/quote\/details/);
-  await page.getByLabel("Full name").fill("Jane Smith");
-  await page.getByLabel("Email").fill(testEmail);
-  await page.getByLabel("Mobile number").fill("01732711856");
-  await page.getByLabel("Address").fill("1 Test Street");
+  await page.getByLabel("Full name", { exact: true }).fill("Jane Smith");
+  await page.getByLabel("Email", { exact: true }).fill(testEmail);
+  await page.getByLabel("Mobile number", { exact: true }).fill("01732711856");
+  await page.getByLabel("Address", { exact: true }).fill("1 Test Street");
   await page.getByRole("button", { name: "I'll be there" }).click();
   await asideButton(page, "Request this booking").click();
 
