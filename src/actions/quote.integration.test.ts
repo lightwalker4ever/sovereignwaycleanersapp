@@ -43,7 +43,15 @@ const baseInput = {
   service: "end_of_tenancy" as const,
   selectedInputs: { propertySize: "studio1bed" as const, bathrooms: 1 as const, addons: {} },
   postcode: "TN9 1AA",
-  requestedDate: "2026-02-05", // Thursday (day-of-week 4)
+  // Friday (day-of-week 5) + morning, deliberately a combination no
+  // other integration test file's fixtures use: cleaner_availability
+  // is a RECURRING weekly rule, not date-specific, so every
+  // integration test file sharing this CI run's one Postgres instance
+  // shares the same pool of "who's available on day-of-week X, window
+  // Y" -- cleaner-availability.integration.test.ts uses Thursday
+  // mornings, which would otherwise leak a second, unrelated cleaner
+  // into this file's "available" results on any Thursday date here.
+  requestedDate: "2026-02-06",
   requestedWindow: "morning" as const,
   isFlexible: false,
   cleanerId: null,
@@ -85,7 +93,7 @@ describe("submitInstantQuoteRequest (integration)", () => {
 
   it("creates a real cleanings + clients row, recomputes the price server-side, and locks in an available cleaner", async () => {
     const cleanerId = await createTestCleaner("free");
-    await setWeeklyAvailability(cleanerId, [{ dayOfWeek: 4, windowKey: "morning" }]);
+    await setWeeklyAvailability(cleanerId, [{ dayOfWeek: 5, windowKey: "morning" }]);
 
     const email = `instant-quote-customer-${Date.now()}@example.com`;
     const result = await submitInstantQuoteRequest({
@@ -114,7 +122,7 @@ describe("submitInstantQuoteRequest (integration)", () => {
       service: "end_of_tenancy",
       postcode: "TN9 1AA",
     });
-    expect(cleaning!.scheduled_at.startsWith("2026-02-05T08:00:00")).toBe(true);
+    expect(cleaning!.scheduled_at.startsWith("2026-02-06T08:00:00")).toBe(true);
 
     const { data: client, error: clientError } = await admin
       .from("clients")
@@ -130,11 +138,11 @@ describe("submitInstantQuoteRequest (integration)", () => {
   });
 
   it("falls back to no cleaner locked in when nobody is available, without blocking the booking", async () => {
-    // No cleaner declares availability for this date at all.
+    // No cleaner anywhere declares Friday-afternoon availability.
     const email = `instant-quote-nocleaner-${Date.now()}@example.com`;
     const result = await submitInstantQuoteRequest({
       ...baseInput,
-      requestedDate: "2026-02-12", // a different Thursday, deliberately with zero declared cleaners
+      requestedWindow: "afternoon",
       name: "John Doe",
       email,
       phone: "01732711856",
