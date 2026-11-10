@@ -62,10 +62,20 @@ describe("submitInstantQuoteRequest (integration)", () => {
     // reports this postcode as not found, so both the location
     // multiplier and the geographic cleaner restriction fall back to
     // their documented defaults (standard rate, no restriction)
-    // rather than depending on a real network call succeeding.
+    // rather than depending on a real network call succeeding. Only
+    // intercepts calls to postcodes.io specifically -- the Supabase
+    // JS client (Auth admin, REST, RPC) also uses fetch internally,
+    // and those real local-instance calls must pass through untouched.
+    const realFetch = global.fetch;
     vi.stubGlobal(
       "fetch",
-      vi.fn().mockResolvedValue(new Response(null, { status: 404 }))
+      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+        const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+        if (url.includes("api.postcodes.io")) {
+          return Promise.resolve(new Response(null, { status: 404 }));
+        }
+        return realFetch(input, init);
+      })
     );
   });
 
