@@ -33,4 +33,6 @@ export async function ensureUser(admin, email, role) {
       throw new Error(`Created ${role} test user but couldn't set their role: ${roleError.message}`);
     }
   }
+
+  return data.user.id;
 }
