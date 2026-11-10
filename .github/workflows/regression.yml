@@ -1,0 +1,96 @@
+name: Regression tests
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+jobs:
+  regression:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: "npm"
+
+      - run: npm ci
+
+      - run: npx playwright install --with-deps chromium
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: 2.119.0
+
+      - name: Start Supabase, seed test users, build + run the app, run regression tests
+        run: |
+          escape() { python3 -c "import sys; print(sys.stdin.read().replace('%','%25').replace(chr(13),'%0D').replace(chr(10),'%0A'), end='')"; }
+          checkpoint() { echo "::warning::CHECKPOINT $1"; }
+          fail() { echo "::error::FAILED at $1: $(echo "$2" | tail -c 3000 | escape)"; exit 1; }
+
+          # Several action files construct `new Resend(process.env.RESEND_API_KEY)`
+          # at module scope; the SDK throws at construction time (not
+          # just on send) if it's unset. Nothing in this phase's
+          # regression suite sends real email, so a placeholder is
+          # enough to satisfy the constructor during `next build`'s
+          # page-data collection.
+          export RESEND_API_KEY="re_test_dummy_key_not_sent"
+
+          supabase start
+          checkpoint "supabase start OK"
+
+          # `supabase status -o env` prints plain NAME="value" lines,
+          # not `export NAME=value` -- `set -a` auto-exports them so
+          # child processes below (node, npm run build, next start)
+          # see them. NEXT_PUBLIC_* vars specifically must be exported
+          # *before* `npm run build`, since Next.js inlines them into
+          # the build output rather than reading them at runtime.
+          set -a
+          eval "$(supabase status -o env \
+            --override-name api.url=NEXT_PUBLIC_SUPABASE_URL \
+            --override-name auth.anon_key=NEXT_PUBLIC_SUPABASE_ANON_KEY \
+            --override-name auth.service_role_key=SUPABASE_SERVICE_ROLE_KEY)"
+          set +a
+          checkpoint "env exported, NEXT_PUBLIC_SUPABASE_URL set: $([ -n "$NEXT_PUBLIC_SUPABASE_URL" ] && echo yes || echo no)"
+
+          SEED_OUT=$(node e2e/regression/seed-test-users.mjs 2>&1) || fail "seed test users" "$SEED_OUT"
+          checkpoint "seed test users OK"
+
+          BUILD_OUT=$(npm run build 2>&1) || fail "npm run build" "$BUILD_OUT"
+          checkpoint "npm run build OK"
+
+          npm run start > /tmp/next-start.log 2>&1 &
+          SERVER_PID=$!
+
+          READY=no
+          for i in $(seq 1 30); do
+            if curl -s -o /dev/null http://localhost:3000/; then READY=yes; break; fi
+            sleep 1
+          done
+          if [ "$READY" != "yes" ]; then fail "server readiness wait" "$(cat /tmp/next-start.log)"; fi
+          checkpoint "server ready after wait"
+
+          set +e
+          TEST_OUT=$(BASE_URL=http://localhost:3000 npm run test:regression 2>&1)
+          TEST_EXIT=$?
+          set -e
+          checkpoint "test:regression exit code $TEST_EXIT"
+          if [ "$TEST_EXIT" -ne 0 ]; then
+            echo "::error::TEST OUTPUT: $(echo "$TEST_OUT" | tail -c 3000 | escape)"
+          fi
+
+          kill "$SERVER_PID" 2>/dev/null || true
+          exit $TEST_EXIT
+
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: playwright-regression-report
+          path: playwright-report/
+          retention-days: 14
+
+      - name: Stop local Supabase
+        if: always()
+        run: supabase stop
