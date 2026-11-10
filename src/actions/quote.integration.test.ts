@@ -21,10 +21,37 @@ vi.mock("resend", () => ({
   Resend: vi.fn().mockImplementation(() => ({ emails: { send: sendMock } })),
 }));
 
-const { submitInstantQuoteRequest } = await import("./quote");
+const { submitInstantQuoteRequest, acceptQuoteRequest } = await import("./quote");
 const { createStaffAccount } = await import("@/lib/staff");
 const { setWeeklyAvailability } = await import("@/lib/cleaner-availability");
 const { createAdminClient } = await import("@/lib/supabase/admin");
+
+beforeEach(() => {
+  sendMock.mockClear();
+  // Deterministic, CI-independent fail-soft path: postcodes.io
+  // reports every postcode used in this file as not found, so
+  // location multiplier / geographic restriction fall back to their
+  // documented defaults rather than depending on a real network call.
+  // Only intercepts calls to postcodes.io specifically -- the
+  // Supabase JS client (Auth admin, REST, RPC) also uses fetch
+  // internally, and those real local-instance calls must pass
+  // through untouched.
+  const realFetch = global.fetch;
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
+      const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
+      if (url.includes("api.postcodes.io")) {
+        return Promise.resolve(new Response(null, { status: 404 }));
+      }
+      return realFetch(input, init);
+    })
+  );
+});
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 async function createTestCleaner(label: string): Promise<string> {
   const email = `instant-quote-${label}-${Date.now()}@example.com`;
@@ -64,33 +91,6 @@ const baseInput = {
 };
 
 describe("submitInstantQuoteRequest (integration)", () => {
-  beforeEach(() => {
-    sendMock.mockClear();
-    // Deterministic, CI-independent fail-soft path: postcodes.io
-    // reports this postcode as not found, so both the location
-    // multiplier and the geographic cleaner restriction fall back to
-    // their documented defaults (standard rate, no restriction)
-    // rather than depending on a real network call succeeding. Only
-    // intercepts calls to postcodes.io specifically -- the Supabase
-    // JS client (Auth admin, REST, RPC) also uses fetch internally,
-    // and those real local-instance calls must pass through untouched.
-    const realFetch = global.fetch;
-    vi.stubGlobal(
-      "fetch",
-      vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
-        const url = typeof input === "string" ? input : input instanceof URL ? input.toString() : input.url;
-        if (url.includes("api.postcodes.io")) {
-          return Promise.resolve(new Response(null, { status: 404 }));
-        }
-        return realFetch(input, init);
-      })
-    );
-  });
-
-  afterEach(() => {
-    vi.unstubAllGlobals();
-  });
-
   it("creates a real cleanings + clients row, recomputes the price server-side, and locks in an available cleaner", async () => {
     const cleanerId = await createTestCleaner("free");
     await setWeeklyAvailability(cleanerId, [{ dayOfWeek: 5, windowKey: "morning" }]);
@@ -170,5 +170,127 @@ describe("submitInstantQuoteRequest (integration)", () => {
 
     expect(result.success).toBe(false);
     expect(sendMock).not.toHaveBeenCalled();
+  });
+});
+
+/** Mimics the row admin's "price a tailored quote" flow would have created. */
+async function createQuotedRequest(overrides: { postcode?: string } = {}) {
+  const admin = createAdminClient();
+  const { data: client, error: clientError } = await admin
+    .from("clients")
+    .insert({ full_name: "Accept Quote Test Client", email: `accept-quote-${Date.now()}@example.com` })
+    .select("id")
+    .single();
+  if (clientError || !client) throw new Error(clientError?.message ?? "client insert failed");
+
+  const resumeToken = crypto.randomUUID();
+  const { data: request, error: requestError } = await admin
+    .from("quote_requests")
+    .insert({
+      service: "domestic_cleaning",
+      client_id: client.id,
+      postcode: overrides.postcode ?? "TN9 1AA",
+      answers: {},
+      status: "quoted",
+      quoted_price: 150,
+      resume_token: resumeToken,
+    })
+    .select("id")
+    .single();
+  if (requestError || !request) throw new Error(requestError?.message ?? "quote_requests insert failed");
+
+  return { requestId: request.id, clientId: client.id, resumeToken };
+}
+
+describe("acceptQuoteRequest (integration)", () => {
+  it("converts a real quote_requests row into a cleanings row and locks in an available cleaner", async () => {
+    const cleanerId = await createTestCleaner("accept");
+    // Saturday (day-of-week 6), a combination unused by any other
+    // integration test file sharing this CI run's one Postgres
+    // instance -- see the comment on baseInput above.
+    await setWeeklyAvailability(cleanerId, [{ dayOfWeek: 6, windowKey: "morning" }]);
+    const { requestId, clientId, resumeToken } = await createQuotedRequest();
+
+    const result = await acceptQuoteRequest({
+      token: resumeToken,
+      postcode: "TN9 1AA",
+      phone: "01732711856",
+      addressLine: "1 Test Street",
+      requestedDate: "2026-02-07",
+      requestedWindow: "morning",
+      isFlexible: false,
+      cleanerId: null,
+      cleanerChoice: "any",
+    });
+
+    expect(result).toEqual({ success: true });
+
+    const admin = createAdminClient();
+    const { data: request } = await admin
+      .from("quote_requests")
+      .select("status, cleaning_id")
+      .eq("id", requestId)
+      .single();
+    expect(request?.status).toBe("converted");
+    expect(request?.cleaning_id).toBeTruthy();
+
+    const { data: cleaning } = await admin
+      .from("cleanings")
+      .select("status, cleaner_id, client_id, service, postcode")
+      .eq("id", request!.cleaning_id!)
+      .single();
+    expect(cleaning).toMatchObject({
+      status: "awaiting_confirmation",
+      cleaner_id: cleanerId,
+      client_id: clientId,
+      service: "domestic_cleaning",
+      postcode: "TN9 1AA",
+    });
+
+    expect(sendMock).toHaveBeenCalledTimes(1);
+    expect(sendMock.mock.calls[0][0].subject).toContain("You're booked in!");
+  });
+
+  it("rejects a mismatched postcode without converting the request", async () => {
+    const { requestId, resumeToken } = await createQuotedRequest({ postcode: "TN9 1AA" });
+
+    const result = await acceptQuoteRequest({
+      token: resumeToken,
+      postcode: "SW1A 1AA",
+      phone: "01732711856",
+      addressLine: "1 Test Street",
+      requestedDate: "2026-02-07",
+      requestedWindow: "morning",
+      isFlexible: false,
+      cleanerId: null,
+      cleanerChoice: "any",
+    });
+
+    expect(result.success).toBe(false);
+    expect(sendMock).not.toHaveBeenCalled();
+
+    const admin = createAdminClient();
+    const { data: request } = await admin.from("quote_requests").select("status").eq("id", requestId).single();
+    expect(request?.status).toBe("quoted");
+  });
+
+  it("rejects a request that's already been responded to", async () => {
+    const admin = createAdminClient();
+    const { requestId, resumeToken } = await createQuotedRequest();
+    await admin.from("quote_requests").update({ status: "declined" }).eq("id", requestId);
+
+    const result = await acceptQuoteRequest({
+      token: resumeToken,
+      postcode: "TN9 1AA",
+      phone: "01732711856",
+      addressLine: "1 Test Street",
+      requestedDate: "2026-02-07",
+      requestedWindow: "morning",
+      isFlexible: false,
+      cleanerId: null,
+      cleanerChoice: "any",
+    });
+
+    expect(result).toEqual({ success: false, error: "This quote has already been responded to." });
   });
 });
