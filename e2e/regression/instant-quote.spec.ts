@@ -1,21 +1,10 @@
-import { expect, test, type Page } from "@playwright/test";
+import { expect, test } from "@playwright/test";
+import { asideButton } from "./helpers";
 
 // Several real round trips happen along this flow (a genuine
 // postcodes.io lookup from the server, Supabase reads/writes at every
 // step) -- the default per-test timeout is too tight for that.
 test.setTimeout(90_000);
-
-/**
- * Every step page renders the same primary-action label on both its
- * desktop <aside> sidebar and its mobile-only action bar (hidden via
- * `md:hidden`, but still in the DOM) -- an unscoped getByRole match
- * hits both and Playwright refuses the ambiguous click. Scoping to
- * <aside> picks the one visible at this suite's default (desktop)
- * viewport.
- */
-function asideButton(page: Page, name: string | RegExp) {
-  return page.locator("aside").getByRole("button", { name });
-}
 
 /**
  * Full happy-path walkthrough of the instant-quote journey (End of

@@ -18,7 +18,12 @@ jobs:
 
       - run: npm ci
 
-      - run: npx playwright install --with-deps chromium
+      # --with-deps (an apt-get install of OS-level libraries) hung for
+      # ~20 minutes then failed twice in a row on this specific step --
+      # ubuntu-latest already ships what Chromium needs, so dropping it
+      # avoids that apt-get call entirely rather than depending on
+      # whatever package mirror it was hitting.
+      - run: npx playwright install chromium
 
       - uses: supabase/setup-cli@v1
         with:
