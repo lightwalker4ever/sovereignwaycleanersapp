@@ -3,7 +3,9 @@ name: Regression tests
 on:
   pull_request:
   push:
-    branches: [main]
+    # TODO: drop the feature branch before merging -- temporary, to
+    # verify this branch's CI run without a gh CLI/PR available.
+    branches: [main, net/standards-overhaul-client-areas]
 
 jobs:
   regression:
