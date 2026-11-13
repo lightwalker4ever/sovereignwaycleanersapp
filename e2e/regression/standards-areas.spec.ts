@@ -22,20 +22,19 @@ test("an admin can apply an area template multiple times to a client, each insta
 }) => {
   await loginAs(page, TEST_USERS.admin);
 
-  // Create a throwaway ghost client to attach standards to.
+  // Create a throwaway ghost client to attach standards to. nameSchema
+  // (src/lib/validation.ts) only allows letters/spaces/apostrophes --
+  // no digits -- so uniqueness comes from a random letters-only
+  // suffix rather than a timestamp.
   await page.goto("/dashboard/admin/clients");
-  const clientName = `Standards Test Co ${Date.now()}`;
+  const randomSuffix = (Math.random().toString(36) + Math.random().toString(36))
+    .replace(/[^a-z]/g, "")
+    .padEnd(8, "x")
+    .slice(0, 8);
+  const clientName = `Standards Test Company ${randomSuffix}`;
   await page.getByRole("button", { name: "Add client" }).click();
   await page.getByLabel("Name", { exact: true }).fill(clientName);
   await page.getByRole("button", { name: "Create client" }).click();
-
-  // TEMP DIAGNOSTIC: narrow down why the new client's link isn't
-  // found. Remove once the real issue is confirmed.
-  await page.waitForTimeout(2000);
-  console.log("DIAG2 url:", page.url());
-  console.log("DIAG2 dialogCount:", await page.getByRole("dialog").count());
-  console.log("DIAG2 hasNameInBody:", (await page.locator("body").innerText()).includes(clientName));
-  console.log("DIAG2 linkCount:", await page.getByRole("link", { name: clientName }).count());
 
   // Drawer closes on success and the new row appears in the table.
   await page.getByRole("link", { name: clientName }).click();
