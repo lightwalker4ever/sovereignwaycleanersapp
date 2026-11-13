@@ -85,9 +85,6 @@ jobs:
           set -e
           checkpoint "test:regression exit code $TEST_EXIT"
           if [ "$TEST_EXIT" -ne 0 ]; then
-            # TODO: drop this -- temporary, the normal tail-c-3000 below
-            # truncates before reaching this spec's DIAG console.logs.
-            echo "::warning::DIAG LINES: $(echo "$TEST_OUT" | grep DIAG | escape)"
             echo "::error::TEST OUTPUT: $(echo "$TEST_OUT" | tail -c 3000 | escape)"
           fi
 

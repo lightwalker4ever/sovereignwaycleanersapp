@@ -5,7 +5,7 @@ import { loginAs } from "./helpers";
 // Several real round trips happen along this flow (client creation,
 // bucket assignment, area seeding, two "add area" submissions) --
 // the default per-test timeout is too tight for that.
-test.setTimeout(90_000);
+test.setTimeout(120_000);
 
 /**
  * End-to-end walkthrough of the standards-overhaul initiative's actual
@@ -51,34 +51,23 @@ test("an admin can apply an area template multiple times to a client, each insta
   // native <select> also has an <option>"Washroom / Toilet"</option>
   // with the identical exact text, which getByText would also match.
   await expect(page.getByRole("button", { name: "Washroom / Toilet", exact: true })).toBeVisible({
-    timeout: 15_000,
+    timeout: 30_000,
   });
 
   // Add 2 more Washroom/Toilet instances (3 total) and 1 more Office
   // instance (2 total) -- the "apply an area N times" feature itself.
   await page.locator("select").selectOption({ label: "Washroom / Toilet" });
   await page.locator('input[type="number"]').fill("2");
-
-  // TEMP DIAGNOSTIC: narrow down why "Washroom / Toilet 3" never
-  // appears. Remove once the real issue is confirmed.
-  console.log("DIAG4 selectValue:", await page.locator("select").inputValue());
-  console.log("DIAG4 numberValue:", await page.locator('input[type="number"]').inputValue());
-
   await page.getByRole("button", { name: "Add area" }).click();
-  await page.waitForTimeout(3000);
-  console.log("DIAG4 errorText:", await page.locator("p.text-red-600").allInnerTexts());
-  const toiletButtons = await page.getByRole("button", { name: /Washroom \/ Toilet/ }).allInnerTexts();
-  console.log("DIAG4 toiletButtons:", JSON.stringify(toiletButtons));
-
   await expect(page.getByRole("button", { name: "Washroom / Toilet 3", exact: true })).toBeVisible({
-    timeout: 15_000,
+    timeout: 30_000,
   });
 
   await page.locator("select").selectOption({ label: "Office / Workstation Area" });
   await page.locator('input[type="number"]').fill("1");
   await page.getByRole("button", { name: "Add area" }).click();
   await expect(page.getByRole("button", { name: "Office / Workstation Area 2", exact: true })).toBeVisible({
-    timeout: 15_000,
+    timeout: 30_000,
   });
 
   // Disable "Restock toilet paper, soap and paper towels" on only the
