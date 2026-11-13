@@ -42,22 +42,11 @@ test("an admin can apply an area template multiple times to a client, each insta
 
   // Assign the seeded "Commercial Cleaning" bucket -- this auto-seeds
   // one instance per area template (Office, Washroom/Toilet, ...).
-  const consoleErrors: string[] = [];
-  page.on("console", (msg) => {
-    if (msg.type() === "error") consoleErrors.push(msg.text());
-  });
-  page.on("pageerror", (err) => consoleErrors.push(`pageerror: ${err.message}`));
-
+  // getByRole("combobox") is unambiguous here only because no bucket
+  // is assigned yet -- the "Add area" control's native <select> (which
+  // also carries an implicit combobox role) doesn't render until one is.
   await page.getByRole("combobox").click();
   await page.getByRole("option", { name: "Commercial Cleaning" }).click();
-
-  // TEMP DIAGNOSTIC: narrow down why no area ever renders after
-  // picking the bucket. Remove once the real issue is confirmed.
-  await page.waitForTimeout(3000);
-  console.log("DIAG3 comboboxText:", await page.getByRole("combobox").innerText());
-  console.log("DIAG3 consoleErrors:", JSON.stringify(consoleErrors.slice(0, 5)));
-  console.log("DIAG3 body:", (await page.locator("body").innerText()).slice(0, 2000));
-
   await expect(page.getByText("Washroom / Toilet", { exact: true })).toBeVisible({ timeout: 15_000 });
 
   // Add 2 more Washroom/Toilet instances (3 total) and 1 more Office
