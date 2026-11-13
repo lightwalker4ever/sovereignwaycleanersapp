@@ -25,13 +25,6 @@ test("an admin can apply an area template multiple times to a client, each insta
   // Create a throwaway ghost client to attach standards to.
   await page.goto("/dashboard/admin/clients");
   const clientName = `Standards Test Co ${Date.now()}`;
-  // TEMP DIAGNOSTIC: narrow down why "Add client" isn't found -- see
-  // if the page navigated/rendered at all, and what role "Add client"
-  // actually carries. Remove once the real selector is confirmed.
-  console.log("DIAG url:", page.url());
-  console.log("DIAG title:", await page.title());
-  console.log("DIAG hasAddClientText:", await page.getByText("Add client").count());
-  console.log("DIAG bodySnippet:", (await page.locator("body").innerText()).slice(0, 800));
   await page.getByRole("button", { name: "Add client" }).click();
   await page.getByLabel("Name", { exact: true }).fill(clientName);
   await page.getByRole("button", { name: "Create client" }).click();
