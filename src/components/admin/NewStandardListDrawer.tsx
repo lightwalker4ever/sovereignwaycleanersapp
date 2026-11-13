@@ -17,17 +17,18 @@ export function NewStandardListDrawer() {
   return (
     <Drawer open={open} onOpenChange={setOpen}>
       <DrawerTrigger className="mt-1.5 h-11 rounded-[10px] border border-dashed border-dash-muted/60 text-sm font-bold text-dash-brand-700">
-        + New list
+        + New bucket
       </DrawerTrigger>
       <DrawerContent>
         <DrawerHeader>
-          <DrawerTitle>New standard list</DrawerTitle>
+          <DrawerTitle>New standards bucket</DrawerTitle>
           <DrawerClose />
         </DrawerHeader>
         <div className="flex-1 overflow-y-auto p-6">
           <p className="mb-5 text-sm text-dash-muted">
-            A named group of standards (e.g. &quot;Standard Residential Clean&quot;) you can
-            assign to clients.
+            A named category (e.g. &quot;Commercial Cleaning&quot;) made up of reusable areas --
+            assign it to a client, then build their checklist by applying each area as many
+            times as they need (e.g. 2x Office, 3x Toilet).
           </p>
           <CreateStandardListForm onSuccess={() => setOpen(false)} />
         </div>

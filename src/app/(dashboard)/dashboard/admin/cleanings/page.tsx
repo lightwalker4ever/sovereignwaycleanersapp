@@ -1,7 +1,7 @@
 import { Suspense } from "react";
 import { listCleanings, listAssignableStaff } from "./actions";
 import { listClients } from "../clients/actions";
-import { listStandardLists } from "../standards/actions";
+import { listBuckets } from "../standards/actions";
 import { NewCleaningDrawer } from "@/components/admin/NewCleaningDrawer";
 import { CleaningsList } from "@/components/admin/CleaningsList";
 import { PageContainer } from "@/components/shell/PageContainer";
@@ -17,7 +17,7 @@ export default async function CleaningsPage({
       listCleanings(),
       listAssignableStaff(),
       listClients(),
-      listStandardLists(),
+      listBuckets(),
     ]);
 
   return (
