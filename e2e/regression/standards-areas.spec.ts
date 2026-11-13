@@ -46,6 +46,11 @@ test("an admin can apply an area template multiple times to a client, each insta
   // is assigned yet -- the "Add area" control's native <select> (which
   // also carries an implicit combobox role) doesn't render until one is.
   await page.getByRole("combobox").click();
+  // Wait for the popup to actually be open before clicking an option
+  // inside it -- clicking mid-open-animation can otherwise land on
+  // nothing and silently no-op (a known gotcha with animated
+  // listbox/select popups).
+  await expect(page.getByRole("listbox")).toBeVisible();
   await page.getByRole("option", { name: "Commercial Cleaning" }).click();
   // getByRole("button", ...), not getByText -- the "Add area" picker's
   // native <select> also has an <option>"Washroom / Toilet"</option>
