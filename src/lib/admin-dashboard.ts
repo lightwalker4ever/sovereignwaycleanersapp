@@ -127,7 +127,7 @@ export async function getAdminDashboardData(): Promise<AdminDashboardData> {
     admin.from("clients").select("id, full_name, address"),
     admin.from("profiles").select("id, full_name"),
     admin.from("cleaning_comments").select("id, cleaning_id, rating, body, created_at"),
-    admin.from("client_standard_assignments").select("client_id"),
+    admin.from("client_bucket_assignments").select("client_id"),
     admin.from("quote_requests").select("id, status, created_at").eq("status", "draft"),
   ]);
   if (cleaningsError) throw new Error(cleaningsError.message);

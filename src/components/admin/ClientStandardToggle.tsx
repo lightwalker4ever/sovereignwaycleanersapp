@@ -6,14 +6,14 @@ import { setStandardOverride } from "@/app/(dashboard)/dashboard/admin/clients/a
 
 export function ClientStandardToggle({
   clientId,
-  assignmentId,
+  clientAreaId,
   standardId,
   title,
   description,
   enabled: initialEnabled,
 }: {
   clientId: string;
-  assignmentId: string;
+  clientAreaId: string;
   standardId: string;
   title: string;
   description: string | null;
@@ -27,7 +27,7 @@ export function ClientStandardToggle({
     setEnabled(next);
     startTransition(async () => {
       try {
-        await setStandardOverride(clientId, assignmentId, standardId, next);
+        await setStandardOverride(clientId, clientAreaId, standardId, next);
       } catch {
         setEnabled(!next);
       }
