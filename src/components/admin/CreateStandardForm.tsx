@@ -7,39 +7,28 @@ import {
   type StandardFormState,
 } from "@/app/(dashboard)/dashboard/admin/standards/actions";
 
-const emptyValues = { title: "", area: "" };
-
-export function CreateStandardForm({ listId }: { listId: string }) {
+export function CreateStandardForm({ areaTemplateId }: { areaTemplateId: string }) {
   const [state, formAction, isPending] = useActionState<StandardFormState, FormData>(
     createStandard,
     null
   );
-  const [values, setValues] = useState(emptyValues);
+  const [title, setTitle] = useState("");
 
   const [handledState, setHandledState] = useState(state);
   if (state !== handledState) {
     setHandledState(state);
-    if (state?.success) {
-      setValues(emptyValues);
-    }
+    if (state?.success) setTitle("");
   }
 
   return (
     <form action={formAction} className="flex flex-wrap items-center gap-2.5">
-      <input type="hidden" name="listId" value={listId} />
+      <input type="hidden" name="areaTemplateId" value={areaTemplateId} />
       <input
         name="title"
         placeholder="Add a standard, e.g. Oven door glass streak-free"
-        value={values.title}
-        onChange={(e) => setValues((v) => ({ ...v, title: e.target.value }))}
+        value={title}
+        onChange={(e) => setTitle(e.target.value)}
         required
-        className="h-11 flex-[2_1_260px] rounded-[10px] border border-dash-input-border px-3 text-sm text-dash-ink outline-none focus:border-dash-brand-700"
-      />
-      <input
-        name="area"
-        placeholder="Area, e.g. Kitchen"
-        value={values.area}
-        onChange={(e) => setValues((v) => ({ ...v, area: e.target.value }))}
         className="h-11 flex-1 rounded-[10px] border border-dash-input-border px-3 text-sm text-dash-ink outline-none focus:border-dash-brand-700"
       />
       <button

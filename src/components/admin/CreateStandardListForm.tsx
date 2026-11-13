@@ -3,8 +3,8 @@
 import { useActionState, useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import {
-  createStandardList,
-  type StandardListFormState,
+  createBucket,
+  type BucketFormState,
 } from "@/app/(dashboard)/dashboard/admin/standards/actions";
 
 const emptyValues = { name: "", description: "" };
@@ -12,10 +12,7 @@ const fieldClassName =
   "h-11 w-full rounded-[10px] border border-dash-input-border px-3 text-sm text-dash-ink outline-none focus:border-dash-brand-700";
 
 export function CreateStandardListForm({ onSuccess }: { onSuccess?: () => void }) {
-  const [state, formAction, isPending] = useActionState<StandardListFormState, FormData>(
-    createStandardList,
-    null
-  );
+  const [state, formAction, isPending] = useActionState<BucketFormState, FormData>(createBucket, null);
   const [values, setValues] = useState(emptyValues);
 
   // Resetting this component's own fields is a pure state sync, safe to
@@ -43,7 +40,7 @@ export function CreateStandardListForm({ onSuccess }: { onSuccess?: () => void }
         <input
           id="list-name"
           name="name"
-          placeholder="Standard Residential Clean"
+          placeholder="Commercial Cleaning"
           value={values.name}
           onChange={(e) => setValues((v) => ({ ...v, name: e.target.value }))}
           required
@@ -70,7 +67,7 @@ export function CreateStandardListForm({ onSuccess }: { onSuccess?: () => void }
         className="flex h-11 items-center justify-center gap-2 rounded-[10px] bg-dash-brand-700 px-5 text-sm font-bold text-white disabled:opacity-60"
       >
         {isPending && <Loader2 className="h-4 w-4 animate-spin" />}
-        Create list
+        Create bucket
       </button>
     </form>
   );
