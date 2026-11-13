@@ -58,11 +58,15 @@ test("an admin can apply an area template multiple times to a client, each insta
   // instance (2 total) -- the "apply an area N times" feature itself.
   await page.locator("select").selectOption({ label: "Washroom / Toilet" });
   await page.locator('input[type="number"]').fill("2");
-  await page.getByRole("button", { name: "Add area" }).click();
 
   // TEMP DIAGNOSTIC: narrow down why "Washroom / Toilet 3" never
   // appears. Remove once the real issue is confirmed.
+  console.log("DIAG4 selectValue:", await page.locator("select").inputValue());
+  console.log("DIAG4 numberValue:", await page.locator('input[type="number"]').inputValue());
+
+  await page.getByRole("button", { name: "Add area" }).click();
   await page.waitForTimeout(3000);
+  console.log("DIAG4 errorText:", await page.locator("p.text-red-600").allInnerTexts());
   const toiletButtons = await page.getByRole("button", { name: /Washroom \/ Toilet/ }).allInnerTexts();
   console.log("DIAG4 toiletButtons:", JSON.stringify(toiletButtons));
 
