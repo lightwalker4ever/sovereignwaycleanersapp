@@ -3,9 +3,7 @@ name: Integration tests
 on:
   pull_request:
   push:
-    # TODO: drop the feature branch before merging -- temporary, to
-    # verify this branch's CI run without a gh CLI/PR available.
-    branches: [main, net/standards-overhaul-schema]
+    branches: [main]
 
 jobs:
   integration:
