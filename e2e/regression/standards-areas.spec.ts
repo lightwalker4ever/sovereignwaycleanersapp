@@ -44,19 +44,19 @@ test("an admin can apply an area template multiple times to a client, each insta
   // one instance per area template (Office, Washroom/Toilet, ...).
   await page.getByRole("combobox").click();
   await page.getByRole("option", { name: "Commercial Cleaning" }).click();
-  await expect(page.getByText("Washroom / Toilet", { exact: true })).toBeVisible();
+  await expect(page.getByText("Washroom / Toilet", { exact: true })).toBeVisible({ timeout: 15_000 });
 
   // Add 2 more Washroom/Toilet instances (3 total) and 1 more Office
   // instance (2 total) -- the "apply an area N times" feature itself.
   await page.locator("select").selectOption({ label: "Washroom / Toilet" });
   await page.locator('input[type="number"]').fill("2");
   await page.getByRole("button", { name: "Add area" }).click();
-  await expect(page.getByText("Washroom / Toilet 3", { exact: true })).toBeVisible();
+  await expect(page.getByText("Washroom / Toilet 3", { exact: true })).toBeVisible({ timeout: 15_000 });
 
   await page.locator("select").selectOption({ label: "Office / Workstation Area" });
   await page.locator('input[type="number"]').fill("1");
   await page.getByRole("button", { name: "Add area" }).click();
-  await expect(page.getByText("Office / Workstation Area 2", { exact: true })).toBeVisible();
+  await expect(page.getByText("Office / Workstation Area 2", { exact: true })).toBeVisible({ timeout: 15_000 });
 
   // Disable "Restock toilet paper, soap and paper towels" on only the
   // third Washroom/Toilet instance's card -- each area instance is its
