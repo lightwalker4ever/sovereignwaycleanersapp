@@ -29,20 +29,6 @@ export default defineConfig({
     {
       name: "regression",
       testMatch: "regression/**/*.spec.ts",
-      testIgnore: "regression/standards-areas.spec.ts",
-    },
-    {
-      // standards-areas.spec.ts does an unusually long chain of real
-      // round trips (client creation, bucket assignment, two "add
-      // area" submissions, each a server round trip) and was flaky
-      // under fullyParallel load, competing with the rest of the
-      // regression project for CPU/network -- running it alone, after
-      // the others finish, removes that contention instead of just
-      // bumping timeouts further.
-      name: "regression-serial",
-      testMatch: "regression/standards-areas.spec.ts",
-      fullyParallel: false,
-      dependencies: ["regression"],
     },
   ],
 });
