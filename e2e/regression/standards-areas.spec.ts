@@ -29,6 +29,14 @@ test("an admin can apply an area template multiple times to a client, each insta
   await page.getByLabel("Name", { exact: true }).fill(clientName);
   await page.getByRole("button", { name: "Create client" }).click();
 
+  // TEMP DIAGNOSTIC: narrow down why the new client's link isn't
+  // found. Remove once the real issue is confirmed.
+  await page.waitForTimeout(2000);
+  console.log("DIAG2 url:", page.url());
+  console.log("DIAG2 dialogCount:", await page.getByRole("dialog").count());
+  console.log("DIAG2 hasNameInBody:", (await page.locator("body").innerText()).includes(clientName));
+  console.log("DIAG2 linkCount:", await page.getByRole("link", { name: clientName }).count());
+
   // Drawer closes on success and the new row appears in the table.
   await page.getByRole("link", { name: clientName }).click();
   await expect(page).toHaveURL(/\/dashboard\/admin\/clients\/[^/]+$/);
