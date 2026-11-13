@@ -178,7 +178,6 @@ export function StandardListDetailPanel({
           >
             <StandardRowActions
               standardId={standard.id}
-              listId={list.id}
               isFirst={index === 0}
               isLast={index === list.standards.length - 1}
             />

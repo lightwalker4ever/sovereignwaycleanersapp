@@ -6,7 +6,12 @@ import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, phoneSchema } from "@/lib/validation";
-import { resolveClientStandardState, assignChecklistToCleaning, refreshCleaningStandards } from "@/lib/standards";
+import {
+  resolveClientStandardState,
+  assignChecklistToCleaning,
+  refreshCleaningStandards,
+  seedClientBucket,
+} from "@/lib/standards";
 import { getCleaningDetailForParty, type CleaningDetailForParty } from "@/lib/cleanings";
 import {
   toDisplayCleaningStatus,
@@ -191,14 +196,8 @@ export async function createCleaning(
         error: "This client has no standards assigned -- pick a standard list",
       };
     }
-    const { data: assignment, error: assignError } = await admin
-      .from("client_standard_assignments")
-      .upsert({ client_id: clientId, standard_list_id: standardListId }, { onConflict: "client_id" })
-      .select("id")
-      .single();
-    if (assignError || !assignment) {
-      return { success: false, error: assignError?.message ?? "Failed to assign standards" };
-    }
+    const seeded = await seedClientBucket(admin, clientId, standardListId);
+    if (!seeded.success) return seeded;
     state = await resolveClientStandardState(clientId);
     if (!state) {
       return { success: false, error: "Failed to resolve the assigned standards" };
@@ -230,6 +229,7 @@ export async function createCleaning(
     enabledItems.map((item, index) => ({
       cleaning_id: cleaning.id,
       standard_id: item.standardId,
+      client_area_id: item.clientAreaId,
       title: item.title,
       description: item.description,
       area: item.area,
@@ -499,8 +499,8 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
   const [{ data: client }, { data: assignment }] = await Promise.all([
     admin.from("clients").select("full_name, email, phone, address").eq("id", cleaning.client_id).single(),
     admin
-      .from("client_standard_assignments")
-      .select("standard_list_id")
+      .from("client_bucket_assignments")
+      .select("bucket_id")
       .eq("client_id", cleaning.client_id)
       .maybeSingle(),
   ]);
@@ -526,7 +526,7 @@ export async function getCleaningRequestDetail(cleaningId: string): Promise<Clea
     priceBreakdown: (cleaning.price_breakdown as CleaningRequestDetail["priceBreakdown"]) ?? null,
     declineReason: cleaning.decline_reason,
     createdAt: cleaning.created_at,
-    currentStandardListId: assignment?.standard_list_id ?? null,
+    currentStandardListId: assignment?.bucket_id ?? null,
     currentCleanerId: cleaning.cleaner_id,
   };
 }

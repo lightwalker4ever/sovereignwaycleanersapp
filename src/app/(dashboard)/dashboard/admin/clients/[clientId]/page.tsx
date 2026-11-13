@@ -50,11 +50,11 @@ export default async function ClientDetailPage({
             <div className="divide-y divide-gray-100 rounded-lg ring-1 ring-foreground/10">
               {client.standards.map((s) => (
                 <ClientStandardToggle
-                  key={s.standardId}
+                  key={`${s.clientAreaId}:${s.standardId}`}
                   clientId={client.id}
-                  assignmentId={client.assignment!.id}
+                  clientAreaId={s.clientAreaId}
                   standardId={s.standardId}
-                  title={s.title}
+                  title={`${s.title} (${s.area})`}
                   description={s.description}
                   enabled={s.enabled}
                 />

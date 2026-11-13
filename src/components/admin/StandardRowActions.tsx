@@ -10,12 +10,10 @@ import {
 
 export function StandardRowActions({
   standardId,
-  listId,
   isFirst,
   isLast,
 }: {
   standardId: string;
-  listId: string;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -23,7 +21,7 @@ export function StandardRowActions({
 
   function move(direction: "up" | "down") {
     startTransition(async () => {
-      await reorderStandard(standardId, listId, direction);
+      await reorderStandard(standardId, direction);
     });
   }
 

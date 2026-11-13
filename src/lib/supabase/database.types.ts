@@ -402,7 +402,7 @@ export type Database = {
         };
         Relationships: [];
       };
-      standard_lists: {
+      standard_buckets: {
         Row: {
           id: string;
           name: string;
@@ -426,13 +426,42 @@ export type Database = {
         };
         Relationships: [];
       };
-      standards: {
+      area_templates: {
         Row: {
           id: string;
-          standard_list_id: string;
+          bucket_id: string;
+          name: string;
+          description: string | null;
+          sort_order: number;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          bucket_id: string;
+          name: string;
+          description?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          bucket_id?: string;
+          name?: string;
+          description?: string | null;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      area_template_standards: {
+        Row: {
+          id: string;
+          area_template_id: string;
           title: string;
           description: string | null;
-          area: string | null;
           photo_required: boolean;
           sort_order: number;
           created_at: string;
@@ -440,10 +469,9 @@ export type Database = {
         };
         Insert: {
           id?: string;
-          standard_list_id: string;
+          area_template_id: string;
           title: string;
           description?: string | null;
-          area?: string | null;
           photo_required?: boolean;
           sort_order?: number;
           created_at?: string;
@@ -451,10 +479,9 @@ export type Database = {
         };
         Update: {
           id?: string;
-          standard_list_id?: string;
+          area_template_id?: string;
           title?: string;
           description?: string | null;
-          area?: string | null;
           photo_required?: boolean;
           sort_order?: number;
           created_at?: string;
@@ -462,44 +489,71 @@ export type Database = {
         };
         Relationships: [];
       };
-      client_standard_assignments: {
+      client_bucket_assignments: {
         Row: {
           id: string;
           client_id: string;
-          standard_list_id: string;
+          bucket_id: string;
           created_at: string;
         };
         Insert: {
           id?: string;
           client_id: string;
-          standard_list_id: string;
+          bucket_id: string;
           created_at?: string;
         };
         Update: {
           id?: string;
           client_id?: string;
-          standard_list_id?: string;
+          bucket_id?: string;
           created_at?: string;
         };
         Relationships: [];
       };
-      client_standard_overrides: {
+      client_areas: {
         Row: {
           id: string;
-          client_standard_assignment_id: string;
-          standard_id: string;
+          client_id: string;
+          area_template_id: string;
+          label: string;
+          sort_order: number;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          client_id: string;
+          area_template_id: string;
+          label: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Update: {
+          id?: string;
+          client_id?: string;
+          area_template_id?: string;
+          label?: string;
+          sort_order?: number;
+          created_at?: string;
+        };
+        Relationships: [];
+      };
+      client_area_standard_overrides: {
+        Row: {
+          id: string;
+          client_area_id: string;
+          area_template_standard_id: string;
           enabled: boolean;
         };
         Insert: {
           id?: string;
-          client_standard_assignment_id: string;
-          standard_id: string;
+          client_area_id: string;
+          area_template_standard_id: string;
           enabled?: boolean;
         };
         Update: {
           id?: string;
-          client_standard_assignment_id?: string;
-          standard_id?: string;
+          client_area_id?: string;
+          area_template_standard_id?: string;
           enabled?: boolean;
         };
         Relationships: [];
@@ -606,6 +660,7 @@ export type Database = {
           id: string;
           cleaning_id: string;
           standard_id: string | null;
+          client_area_id: string | null;
           title: string;
           description: string | null;
           area: string | null;
@@ -620,6 +675,7 @@ export type Database = {
           id?: string;
           cleaning_id: string;
           standard_id?: string | null;
+          client_area_id?: string | null;
           title: string;
           description?: string | null;
           area?: string | null;
@@ -634,6 +690,7 @@ export type Database = {
           id?: string;
           cleaning_id?: string;
           standard_id?: string | null;
+          client_area_id?: string | null;
           title?: string;
           description?: string | null;
           area?: string | null;
