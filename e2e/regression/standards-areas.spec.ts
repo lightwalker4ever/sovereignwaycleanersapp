@@ -59,6 +59,13 @@ test("an admin can apply an area template multiple times to a client, each insta
   await page.locator("select").selectOption({ label: "Washroom / Toilet" });
   await page.locator('input[type="number"]').fill("2");
   await page.getByRole("button", { name: "Add area" }).click();
+
+  // TEMP DIAGNOSTIC: narrow down why "Washroom / Toilet 3" never
+  // appears. Remove once the real issue is confirmed.
+  await page.waitForTimeout(3000);
+  const toiletButtons = await page.getByRole("button", { name: /Washroom \/ Toilet/ }).allInnerTexts();
+  console.log("DIAG4 toiletButtons:", JSON.stringify(toiletButtons));
+
   await expect(page.getByRole("button", { name: "Washroom / Toilet 3", exact: true })).toBeVisible({
     timeout: 15_000,
   });
