@@ -17,6 +17,7 @@ export interface ClientStandardItem {
 
 export interface ClientStandardState {
   bucketId: string;
+  areas: { id: string; label: string; areaTemplateId: string }[];
   items: ClientStandardItem[];
 }
 
@@ -61,8 +62,9 @@ export async function resolveClientStandardState(
     .eq("client_id", clientId)
     .order("sort_order", { ascending: true });
   if (areasError) throw new Error(areasError.message);
+  const areaSummaries = areas?.map((a) => ({ id: a.id, label: a.label, areaTemplateId: a.area_template_id })) ?? [];
   if (!areas || areas.length === 0) {
-    return { bucketId: assignment.bucket_id, items: [] };
+    return { bucketId: assignment.bucket_id, areas: areaSummaries, items: [] };
   }
 
   const templateIds = [...new Set(areas.map((a) => a.area_template_id))];
@@ -113,7 +115,7 @@ export async function resolveClientStandardState(
     }
   }
 
-  return { bucketId: assignment.bucket_id, items };
+  return { bucketId: assignment.bucket_id, areas: areaSummaries, items };
 }
 
 /**

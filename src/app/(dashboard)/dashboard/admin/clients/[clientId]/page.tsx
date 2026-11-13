@@ -3,7 +3,8 @@ import Link from "next/link";
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card";
 import { getClientDetail } from "../actions";
 import { AssignStandardListForm } from "@/components/admin/AssignStandardListForm";
-import { ClientStandardToggle } from "@/components/admin/ClientStandardToggle";
+import { AddClientAreaForm } from "@/components/admin/AddClientAreaForm";
+import { ClientAreaCard } from "@/components/admin/ClientAreaCard";
 import { PageContainer } from "@/components/shell/PageContainer";
 
 export default async function ClientDetailPage({
@@ -35,8 +36,9 @@ export default async function ClientDetailPage({
         <CardHeader>
           <CardTitle>Standards</CardTitle>
           <CardDescription>
-            Assign a list of standards to this client. Individual standards can be disabled for
-            just this client without affecting the list itself or any other client.
+            Assign a bucket, then build this client&apos;s checklist by applying each area as many
+            times as they need (e.g. 2x Office, 3x Toilet). Standards can be disabled per area
+            instance without affecting the template or any other client or area.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-5">
@@ -47,24 +49,20 @@ export default async function ClientDetailPage({
           />
 
           {client.assignment && (
-            <div className="divide-y divide-gray-100 rounded-lg ring-1 ring-foreground/10">
-              {client.standards.map((s) => (
-                <ClientStandardToggle
-                  key={`${s.clientAreaId}:${s.standardId}`}
-                  clientId={client.id}
-                  clientAreaId={s.clientAreaId}
-                  standardId={s.standardId}
-                  title={`${s.title} (${s.area})`}
-                  description={s.description}
-                  enabled={s.enabled}
-                />
-              ))}
-              {client.standards.length === 0 && (
-                <p className="p-4 text-center text-sm text-gray-400">
-                  This list doesn&apos;t have any standards yet.
-                </p>
-              )}
-            </div>
+            <>
+              <AddClientAreaForm clientId={client.id} areaTemplates={client.areaTemplatesInBucket} />
+
+              <div className="space-y-3">
+                {client.areas.map((area) => (
+                  <ClientAreaCard key={area.id} clientId={client.id} area={area} />
+                ))}
+                {client.areas.length === 0 && (
+                  <p className="p-4 text-center text-sm text-gray-400">
+                    No areas yet -- add one above to start building this client&apos;s checklist.
+                  </p>
+                )}
+              </div>
+            </>
           )}
         </CardContent>
       </Card>

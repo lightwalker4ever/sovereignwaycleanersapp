@@ -146,6 +146,14 @@ export async function listClients(): Promise<ClientSummary[]> {
   }));
 }
 
+export interface ClientAreaWithStandards {
+  id: string;
+  label: string;
+  areaTemplateId: string;
+  areaTemplateName: string;
+  standards: { standardId: string; title: string; description: string | null; enabled: boolean }[];
+}
+
 export interface ClientDetail {
   id: string;
   fullName: string | null;
@@ -154,7 +162,11 @@ export interface ClientDetail {
   isGhost: boolean;
   allStandardLists: { id: string; name: string }[];
   assignment: { standardListId: string; standardListName: string } | null;
-  standards: ClientStandardItem[];
+  /** Area templates available under the assigned bucket -- the "Add
+   *  area" picker's options. Empty (and areas below empty too) until a
+   *  bucket is assigned. */
+  areaTemplatesInBucket: { id: string; name: string }[];
+  areas: ClientAreaWithStandards[];
 }
 
 export async function getClientDetail(clientId: string): Promise<ClientDetail | null> {
@@ -172,16 +184,42 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
   if (error || !client) return null;
   if (listsError) throw new Error(listsError.message);
 
-  let standards: ClientStandardItem[] = [];
   let assignmentInfo: ClientDetail["assignment"] = null;
+  let areaTemplatesInBucket: ClientDetail["areaTemplatesInBucket"] = [];
+  let areas: ClientAreaWithStandards[] = [];
 
   if (state) {
     const listName = allLists?.find((l) => l.id === state.bucketId)?.name ?? "";
-    assignmentInfo = {
-      standardListId: state.bucketId,
-      standardListName: listName,
-    };
-    standards = state.items;
+    assignmentInfo = { standardListId: state.bucketId, standardListName: listName };
+
+    const { data: templates, error: templatesError } = await admin
+      .from("area_templates")
+      .select("id, name")
+      .eq("bucket_id", state.bucketId)
+      .order("sort_order", { ascending: true });
+    if (templatesError) throw new Error(templatesError.message);
+    areaTemplatesInBucket = templates ?? [];
+
+    const templateNameById = new Map(areaTemplatesInBucket.map((t) => [t.id, t.name]));
+    const itemsByArea = new Map<string, ClientStandardItem[]>();
+    for (const item of state.items) {
+      const list = itemsByArea.get(item.clientAreaId) ?? [];
+      list.push(item);
+      itemsByArea.set(item.clientAreaId, list);
+    }
+
+    areas = state.areas.map((a) => ({
+      id: a.id,
+      label: a.label,
+      areaTemplateId: a.areaTemplateId,
+      areaTemplateName: templateNameById.get(a.areaTemplateId) ?? "Unknown area",
+      standards: (itemsByArea.get(a.id) ?? []).map((i) => ({
+        standardId: i.standardId,
+        title: i.title,
+        description: i.description,
+        enabled: i.enabled,
+      })),
+    }));
   }
 
   return {
@@ -192,6 +230,84 @@ export async function getClientDetail(clientId: string): Promise<ClientDetail | 
     isGhost: client.profile_id === null,
     allStandardLists: allLists ?? [],
     assignment: assignmentInfo,
-    standards,
+    areaTemplatesInBucket,
+    areas,
   };
+}
+
+/**
+ * Adds `quantity` new instances of an area template to a client's
+ * checklist -- the mechanism for "apply the Office template twice":
+ * each instance gets its own label ("Office 1", "Office 2", ...)
+ * continuing from however many instances of that template the client
+ * already has, and its own independent standards overrides.
+ */
+export async function addClientAreas(clientId: string, areaTemplateId: string, quantity: number) {
+  await assertIsRole(["admin"]);
+
+  if (!Number.isInteger(quantity) || quantity < 1 || quantity > 50) {
+    throw new Error("Enter a quantity between 1 and 50");
+  }
+
+  const admin = createAdminClient();
+
+  const { data: template, error: templateError } = await admin
+    .from("area_templates")
+    .select("name")
+    .eq("id", areaTemplateId)
+    .single();
+  if (templateError || !template) throw new Error(templateError?.message ?? "Area not found");
+
+  const [{ data: lastOrder }, { count: existingOfTemplate, error: countError }] = await Promise.all([
+    admin
+      .from("client_areas")
+      .select("sort_order")
+      .eq("client_id", clientId)
+      .order("sort_order", { ascending: false })
+      .limit(1),
+    admin
+      .from("client_areas")
+      .select("id", { count: "exact", head: true })
+      .eq("client_id", clientId)
+      .eq("area_template_id", areaTemplateId),
+  ]);
+  if (countError) throw new Error(countError.message);
+
+  let nextSortOrder = (lastOrder?.[0]?.sort_order ?? -1) + 1;
+  let nextIndex = (existingOfTemplate ?? 0) + 1;
+
+  const rows = Array.from({ length: quantity }, () => ({
+    client_id: clientId,
+    area_template_id: areaTemplateId,
+    label: `${template.name} ${nextIndex++}`,
+    sort_order: nextSortOrder++,
+  }));
+
+  const { error } = await admin.from("client_areas").insert(rows);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/admin/clients/${clientId}`);
+}
+
+export async function renameClientArea(clientId: string, clientAreaId: string, label: string) {
+  await assertIsRole(["admin"]);
+
+  const trimmed = label.trim();
+  if (!trimmed) throw new Error("Label is required");
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("client_areas").update({ label: trimmed }).eq("id", clientAreaId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/admin/clients/${clientId}`);
+}
+
+export async function removeClientArea(clientId: string, clientAreaId: string) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const { error } = await admin.from("client_areas").delete().eq("id", clientAreaId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath(`/dashboard/admin/clients/${clientId}`);
 }
