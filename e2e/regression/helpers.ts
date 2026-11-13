@@ -1,4 +1,5 @@
 import type { Page } from "@playwright/test";
+import { TEST_PASSWORD } from "./test-users.mjs";
 
 /**
  * Every /quote/* step page renders the same primary-action label on
@@ -10,4 +11,20 @@ import type { Page } from "@playwright/test";
  */
 export function asideButton(page: Page, name: string | RegExp) {
   return page.locator("aside").getByRole("button", { name });
+}
+
+/** Logs in as one of the seeded test users. Shared by every spec that
+ *  needs a real dashboard session (role-routing, admin flows, ...).
+ *  Waits for the post-sign-in redirect to actually land away from
+ *  /login before returning -- without this, a caller that navigates
+ *  immediately after (rather than asserting on the resulting URL,
+ *  which retries and masks the race) can get there before the session
+ *  cookie is set and bounce straight back to /login. */
+export async function loginAs(page: Page, email: string) {
+  await page.goto("/login");
+  await page.getByLabel("Email").fill(email);
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByLabel("Password").fill(TEST_PASSWORD);
+  await page.getByRole("button", { name: "Sign in" }).click();
+  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
 }

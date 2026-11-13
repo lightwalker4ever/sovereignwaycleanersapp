@@ -1,5 +1,6 @@
 import { expect, test } from "@playwright/test";
-import { TEST_PASSWORD, TEST_USERS } from "./test-users.mjs";
+import { TEST_USERS } from "./test-users.mjs";
+import { loginAs } from "./helpers";
 
 const ROLE_HOME: Record<keyof typeof TEST_USERS, string | RegExp> = {
   admin: /\/dashboard\/admin/,
@@ -8,14 +9,6 @@ const ROLE_HOME: Record<keyof typeof TEST_USERS, string | RegExp> = {
   sales: /\/dashboard\/sales/,
   client: /\/dashboard\/client/,
 };
-
-async function loginAs(page: import("@playwright/test").Page, email: string) {
-  await page.goto("/login");
-  await page.getByLabel("Email").fill(email);
-  await page.getByRole("button", { name: "Continue", exact: true }).click();
-  await page.getByLabel("Password").fill(TEST_PASSWORD);
-  await page.getByRole("button", { name: "Sign in" }).click();
-}
 
 /**
  * Role-based routing is deliberately NOT centralized at the proxy
