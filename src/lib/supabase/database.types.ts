@@ -460,9 +460,7 @@ export type Database = {
         Row: {
           id: string;
           area_template_id: string;
-          title: string;
-          description: string | null;
-          photo_required: boolean;
+          standard_id: string;
           sort_order: number;
           created_at: string;
           updated_at: string;
@@ -470,9 +468,7 @@ export type Database = {
         Insert: {
           id?: string;
           area_template_id: string;
-          title: string;
-          description?: string | null;
-          photo_required?: boolean;
+          standard_id: string;
           sort_order?: number;
           created_at?: string;
           updated_at?: string;
@@ -480,10 +476,35 @@ export type Database = {
         Update: {
           id?: string;
           area_template_id?: string;
+          standard_id?: string;
+          sort_order?: number;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Relationships: [];
+      };
+      standards_catalog: {
+        Row: {
+          id: string;
+          title: string;
+          description: string | null;
+          photo_required: boolean;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          title: string;
+          description?: string | null;
+          photo_required?: boolean;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
           title?: string;
           description?: string | null;
           photo_required?: boolean;
-          sort_order?: number;
           created_at?: string;
           updated_at?: string;
         };

@@ -49,16 +49,25 @@ async function createCommercialClientFixture() {
   const officeTemplate = templates.find((t) => t.name === "Office")!;
   const toiletTemplate = templates.find((t) => t.name === "Toilet")!;
 
+  const { data: catalogStandards, error: catalogError } = await admin
+    .from("standards_catalog")
+    .insert([{ title: "Empty bins" }, { title: "Wipe desks" }, { title: "Restock soap" }])
+    .select("id, title");
+  if (catalogError || !catalogStandards) throw new Error(catalogError?.message ?? "standards_catalog insert failed");
+  const emptyBinsStandard = catalogStandards.find((s) => s.title === "Empty bins")!;
+  const wipeDesksStandard = catalogStandards.find((s) => s.title === "Wipe desks")!;
+  const restockSoapStandard = catalogStandards.find((s) => s.title === "Restock soap")!;
+
   const { data: standards, error: standardsError } = await admin
     .from("area_template_standards")
     .insert([
-      { area_template_id: officeTemplate.id, title: "Empty bins", sort_order: 0 },
-      { area_template_id: officeTemplate.id, title: "Wipe desks", sort_order: 1 },
-      { area_template_id: toiletTemplate.id, title: "Restock soap", sort_order: 0 },
+      { area_template_id: officeTemplate.id, standard_id: emptyBinsStandard.id, sort_order: 0 },
+      { area_template_id: officeTemplate.id, standard_id: wipeDesksStandard.id, sort_order: 1 },
+      { area_template_id: toiletTemplate.id, standard_id: restockSoapStandard.id, sort_order: 0 },
     ])
-    .select("id, title, area_template_id");
+    .select("id, standard_id, area_template_id");
   if (standardsError || !standards) throw new Error(standardsError?.message ?? "area_template_standards insert failed");
-  const restockSoapStandard = standards.find((s) => s.title === "Restock soap")!;
+  const restockSoapAttachment = standards.find((s) => s.standard_id === restockSoapStandard.id)!;
 
   const { data: client, error: clientError } = await admin
     .from("clients")
@@ -87,12 +96,19 @@ async function createCommercialClientFixture() {
 
   const { error: overrideError } = await admin.from("client_area_standard_overrides").insert({
     client_area_id: toilet2.id,
-    area_template_standard_id: restockSoapStandard.id,
+    area_template_standard_id: restockSoapAttachment.id,
     enabled: false,
   });
   if (overrideError) throw new Error(overrideError.message);
 
-  return { bucketId: bucket.id, clientId: client.id, officeTemplate, toiletTemplate, areas };
+  return {
+    bucketId: bucket.id,
+    clientId: client.id,
+    officeTemplate,
+    toiletTemplate,
+    areas,
+    restockSoapStandard,
+  };
 }
 
 describe("resolveClientStandardState (integration)", () => {
@@ -120,6 +136,39 @@ describe("resolveClientStandardState (integration)", () => {
     expect(toilet3[0].enabled).toBe(true);
 
     expect(areas).toHaveLength(5);
+  });
+});
+
+describe("standards catalog sharing (integration)", () => {
+  it("resolves the same catalog standard correctly when attached to two different area templates", async () => {
+    const { clientId, officeTemplate, restockSoapStandard } = await createCommercialClientFixture();
+    const admin = createAdminClient();
+
+    // Attach the SAME catalog standard ("Restock soap") to Office too --
+    // the exact scenario the catalog was built for: one standard, reused
+    // across unrelated areas, independent of bucket/template boundaries.
+    await admin
+      .from("area_template_standards")
+      .insert({ area_template_id: officeTemplate.id, standard_id: restockSoapStandard.id, sort_order: 2 });
+
+    const state = await resolveClientStandardState(clientId);
+    expect(state).not.toBeNull();
+
+    const office1RestockSoap = state!.items.find((i) => i.area === "Office 1" && i.title === "Restock soap");
+    const toilet1RestockSoap = state!.items.find((i) => i.area === "Toilet 1" && i.title === "Restock soap");
+    expect(office1RestockSoap).toBeDefined();
+    expect(toilet1RestockSoap).toBeDefined();
+    // Both resolve the same catalog text, but are otherwise independent
+    // items (different standardId instances tied to different areas) --
+    // enabling/disabling one must not affect the other.
+    expect(office1RestockSoap!.enabled).toBe(true);
+    expect(toilet1RestockSoap!.enabled).toBe(true);
+
+    // Toilet 2's existing override (disabling "Restock soap" there)
+    // still must not leak into Office, which got its own fresh
+    // attachment of the same catalog standard.
+    const toilet2RestockSoap = state!.items.find((i) => i.area === "Toilet 2" && i.title === "Restock soap");
+    expect(toilet2RestockSoap!.enabled).toBe(false);
   });
 });
 
@@ -176,9 +225,14 @@ describe("refreshCleaningStandards (integration)", () => {
     // this phase's rewrite specifically guards against: the same
     // area_template_standards row now legitimately appears under more
     // than one of a client's area instances).
+    const { data: newCatalogStandard } = await admin
+      .from("standards_catalog")
+      .insert({ title: "Vacuum carpet" })
+      .select("id")
+      .single();
     await admin
       .from("area_template_standards")
-      .insert({ area_template_id: officeTemplate.id, title: "Vacuum carpet", sort_order: 2 });
+      .insert({ area_template_id: officeTemplate.id, standard_id: newCatalogStandard!.id, sort_order: 2 });
 
     const refreshResult = await refreshCleaningStandards(cleaning!.id, clientId);
     expect(refreshResult.success).toBe(true);

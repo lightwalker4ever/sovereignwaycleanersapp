@@ -74,7 +74,7 @@ export async function resolveClientStandardState(
     await Promise.all([
       admin
         .from("area_template_standards")
-        .select("id, area_template_id, title, description, sort_order")
+        .select("id, area_template_id, sort_order, standards_catalog(title, description)")
         .in("area_template_id", templateIds)
         .order("sort_order", { ascending: true }),
       admin
@@ -87,8 +87,10 @@ export async function resolveClientStandardState(
 
   const standardsByTemplate = new Map<string, { id: string; title: string; description: string | null }[]>();
   for (const s of templateStandards ?? []) {
+    const catalogEntry = s.standards_catalog as unknown as { title: string; description: string | null } | null;
+    if (!catalogEntry) continue;
     const list = standardsByTemplate.get(s.area_template_id) ?? [];
-    list.push(s);
+    list.push({ id: s.id, title: catalogEntry.title, description: catalogEntry.description });
     standardsByTemplate.set(s.area_template_id, list);
   }
 
