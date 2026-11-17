@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
   Drawer,
@@ -12,7 +13,16 @@ import {
 import { CreateStandardListForm } from "@/components/admin/CreateStandardListForm";
 
 export function NewStandardListDrawer() {
+  const router = useRouter();
   const [open, setOpen] = useState(false);
+
+  function handleCreated(bucketId: string) {
+    setOpen(false);
+    // Land straight on the new bucket with its "add area" input
+    // focused, instead of back on the static bucket list -- creating
+    // a bucket is only useful once it has at least one area.
+    router.push(`/dashboard/admin/standards?bucket=${bucketId}&focus=area`);
+  }
 
   return (
     <Drawer open={open} onOpenChange={setOpen}>
@@ -30,7 +40,7 @@ export function NewStandardListDrawer() {
             assign it to a client, then build their checklist by applying each area as many
             times as they need (e.g. 2x Office, 3x Toilet).
           </p>
-          <CreateStandardListForm onSuccess={() => setOpen(false)} />
+          <CreateStandardListForm onCreated={handleCreated} />
         </div>
       </DrawerContent>
     </Drawer>

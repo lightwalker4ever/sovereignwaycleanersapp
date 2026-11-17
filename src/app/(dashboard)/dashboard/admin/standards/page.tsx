@@ -8,9 +8,9 @@ import { AreaTemplatePanel } from "@/components/admin/AreaTemplatePanel";
 export default async function StandardsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bucket?: string; area?: string }>;
+  searchParams: Promise<{ bucket?: string; area?: string; focus?: string }>;
 }) {
-  const { bucket: bucketId, area: areaTemplateId } = await searchParams;
+  const { bucket: bucketId, area: areaTemplateId, focus } = await searchParams;
   const [buckets, clients] = await Promise.all([listBuckets(), listClients()]);
 
   const selectedBucketId = bucketId && buckets.some((b) => b.id === bucketId) ? bucketId : (buckets[0]?.id ?? null);
@@ -63,9 +63,15 @@ export default async function StandardsPage({
 
         {selectedBucket ? (
           <StandardListDetailPanel
+            // Keyed by bucket id so switching buckets (including
+            // landing on a just-created one) remounts the panel --
+            // `autoFocus` only fires on mount, and renaming state
+            // shouldn't carry over between buckets either.
+            key={selectedBucket.id}
             bucket={selectedBucket}
             selectedAreaTemplateId={selectedAreaTemplateId}
             allClients={clients.map((c) => ({ id: c.id, fullName: c.fullName }))}
+            autoFocusAddArea={focus === "area"}
           />
         ) : (
           <section className="flex min-w-0 flex-[1_1_320px] items-center justify-center rounded-2xl border border-dash-border bg-dash-surface p-10 text-sm text-dash-muted">
@@ -74,7 +80,11 @@ export default async function StandardsPage({
         )}
 
         {selectedAreaTemplate ? (
-          <AreaTemplatePanel areaTemplate={selectedAreaTemplate} />
+          <AreaTemplatePanel
+            key={selectedAreaTemplate.id}
+            areaTemplate={selectedAreaTemplate}
+            autoFocusStandardPicker={focus === "standard"}
+          />
         ) : (
           selectedBucket && (
             <section className="flex min-w-0 flex-[2_1_420px] items-center justify-center rounded-2xl border border-dash-border bg-dash-surface p-10 text-sm text-dash-muted">
