@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { listBuckets, getBucket, getAreaTemplate } from "./actions";
 import { listClients } from "../clients/actions";
 import { PageContainer } from "@/components/shell/PageContainer";
@@ -41,9 +42,10 @@ export default async function StandardsPage({
           {buckets.map((b) => {
             const active = b.id === selectedBucketId;
             return (
-              <a
+              <Link
                 key={b.id}
                 href={`/dashboard/admin/standards?bucket=${b.id}`}
+                prefetch
                 className={
                   "flex flex-col gap-0.5 rounded-[10px] px-3.5 py-3 " +
                   (active ? "bg-dash-brand-100 outline-2 outline-dash-brand-700 -outline-offset-2" : "")
@@ -54,7 +56,7 @@ export default async function StandardsPage({
                   {b.areaCount} area{b.areaCount === 1 ? "" : "s"} · {b.clientCount} client
                   {b.clientCount === 1 ? "" : "s"}
                 </span>
-              </a>
+              </Link>
             );
           })}
           {buckets.length === 0 && <p className="px-3.5 py-3 text-sm text-dash-muted">No buckets yet.</p>}

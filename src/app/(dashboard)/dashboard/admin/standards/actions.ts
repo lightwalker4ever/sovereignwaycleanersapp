@@ -60,14 +60,15 @@ export async function getBucket(bucketId: string): Promise<BucketDetail | null> 
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
-  const { data: bucket, error } = await admin
-    .from("standard_buckets")
-    .select("id, name, description")
-    .eq("id", bucketId)
-    .single();
-  if (error || !bucket) return null;
-
-  const [{ data: templates, error: templatesError }, { data: assignments, error: assignError }] = await Promise.all([
+  // bucket/templates/assignments only need the bucketId parameter, not
+  // each other's results -- running them together instead of one
+  // after another cuts this page's load to 2 round trips instead of 4.
+  const [
+    { data: bucket, error },
+    { data: templates, error: templatesError },
+    { data: assignments, error: assignError },
+  ] = await Promise.all([
+    admin.from("standard_buckets").select("id, name, description").eq("id", bucketId).single(),
     admin
       .from("area_templates")
       .select("id, name, sort_order")
@@ -75,25 +76,27 @@ export async function getBucket(bucketId: string): Promise<BucketDetail | null> 
       .order("sort_order", { ascending: true }),
     admin.from("client_bucket_assignments").select("client_id").eq("bucket_id", bucketId),
   ]);
+  if (error || !bucket) return null;
   if (templatesError) throw new Error(templatesError.message);
   if (assignError) throw new Error(assignError.message);
 
   const templateIds = (templates ?? []).map((t) => t.id);
-  const { data: standards, error: stdError } = templateIds.length
-    ? await admin.from("area_template_standards").select("area_template_id").in("area_template_id", templateIds)
-    : { data: [], error: null };
+  const clientIds = (assignments ?? []).map((a) => a.client_id);
+  const [{ data: standards, error: stdError }, { data: clients, error: clientsError }] = await Promise.all([
+    templateIds.length
+      ? admin.from("area_template_standards").select("area_template_id").in("area_template_id", templateIds)
+      : Promise.resolve({ data: [], error: null }),
+    clientIds.length
+      ? admin.from("clients").select("id, full_name").in("id", clientIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
   if (stdError) throw new Error(stdError.message);
+  if (clientsError) throw new Error(clientsError.message);
 
   const standardCounts = new Map<string, number>();
   for (const s of standards ?? []) {
     standardCounts.set(s.area_template_id, (standardCounts.get(s.area_template_id) ?? 0) + 1);
   }
-
-  const clientIds = (assignments ?? []).map((a) => a.client_id);
-  const { data: clients, error: clientsError } = clientIds.length
-    ? await admin.from("clients").select("id, full_name").in("id", clientIds)
-    : { data: [], error: null };
-  if (clientsError) throw new Error(clientsError.message);
 
   return {
     id: bucket.id,
@@ -247,18 +250,22 @@ export async function getAreaTemplate(areaTemplateId: string): Promise<AreaTempl
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
-  const { data: template, error } = await admin
-    .from("area_templates")
-    .select("id, bucket_id, name, description")
-    .eq("id", areaTemplateId)
-    .single();
+  // template/attachments only need the areaTemplateId parameter, not
+  // each other's results -- running them together instead of one
+  // after another saves a round trip (at the cost of one wasted query
+  // on the rare "area template doesn't exist" path, checked below).
+  const [
+    { data: template, error },
+    { data: attachments, error: attachmentsError },
+  ] = await Promise.all([
+    admin.from("area_templates").select("id, bucket_id, name, description").eq("id", areaTemplateId).single(),
+    admin
+      .from("area_template_standards")
+      .select("id, standard_id, sort_order, standards_catalog(title, description, photo_required)")
+      .eq("area_template_id", areaTemplateId)
+      .order("sort_order", { ascending: true }),
+  ]);
   if (error || !template) return null;
-
-  const { data: attachments, error: attachmentsError } = await admin
-    .from("area_template_standards")
-    .select("id, standard_id, sort_order, standards_catalog(title, description, photo_required)")
-    .eq("area_template_id", areaTemplateId)
-    .order("sort_order", { ascending: true });
   if (attachmentsError) throw new Error(attachmentsError.message);
 
   const standardIds = (attachments ?? []).map((a) => a.standard_id);
