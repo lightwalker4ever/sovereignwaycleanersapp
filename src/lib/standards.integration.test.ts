@@ -5,8 +5,13 @@ import { describe, expect, it, vi } from "vitest";
 // stubbing outside Next.js's webpack build.
 vi.mock("server-only", () => ({}));
 
-const { resolveClientStandardState, assignChecklistToCleaning, refreshCleaningStandards, applyClientAreaCounts } =
-  await import("./standards");
+const {
+  resolveClientStandardState,
+  assignChecklistToCleaning,
+  refreshCleaningStandards,
+  applyClientAreaCounts,
+  deleteBucketIfUnassigned,
+} = await import("./standards");
 const { createAdminClient } = await import("@/lib/supabase/admin");
 
 /**
@@ -198,6 +203,67 @@ describe("applyClientAreaCounts (integration)", () => {
     expect(new Set(officeLabels)).toEqual(new Set(["Office 1", "Office 2", "Office 3", "Office 4"]));
     // Still exactly the original 3 -- none removed, none added.
     expect(new Set(toiletLabels)).toEqual(new Set(["Toilet 1", "Toilet 2", "Toilet 3"]));
+  });
+});
+
+describe("deleteBucketIfUnassigned (integration)", () => {
+  it("deletes a bucket with no clients assigned, cascading to its area templates and standards", async () => {
+    const admin = createAdminClient();
+    const suffix = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+
+    const { data: bucket } = await admin
+      .from("standard_buckets")
+      .insert({ name: `Empty Test Bucket ${suffix}` })
+      .select("id")
+      .single();
+    const { data: template } = await admin
+      .from("area_templates")
+      .insert({ bucket_id: bucket!.id, name: "Spare Room", sort_order: 0 })
+      .select("id")
+      .single();
+    const { data: catalogStandard } = await admin
+      .from("standards_catalog")
+      .insert({ title: "Dust the shelves" })
+      .select("id")
+      .single();
+    await admin
+      .from("area_template_standards")
+      .insert({ area_template_id: template!.id, standard_id: catalogStandard!.id, sort_order: 0 });
+
+    const result = await deleteBucketIfUnassigned(admin, bucket!.id);
+    expect(result.success).toBe(true);
+
+    const { data: remainingBucket } = await admin.from("standard_buckets").select("id").eq("id", bucket!.id).maybeSingle();
+    const { data: remainingTemplate } = await admin
+      .from("area_templates")
+      .select("id")
+      .eq("id", template!.id)
+      .maybeSingle();
+    expect(remainingBucket).toBeNull();
+    expect(remainingTemplate).toBeNull();
+
+    // The catalog entry itself is untouched -- it's a shared,
+    // independent entity, same reasoning as detachStandard().
+    const { data: remainingCatalogStandard } = await admin
+      .from("standards_catalog")
+      .select("id")
+      .eq("id", catalogStandard!.id)
+      .maybeSingle();
+    expect(remainingCatalogStandard).not.toBeNull();
+  });
+
+  it("blocks deletion while a client is still assigned, leaving the bucket untouched", async () => {
+    const { bucketId } = await createCommercialClientFixture();
+    const admin = createAdminClient();
+
+    const result = await deleteBucketIfUnassigned(admin, bucketId);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toMatch(/still assigned/);
+    }
+
+    const { data: bucket } = await admin.from("standard_buckets").select("id").eq("id", bucketId).maybeSingle();
+    expect(bucket).not.toBeNull();
   });
 });
 
