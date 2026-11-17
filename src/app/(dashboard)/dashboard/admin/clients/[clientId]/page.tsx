@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { getClientDetail } from "../actions";
 import { AssignStandardListForm } from "@/components/admin/AssignStandardListForm";
 import { AddClientAreaForm } from "@/components/admin/AddClientAreaForm";
+import { BulkAreaSetupForm } from "@/components/admin/BulkAreaSetupForm";
 import { ClientAreaCard } from "@/components/admin/ClientAreaCard";
 import { PageContainer } from "@/components/shell/PageContainer";
 
@@ -15,6 +16,16 @@ export default async function ClientDetailPage({
   const { clientId } = await params;
   const client = await getClientDetail(clientId);
   if (!client) notFound();
+
+  const currentCountByTemplate = new Map<string, number>();
+  for (const area of client.areas) {
+    currentCountByTemplate.set(area.areaTemplateId, (currentCountByTemplate.get(area.areaTemplateId) ?? 0) + 1);
+  }
+  const bulkSetupRows = client.areaTemplatesInBucket.map((t) => ({
+    areaTemplateId: t.id,
+    name: t.name,
+    currentCount: currentCountByTemplate.get(t.id) ?? 0,
+  }));
 
   return (
     <PageContainer>
@@ -51,6 +62,7 @@ export default async function ClientDetailPage({
           {client.assignment && (
             <>
               <AddClientAreaForm clientId={client.id} areaTemplates={client.areaTemplatesInBucket} />
+              <BulkAreaSetupForm clientId={client.id} rows={bulkSetupRows} />
 
               <div className="space-y-3">
                 {client.areas.map((area) => (

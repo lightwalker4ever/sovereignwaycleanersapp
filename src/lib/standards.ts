@@ -222,6 +222,101 @@ export async function seedClientBucket(
   return { success: true };
 }
 
+/**
+ * Inserts `quantity` new client_areas rows for one area template,
+ * labeled "<template name> <startIndex>", "<template name>
+ * <startIndex + 1>", ... and sort-ordered starting at `startSortOrder`
+ * -- the shared mechanism behind both addClientAreas() (one template
+ * at a time) and applyClientAreaCounts() (every template in a bucket
+ * at once).
+ */
+export async function insertClientAreaInstances(
+  admin: ReturnType<typeof createAdminClient>,
+  clientId: string,
+  areaTemplateId: string,
+  templateName: string,
+  quantity: number,
+  startIndex: number,
+  startSortOrder: number
+): Promise<{ success: true } | { success: false; error: string }> {
+  const rows = Array.from({ length: quantity }, (_, i) => ({
+    client_id: clientId,
+    area_template_id: areaTemplateId,
+    label: `${templateName} ${startIndex + i}`,
+    sort_order: startSortOrder + i,
+  }));
+  const { error } = await admin.from("client_areas").insert(rows);
+  if (error) return { success: false, error: error.message };
+  return { success: true };
+}
+
+/**
+ * Bulk "set up areas" for a client: given a target instance count per
+ * area template (e.g. Office: 2, Washroom/Toilet: 3, Kitchen: 3 for a
+ * new commercial client), creates however many new instances each
+ * template needs to reach its target in one go, instead of adding one
+ * template at a time.
+ *
+ * Grows only -- a target at or below the current count is a no-op for
+ * that template. Picking which existing instance to remove when
+ * shrinking would be guessing (especially once any have been
+ * renamed), so that stays a deliberate, per-instance action instead
+ * (removeClientArea(), in the admin clients Server Actions).
+ */
+export async function applyClientAreaCounts(
+  admin: ReturnType<typeof createAdminClient>,
+  clientId: string,
+  counts: { areaTemplateId: string; count: number }[]
+): Promise<{ success: true } | { success: false; error: string }> {
+  const templateIds = counts.map((c) => c.areaTemplateId);
+  const [{ data: templates, error: templatesError }, { data: existingAreas, error: existingError }, { data: lastOrder }] =
+    await Promise.all([
+      templateIds.length
+        ? admin.from("area_templates").select("id, name").in("id", templateIds)
+        : Promise.resolve({ data: [], error: null }),
+      admin.from("client_areas").select("area_template_id").eq("client_id", clientId),
+      admin
+        .from("client_areas")
+        .select("sort_order")
+        .eq("client_id", clientId)
+        .order("sort_order", { ascending: false })
+        .limit(1),
+    ]);
+  if (templatesError) return { success: false, error: templatesError.message };
+  if (existingError) return { success: false, error: existingError.message };
+
+  const templateById = new Map((templates ?? []).map((t) => [t.id, t]));
+  const existingCounts = new Map<string, number>();
+  for (const a of existingAreas ?? []) {
+    existingCounts.set(a.area_template_id, (existingCounts.get(a.area_template_id) ?? 0) + 1);
+  }
+
+  let nextSortOrder = (lastOrder?.[0]?.sort_order ?? -1) + 1;
+
+  for (const { areaTemplateId, count } of counts) {
+    if (!Number.isInteger(count) || count < 0) continue;
+    const template = templateById.get(areaTemplateId);
+    if (!template) continue;
+    const existing = existingCounts.get(areaTemplateId) ?? 0;
+    const delta = count - existing;
+    if (delta <= 0) continue;
+
+    const inserted = await insertClientAreaInstances(
+      admin,
+      clientId,
+      areaTemplateId,
+      template.name,
+      delta,
+      existing + 1,
+      nextSortOrder
+    );
+    if (!inserted.success) return inserted;
+    nextSortOrder += delta;
+  }
+
+  return { success: true };
+}
+
 export interface RefreshStandardsSummary {
   added: number;
   updated: number;
