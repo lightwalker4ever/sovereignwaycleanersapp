@@ -4,16 +4,16 @@ import { useTransition } from "react";
 import { ArrowDown, ArrowUp, Loader2, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
-  deleteStandard,
+  detachStandard,
   reorderStandard,
 } from "@/app/(dashboard)/dashboard/admin/standards/actions";
 
 export function StandardRowActions({
-  standardId,
+  attachmentId,
   isFirst,
   isLast,
 }: {
-  standardId: string;
+  attachmentId: string;
   isFirst: boolean;
   isLast: boolean;
 }) {
@@ -21,13 +21,13 @@ export function StandardRowActions({
 
   function move(direction: "up" | "down") {
     startTransition(async () => {
-      await reorderStandard(standardId, direction);
+      await reorderStandard(attachmentId, direction);
     });
   }
 
   function remove() {
     startTransition(async () => {
-      await deleteStandard(standardId);
+      await detachStandard(attachmentId);
     });
   }
 
@@ -59,7 +59,7 @@ export function StandardRowActions({
         variant="ghost"
         disabled={isPending}
         onClick={remove}
-        title="Delete standard"
+        title="Remove from this area"
       >
         {isPending ? (
           <Loader2 className="h-3.5 w-3.5 animate-spin" />

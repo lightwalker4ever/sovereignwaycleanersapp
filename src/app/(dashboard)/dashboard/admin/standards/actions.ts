@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 
+type AdminClient = ReturnType<typeof createAdminClient>;
+
 // ============================================================
 // Buckets (e.g. "Commercial Cleaning", "Domestic Cleaning")
 // ============================================================
@@ -174,8 +176,14 @@ export async function duplicateBucket(bucketId: string): Promise<string> {
 // Area templates (e.g. "Office", "Toilet / Washroom")
 // ============================================================
 
+/**
+ * Duplicating an area template re-attaches the SAME catalog standards
+ * (same standard_id, new junction rows) rather than copying their
+ * text -- a standard is a shared, reusable entity now, so duplicating
+ * the area it's attached to shouldn't fork a second copy of it.
+ */
 async function copyAreaTemplate(
-  admin: ReturnType<typeof createAdminClient>,
+  admin: AdminClient,
   source: { id: string; name: string; description: string | null; sort_order: number },
   targetBucketId: string
 ): Promise<string> {
@@ -191,21 +199,19 @@ async function copyAreaTemplate(
     .single();
   if (newTemplateError || !newTemplate) throw new Error(newTemplateError?.message ?? "Failed to duplicate area");
 
-  const { data: standards, error: standardsError } = await admin
+  const { data: attachments, error: attachmentsError } = await admin
     .from("area_template_standards")
-    .select("title, description, photo_required, sort_order")
+    .select("standard_id, sort_order")
     .eq("area_template_id", source.id)
     .order("sort_order", { ascending: true });
-  if (standardsError) throw new Error(standardsError.message);
+  if (attachmentsError) throw new Error(attachmentsError.message);
 
-  if (standards && standards.length > 0) {
+  if (attachments && attachments.length > 0) {
     const { error: insertError } = await admin.from("area_template_standards").insert(
-      standards.map((s) => ({
+      attachments.map((a) => ({
         area_template_id: newTemplate.id,
-        title: s.title,
-        description: s.description,
-        photo_required: s.photo_required,
-        sort_order: s.sort_order,
+        standard_id: a.standard_id,
+        sort_order: a.sort_order,
       }))
     );
     if (insertError) throw new Error(insertError.message);
@@ -219,7 +225,18 @@ export interface AreaTemplateDetail {
   bucketId: string;
   name: string;
   description: string | null;
-  standards: { id: string; title: string; description: string | null; photoRequired: boolean }[];
+  standards: {
+    /** area_template_standards.id -- this area's attachment, used for detach/reorder. */
+    attachmentId: string;
+    /** standards_catalog.id -- the shared standard, used for editing text/photoRequired. */
+    standardId: string;
+    title: string;
+    description: string | null;
+    photoRequired: boolean;
+    /** How many area templates (anywhere, any bucket) currently use this standard --
+     *  shown as a hint since editing its text/photoRequired changes it everywhere. */
+    usageCount: number;
+  }[];
 }
 
 export async function getAreaTemplate(areaTemplateId: string): Promise<AreaTemplateDetail | null> {
@@ -233,24 +250,46 @@ export async function getAreaTemplate(areaTemplateId: string): Promise<AreaTempl
     .single();
   if (error || !template) return null;
 
-  const { data: standards, error: standardsError } = await admin
+  const { data: attachments, error: attachmentsError } = await admin
     .from("area_template_standards")
-    .select("id, title, description, photo_required, sort_order")
+    .select("id, standard_id, sort_order, standards_catalog(title, description, photo_required)")
     .eq("area_template_id", areaTemplateId)
     .order("sort_order", { ascending: true });
-  if (standardsError) throw new Error(standardsError.message);
+  if (attachmentsError) throw new Error(attachmentsError.message);
+
+  const standardIds = (attachments ?? []).map((a) => a.standard_id);
+  const { data: usageRows, error: usageError } = standardIds.length
+    ? await admin.from("area_template_standards").select("standard_id").in("standard_id", standardIds)
+    : { data: [], error: null };
+  if (usageError) throw new Error(usageError.message);
+  const usageCounts = new Map<string, number>();
+  for (const row of usageRows ?? []) {
+    usageCounts.set(row.standard_id, (usageCounts.get(row.standard_id) ?? 0) + 1);
+  }
 
   return {
     id: template.id,
     bucketId: template.bucket_id,
     name: template.name,
     description: template.description,
-    standards: (standards ?? []).map((s) => ({
-      id: s.id,
-      title: s.title,
-      description: s.description,
-      photoRequired: s.photo_required,
-    })),
+    standards: (attachments ?? []).flatMap((a) => {
+      const catalogEntry = a.standards_catalog as unknown as {
+        title: string;
+        description: string | null;
+        photo_required: boolean;
+      } | null;
+      if (!catalogEntry) return [];
+      return [
+        {
+          attachmentId: a.id,
+          standardId: a.standard_id,
+          title: catalogEntry.title,
+          description: catalogEntry.description,
+          photoRequired: catalogEntry.photo_required,
+          usageCount: usageCounts.get(a.standard_id) ?? 1,
+        },
+      ];
+    }),
   };
 }
 
@@ -370,38 +409,86 @@ export async function reorderAreaTemplate(areaTemplateId: string, direction: "up
 }
 
 // ============================================================
-// Standards (e.g. "Wipe the floors") within one area template
+// Standards catalog (e.g. "Empty bins") -- shared, reusable entities
+// attached to one or more area templates via area_template_standards.
 // ============================================================
 
-export type StandardFormState = { success: boolean; error?: string } | null;
+export interface CatalogSearchResult {
+  id: string;
+  title: string;
+  description: string | null;
+}
 
-export async function createStandard(prevState: StandardFormState, formData: FormData): Promise<StandardFormState> {
+/** Type-ahead search for the "attach a standard" picker. */
+export async function searchStandardsCatalog(query: string): Promise<CatalogSearchResult[]> {
   await assertIsRole(["admin"]);
 
-  const areaTemplateId = formData.get("areaTemplateId") as string;
-  const title = (formData.get("title") as string)?.trim();
-  if (!areaTemplateId) return { success: false, error: "Missing area" };
-  if (!title) return { success: false, error: "Title is required" };
+  const trimmed = query.trim();
+  if (!trimmed) return [];
 
   const admin = createAdminClient();
+  const { data, error } = await admin
+    .from("standards_catalog")
+    .select("id, title, description")
+    .ilike("title", `%${trimmed}%`)
+    .order("title", { ascending: true })
+    .limit(20);
+  if (error) throw new Error(error.message);
+
+  return data ?? [];
+}
+
+/** Attaches an existing catalog standard to an area template. */
+export async function attachExistingStandard(areaTemplateId: string, standardId: string) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const nextOrder = await nextStandardSortOrder(admin, areaTemplateId);
+
+  const { error } = await admin
+    .from("area_template_standards")
+    .insert({ area_template_id: areaTemplateId, standard_id: standardId, sort_order: nextOrder });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard/admin/standards");
+}
+
+/** Creates a brand-new catalog standard and attaches it to an area template in one step. */
+export async function createAndAttachStandard(areaTemplateId: string, title: string, description?: string) {
+  await assertIsRole(["admin"]);
+
+  const trimmedTitle = title.trim();
+  if (!trimmedTitle) throw new Error("Title is required");
+
+  const admin = createAdminClient();
+  const { data: standard, error: createError } = await admin
+    .from("standards_catalog")
+    .insert({ title: trimmedTitle, description: description?.trim() || null })
+    .select("id")
+    .single();
+  if (createError || !standard) throw new Error(createError?.message ?? "Failed to create standard");
+
+  const nextOrder = await nextStandardSortOrder(admin, areaTemplateId);
+  const { error } = await admin
+    .from("area_template_standards")
+    .insert({ area_template_id: areaTemplateId, standard_id: standard.id, sort_order: nextOrder });
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard/admin/standards");
+}
+
+async function nextStandardSortOrder(admin: AdminClient, areaTemplateId: string): Promise<number> {
   const { data: existing } = await admin
     .from("area_template_standards")
     .select("sort_order")
     .eq("area_template_id", areaTemplateId)
     .order("sort_order", { ascending: false })
     .limit(1);
-  const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
-
-  const { error } = await admin
-    .from("area_template_standards")
-    .insert({ area_template_id: areaTemplateId, title, photo_required: true, sort_order: nextOrder });
-  if (error) return { success: false, error: error.message };
-
-  revalidatePath("/dashboard/admin/standards");
-  return { success: true };
+  return (existing?.[0]?.sort_order ?? -1) + 1;
 }
 
-export async function updateStandardField(standardId: string, field: "title" | "description", value: string) {
+/** Edits a catalog standard's own text -- global, affects every area template using it. */
+export async function updateCatalogStandardField(standardId: string, field: "title" | "description", value: string) {
   await assertIsRole(["admin"]);
 
   const trimmed = value.trim();
@@ -409,60 +496,108 @@ export async function updateStandardField(standardId: string, field: "title" | "
 
   const admin = createAdminClient();
   const update = field === "title" ? { title: trimmed } : { description: trimmed || null };
-  const { error } = await admin.from("area_template_standards").update(update).eq("id", standardId);
+  const { error } = await admin.from("standards_catalog").update(update).eq("id", standardId);
   if (error) throw new Error(error.message);
 
   revalidatePath("/dashboard/admin/standards");
 }
 
-export async function setStandardPhotoRequired(standardId: string, photoRequired: boolean) {
+/** Global, affects every area template using this standard. */
+export async function setCatalogStandardPhotoRequired(standardId: string, photoRequired: boolean) {
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
-  const { error } = await admin
+  const { error } = await admin.from("standards_catalog").update({ photo_required: photoRequired }).eq("id", standardId);
+  if (error) throw new Error(error.message);
+
+  revalidatePath("/dashboard/admin/standards");
+}
+
+/**
+ * Removes a standard from just this one area template -- the catalog
+ * entry, and its use on any other area template, is untouched. If
+ * this was the standard's only remaining attachment anywhere, the
+ * now-orphaned catalog row is cleaned up too (otherwise every
+ * one-off/typo'd standard would pile up in the catalog forever).
+ */
+export async function detachStandard(attachmentId: string) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const { data: attachment, error: fetchError } = await admin
     .from("area_template_standards")
-    .update({ photo_required: photoRequired })
-    .eq("id", standardId);
+    .select("standard_id")
+    .eq("id", attachmentId)
+    .single();
+  if (fetchError || !attachment) throw new Error(fetchError?.message ?? "Standard not found");
+
+  const { error: deleteError } = await admin.from("area_template_standards").delete().eq("id", attachmentId);
+  if (deleteError) throw new Error(deleteError.message);
+
+  const { count, error: countError } = await admin
+    .from("area_template_standards")
+    .select("id", { count: "exact", head: true })
+    .eq("standard_id", attachment.standard_id);
+  if (countError) throw new Error(countError.message);
+
+  if ((count ?? 0) === 0) {
+    await admin.from("standards_catalog").delete().eq("id", attachment.standard_id);
+  }
+
+  revalidatePath("/dashboard/admin/standards");
+}
+
+/**
+ * Deletes a catalog standard outright, everywhere -- a separate,
+ * more deliberate action from detachStandard() above. Blocked (by the
+ * area_template_standards.standard_id foreign key, which has no
+ * cascade) while it's still attached anywhere; the caller should
+ * check usageCount first rather than rely on this error message.
+ */
+export async function deleteCatalogStandard(standardId: string) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const { count, error: countError } = await admin
+    .from("area_template_standards")
+    .select("id", { count: "exact", head: true })
+    .eq("standard_id", standardId);
+  if (countError) throw new Error(countError.message);
+  if ((count ?? 0) > 0) {
+    throw new Error(`This standard is still used by ${count} area${count === 1 ? "" : "s"} -- remove it from those first`);
+  }
+
+  const { error } = await admin.from("standards_catalog").delete().eq("id", standardId);
   if (error) throw new Error(error.message);
 
   revalidatePath("/dashboard/admin/standards");
 }
 
-export async function deleteStandard(standardId: string) {
+export async function reorderStandard(attachmentId: string, direction: "up" | "down") {
   await assertIsRole(["admin"]);
 
   const admin = createAdminClient();
-  const { error } = await admin.from("area_template_standards").delete().eq("id", standardId);
-  if (error) throw new Error(error.message);
-
-  revalidatePath("/dashboard/admin/standards");
-}
-
-export async function reorderStandard(standardId: string, direction: "up" | "down") {
-  await assertIsRole(["admin"]);
-
-  const admin = createAdminClient();
-  const { data: standard, error: standardError } = await admin
+  const { data: attachment, error: attachmentError } = await admin
     .from("area_template_standards")
     .select("area_template_id")
-    .eq("id", standardId)
+    .eq("id", attachmentId)
     .single();
-  if (standardError || !standard) throw new Error(standardError?.message ?? "Standard not found");
+  if (attachmentError || !attachment) throw new Error(attachmentError?.message ?? "Standard not found");
 
-  const { data: standards, error } = await admin
+  const { data: siblings, error } = await admin
     .from("area_template_standards")
     .select("id, sort_order")
-    .eq("area_template_id", standard.area_template_id)
+    .eq("area_template_id", attachment.area_template_id)
     .order("sort_order", { ascending: true });
-  if (error || !standards) throw new Error(error?.message ?? "Failed to reorder");
+  if (error || !siblings) throw new Error(error?.message ?? "Failed to reorder");
 
-  const idx = standards.findIndex((s) => s.id === standardId);
+  const idx = siblings.findIndex((s) => s.id === attachmentId);
   if (idx === -1) return;
   const swapIdx = direction === "up" ? idx - 1 : idx + 1;
-  if (swapIdx < 0 || swapIdx >= standards.length) return;
+  if (swapIdx < 0 || swapIdx >= siblings.length) return;
 
-  const a = standards[idx];
-  const b = standards[swapIdx];
+  const a = siblings[idx];
+  const b = siblings[swapIdx];
   const { error: errA } = await admin.from("area_template_standards").update({ sort_order: b.sort_order }).eq("id", a.id);
   if (errA) throw new Error(errA.message);
   const { error: errB } = await admin.from("area_template_standards").update({ sort_order: a.sort_order }).eq("id", b.id);

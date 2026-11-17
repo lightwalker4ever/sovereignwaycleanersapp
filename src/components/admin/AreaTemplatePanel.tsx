@@ -5,11 +5,11 @@ import { useState, useTransition } from "react";
 import { Loader2, Pencil } from "lucide-react";
 import { EditableTextCell } from "@/components/admin/EditableTextCell";
 import { StandardRowActions } from "@/components/admin/StandardRowActions";
-import { CreateStandardForm } from "@/components/admin/CreateStandardForm";
+import { StandardPicker } from "@/components/admin/StandardPicker";
 import {
   updateAreaTemplateField,
-  updateStandardField,
-  setStandardPhotoRequired,
+  updateCatalogStandardField,
+  setCatalogStandardPhotoRequired,
   duplicateAreaTemplate,
   type AreaTemplateDetail,
 } from "@/app/(dashboard)/dashboard/admin/standards/actions";
@@ -98,11 +98,11 @@ export function AreaTemplatePanel({ areaTemplate }: { areaTemplate: AreaTemplate
       <ol className="m-0 list-none p-0 py-2">
         {areaTemplate.standards.map((standard, index) => (
           <li
-            key={standard.id}
+            key={standard.attachmentId}
             className="flex flex-wrap items-center gap-3.5 border-b border-dash-border-soft px-6 py-3.5"
           >
             <StandardRowActions
-              standardId={standard.id}
+              attachmentId={standard.attachmentId}
               isFirst={index === 0}
               isLast={index === areaTemplate.standards.length - 1}
             />
@@ -112,22 +112,27 @@ export function AreaTemplatePanel({ areaTemplate }: { areaTemplate: AreaTemplate
             <div className="min-w-0 flex-1 basis-60">
               <EditableTextCell
                 value={standard.title}
-                onSave={updateStandardField.bind(null, standard.id, "title")}
+                onSave={updateCatalogStandardField.bind(null, standard.standardId, "title")}
               />
               <div className="text-sm text-dash-muted">
                 <EditableTextCell
                   value={standard.description}
                   placeholder="Add a description"
-                  onSave={updateStandardField.bind(null, standard.id, "description")}
+                  onSave={updateCatalogStandardField.bind(null, standard.standardId, "description")}
                 />
               </div>
             </div>
+            {standard.usageCount > 1 && (
+              <span className="shrink-0 rounded-full bg-dash-border-soft px-2.5 py-1 text-xs font-semibold text-dash-ink-2">
+                Used in {standard.usageCount} areas
+              </span>
+            )}
             <label className="flex shrink-0 items-center gap-2 text-[13px] whitespace-nowrap text-dash-ink-2">
               <input
                 type="checkbox"
                 checked={standard.photoRequired}
                 onChange={(e) => {
-                  setStandardPhotoRequired(standard.id, e.target.checked).catch(() => {
+                  setCatalogStandardPhotoRequired(standard.standardId, e.target.checked).catch(() => {
                     // revalidatePath on the server reflects the real state either way
                   });
                 }}
@@ -144,7 +149,7 @@ export function AreaTemplatePanel({ areaTemplate }: { areaTemplate: AreaTemplate
       </ol>
 
       <div className="p-6 pt-4">
-        <CreateStandardForm areaTemplateId={areaTemplate.id} />
+        <StandardPicker areaTemplateId={areaTemplate.id} />
       </div>
 
       <div className="mx-6 mb-6 rounded-[10px] bg-dash-bg px-3.5 py-3 text-[13px] text-dash-ink-2">
