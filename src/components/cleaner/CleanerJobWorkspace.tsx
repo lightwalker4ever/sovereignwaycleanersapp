@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Camera, Check, Loader2, LogOut, MessageSquarePlus, PlayCircle, Send, MapPin } from "lucide-react";
+import { ArrowLeft, Camera, Check, Loader2, LogOut, MessageSquarePlus, PlayCircle, Send, MapPin, X } from "lucide-react";
 import { googleMapsUrl } from "@/lib/maps";
 import { signOut } from "@/app/(dashboard)/actions";
 import { StatusPill } from "@/components/ui/StatusPill";
@@ -14,6 +14,7 @@ import { compressImage } from "@/lib/image-compress";
 import {
   startCleaning,
   uploadCleaningPhoto,
+  deleteCleaningPhoto,
   submitForReview,
 } from "@/app/(dashboard)/dashboard/cleaner/actions";
 import type { CleaningDetailForParty, CleaningChecklistItem } from "@/lib/cleanings";
@@ -43,21 +44,35 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
   const [noteDraft, setNoteDraft] = useState("");
   const [uploadError, setUploadError] = useState<string | null>(null);
   const [isUploading, startUploading] = useTransition();
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [isDeleting, startDeleting] = useTransition();
   const [startError, setStartError] = useState<string | null>(null);
   const [isStarting, startStarting] = useTransition();
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [isSubmitting, startSubmitting] = useTransition();
   const fileInputRef = useRef<HTMLInputElement>(null);
+  // null = no manual override, follow the default "first not-yet-done
+  // item" wizard flow; "" = explicitly collapsed everything; an id =
+  // that item forced open -- lets a cleaner reopen an already-
+  // photographed item to review it or add another photo, while a
+  // fresh photo upload still auto-advances to the next undone item.
+  const [manualOpenId, setManualOpenId] = useState<string | null>(null);
 
   const editable = status === "in_progress";
   const notStarted = status === "assigned";
   const hasNotMet = items.some((i) => i.reviewStatus === "not_met");
   const displayStatus = toDisplayCleaningStatus(status, hasNotMet, cleaning.scheduledAt, cleaning.startedAt);
 
-  const isPhotographed = (item: CleaningChecklistItem) => item.photos.some((p) => p.authorRole === "cleaner");
+  const cleanerPhotosFor = (item: CleaningChecklistItem) => item.photos.filter((p) => p.authorRole === "cleaner");
+  const isPhotographed = (item: CleaningChecklistItem) => cleanerPhotosFor(item).length > 0;
   const doneCount = items.filter(isPhotographed).length;
   const ready = items.length > 0 && doneCount === items.length;
-  const openId = editable ? (items.find((i) => !isPhotographed(i))?.id ?? null) : null;
+  const firstUndoneId = items.find((i) => !isPhotographed(i))?.id ?? null;
+  const openId = editable ? (manualOpenId === null ? firstUndoneId : manualOpenId || null) : null;
+
+  function toggleItem(itemId: string) {
+    setManualOpenId(openId === itemId ? "" : itemId);
+  }
 
   function handleTakePhoto() {
     fileInputRef.current?.click();
@@ -83,9 +98,26 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
       if (result?.success) {
         setNoteOpenId(null);
         setNoteDraft("");
+        // Back to the default wizard flow -- if this was the last
+        // photo an item needed, this lets the next undone item open
+        // automatically rather than staying pinned on the one just
+        // finished.
+        setManualOpenId(null);
         router.refresh();
       } else {
         setUploadError(result?.error ?? "Failed to upload photo");
+      }
+    });
+  }
+
+  function handleDeletePhoto(photoId: string) {
+    setDeleteError(null);
+    startDeleting(async () => {
+      try {
+        await deleteCleaningPhoto(photoId);
+        router.refresh();
+      } catch (e) {
+        setDeleteError(e instanceof Error ? e.message : "Failed to delete photo");
       }
     });
   }
@@ -185,7 +217,7 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
         {items.map((item, idx) => {
           const done = isPhotographed(item);
           const isOpen = item.id === openId;
-          const firstPhoto = item.photos.find((p) => p.authorRole === "cleaner");
+          const photos = cleanerPhotosFor(item);
           return (
             <li
               key={item.id}
@@ -196,7 +228,23 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
                   : { border: "1px solid var(--color-dash-border)" }
               }
             >
-              <div className="flex items-center gap-3">
+              <div
+                role={editable ? "button" : undefined}
+                tabIndex={editable ? 0 : undefined}
+                onClick={editable ? () => toggleItem(item.id) : undefined}
+                onKeyDown={
+                  editable
+                    ? (e) => {
+                        if (e.key === "Enter" || e.key === " ") {
+                          e.preventDefault();
+                          toggleItem(item.id);
+                        }
+                      }
+                    : undefined
+                }
+                className="flex items-center gap-3"
+                style={editable ? { cursor: "pointer" } : undefined}
+              >
                 <span
                   className="flex size-[30px] flex-none items-center justify-center rounded-full text-sm font-extrabold"
                   style={
@@ -212,12 +260,21 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
                 <span className="flex flex-1 flex-col gap-0.5">
                   <span className="text-[15px] font-bold">{item.title}</span>
                   <span className="text-xs text-dash-muted">
-                    {done ? "Photographed" : isOpen ? `${item.area || "General"} · up next` : item.area || "General"}
+                    {done
+                      ? `Photographed${photos.length > 1 ? ` · ${photos.length} photos` : ""}`
+                      : isOpen
+                        ? `${item.area || "General"} · up next`
+                        : item.area || "General"}
                   </span>
                 </span>
                 {done && (
-                  <span className="h-12 w-12 shrink-0">
-                    <PhotoTile signedUrl={firstPhoto?.signedUrl} square />
+                  <span className="relative h-12 w-12 shrink-0">
+                    <PhotoTile signedUrl={photos[0]?.signedUrl} square />
+                    {photos.length > 1 && (
+                      <span className="absolute -right-1.5 -bottom-1.5 flex h-5 min-w-5 items-center justify-center rounded-full bg-dash-ink px-1 text-[10px] font-bold text-white">
+                        +{photos.length - 1}
+                      </span>
+                    )}
                   </span>
                 )}
               </div>
@@ -225,6 +282,24 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
               {isOpen && (
                 <div className="mt-3 flex flex-col gap-2.5">
                   {item.description && <p className="text-sm text-dash-ink-2">{item.description}</p>}
+                  {photos.length > 0 && (
+                    <div className="grid grid-cols-3 gap-2">
+                      {photos.map((photo) => (
+                        <div key={photo.id} className="relative">
+                          <PhotoTile signedUrl={photo.signedUrl} square />
+                          <button
+                            type="button"
+                            onClick={() => handleDeletePhoto(photo.id)}
+                            disabled={isDeleting}
+                            aria-label="Delete photo"
+                            className="absolute -top-1.5 -right-1.5 flex h-6 w-6 items-center justify-center rounded-full bg-black/70 text-white disabled:opacity-60"
+                          >
+                            <X size={14} aria-hidden="true" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   <button
                     type="button"
                     disabled={isUploading}
@@ -232,7 +307,7 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
                     className="flex h-14 items-center justify-center gap-2.5 rounded-[14px] bg-dash-brand-700 text-base font-extrabold text-white"
                   >
                     {isUploading ? <Loader2 size={22} className="animate-spin" /> : <Camera size={22} aria-hidden="true" />}
-                    Take photo
+                    {done ? "Take another photo" : "Take photo"}
                   </button>
                   <button
                     type="button"
@@ -252,6 +327,7 @@ export function CleanerJobWorkspace({ cleaning }: { cleaning: CleaningDetailForP
                     />
                   )}
                   {uploadError && <p className="text-sm text-dash-danger">{uploadError}</p>}
+                  {deleteError && <p className="text-sm text-dash-danger">{deleteError}</p>}
                 </div>
               )}
             </li>
