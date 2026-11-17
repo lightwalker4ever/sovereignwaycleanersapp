@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
@@ -183,15 +184,16 @@ export function StandardListDetailPanel({
                 (active ? "bg-dash-brand-100" : "")
               }
             >
-              <a
+              <Link
                 href={`/dashboard/admin/standards?bucket=${bucket.id}&area=${area.id}`}
+                prefetch
                 className="min-w-0 flex-1"
               >
                 <span className="block truncate text-sm font-bold text-dash-ink">{area.name}</span>
                 <span className="text-[13px] text-dash-muted">
                   {area.standardCount} standard{area.standardCount === 1 ? "" : "s"}
                 </span>
-              </a>
+              </Link>
               <AreaTemplateRowActions
                 areaTemplateId={area.id}
                 isFirst={index === 0}
