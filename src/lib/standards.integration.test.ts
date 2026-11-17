@@ -5,9 +5,8 @@ import { describe, expect, it, vi } from "vitest";
 // stubbing outside Next.js's webpack build.
 vi.mock("server-only", () => ({}));
 
-const { resolveClientStandardState, assignChecklistToCleaning, refreshCleaningStandards } = await import(
-  "./standards"
-);
+const { resolveClientStandardState, assignChecklistToCleaning, refreshCleaningStandards, applyClientAreaCounts } =
+  await import("./standards");
 const { createAdminClient } = await import("@/lib/supabase/admin");
 
 /**
@@ -169,6 +168,36 @@ describe("standards catalog sharing (integration)", () => {
     // attachment of the same catalog standard.
     const toilet2RestockSoap = state!.items.find((i) => i.area === "Toilet 2" && i.title === "Restock soap");
     expect(toilet2RestockSoap!.enabled).toBe(false);
+  });
+});
+
+describe("applyClientAreaCounts (integration)", () => {
+  it("grows a template below its target and leaves one at or above its target untouched", async () => {
+    const { clientId, officeTemplate, toiletTemplate } = await createCommercialClientFixture();
+    const admin = createAdminClient();
+
+    // Fixture starts at 2x Office, 3x Toilet. Office's target (4) is
+    // above its current count -- grows by 2. Toilet's target (2) is
+    // BELOW its current count (3) -- grow-only, so this must be a
+    // no-op rather than deleting an instance down to the target.
+    const result = await applyClientAreaCounts(admin, clientId, [
+      { areaTemplateId: officeTemplate.id, count: 4 },
+      { areaTemplateId: toiletTemplate.id, count: 2 },
+    ]);
+    expect(result.success).toBe(true);
+
+    const { data: areas, error } = await admin
+      .from("client_areas")
+      .select("label, area_template_id")
+      .eq("client_id", clientId);
+    expect(error).toBeNull();
+
+    const officeLabels = areas!.filter((a) => a.area_template_id === officeTemplate.id).map((a) => a.label);
+    const toiletLabels = areas!.filter((a) => a.area_template_id === toiletTemplate.id).map((a) => a.label);
+
+    expect(new Set(officeLabels)).toEqual(new Set(["Office 1", "Office 2", "Office 3", "Office 4"]));
+    // Still exactly the original 3 -- none removed, none added.
+    expect(new Set(toiletLabels)).toEqual(new Set(["Toilet 1", "Toilet 2", "Toilet 3"]));
   });
 });
 

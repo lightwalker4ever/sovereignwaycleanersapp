@@ -5,7 +5,13 @@ import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { nameSchema, phoneSchema } from "@/lib/validation";
-import { resolveClientStandardState, seedClientBucket, type ClientStandardItem } from "@/lib/standards";
+import {
+  resolveClientStandardState,
+  seedClientBucket,
+  insertClientAreaInstances,
+  applyClientAreaCounts,
+  type ClientStandardItem,
+} from "@/lib/standards";
 
 const ghostClientSchema = z.object({
   fullName: nameSchema,
@@ -273,18 +279,31 @@ export async function addClientAreas(clientId: string, areaTemplateId: string, q
   ]);
   if (countError) throw new Error(countError.message);
 
-  let nextSortOrder = (lastOrder?.[0]?.sort_order ?? -1) + 1;
-  let nextIndex = (existingOfTemplate ?? 0) + 1;
+  const inserted = await insertClientAreaInstances(
+    admin,
+    clientId,
+    areaTemplateId,
+    template.name,
+    quantity,
+    (existingOfTemplate ?? 0) + 1,
+    (lastOrder?.[0]?.sort_order ?? -1) + 1
+  );
+  if (!inserted.success) throw new Error(inserted.error);
 
-  const rows = Array.from({ length: quantity }, () => ({
-    client_id: clientId,
-    area_template_id: areaTemplateId,
-    label: `${template.name} ${nextIndex++}`,
-    sort_order: nextSortOrder++,
-  }));
+  revalidatePath(`/dashboard/admin/clients/${clientId}`);
+}
 
-  const { error } = await admin.from("client_areas").insert(rows);
-  if (error) throw new Error(error.message);
+/**
+ * Bulk "set up areas" for a client -- see applyClientAreaCounts()'s own
+ * doc comment for the grow-only semantics; this just adds the role
+ * check and page revalidation around it.
+ */
+export async function setClientAreaCounts(clientId: string, counts: { areaTemplateId: string; count: number }[]) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const result = await applyClientAreaCounts(admin, clientId, counts);
+  if (!result.success) throw new Error(result.error);
 
   revalidatePath(`/dashboard/admin/clients/${clientId}`);
 }
