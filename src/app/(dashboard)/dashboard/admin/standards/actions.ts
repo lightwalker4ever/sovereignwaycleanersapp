@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { assertIsRole } from "@/lib/supabase/auth-helpers";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { deleteBucketIfUnassigned } from "@/lib/standards";
 
 type AdminClient = ReturnType<typeof createAdminClient>;
 
@@ -177,6 +178,21 @@ export async function duplicateBucket(bucketId: string): Promise<string> {
 
   revalidatePath("/dashboard/admin/standards");
   return newBucket.id;
+}
+
+/**
+ * Deletes a bucket -- see deleteBucketIfUnassigned()'s own doc comment
+ * for the "blocked while a client is still assigned" semantics; this
+ * just adds the role check and page revalidation around it.
+ */
+export async function deleteBucket(bucketId: string) {
+  await assertIsRole(["admin"]);
+
+  const admin = createAdminClient();
+  const result = await deleteBucketIfUnassigned(admin, bucketId);
+  if (!result.success) throw new Error(result.error);
+
+  revalidatePath("/dashboard/admin/standards");
 }
 
 // ============================================================

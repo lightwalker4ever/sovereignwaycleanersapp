@@ -7,6 +7,7 @@ import { Loader2 } from "lucide-react";
 import { EditableTextCell } from "@/components/admin/EditableTextCell";
 import { AreaTemplateRowActions } from "@/components/admin/AreaTemplateRowActions";
 import { CreateAreaTemplateForm } from "@/components/admin/CreateAreaTemplateForm";
+import { DeleteBucketDrawer } from "@/components/admin/DeleteBucketDrawer";
 import {
   updateBucketField,
   duplicateBucket,
@@ -117,6 +118,7 @@ export function StandardListDetailPanel({
             {isDuplicating && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
             Duplicate
           </button>
+          <DeleteBucketDrawer bucket={bucket} />
         </div>
 
         <div className="flex flex-wrap items-center gap-2">

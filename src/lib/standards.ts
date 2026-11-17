@@ -223,6 +223,41 @@ export async function seedClientBucket(
 }
 
 /**
+ * Deletes a bucket outright (cascading to its area templates and
+ * their standard attachments -- the catalog entries themselves are
+ * untouched, same as detachStandard()), but only if no client is
+ * still assigned to it. client_bucket_assignments.bucket_id has no
+ * cascade, so an unchecked delete would otherwise fail with a raw
+ * foreign-key error once a client exists -- this pre-check turns that
+ * into a clear message instead. The admin UI (DeleteBucketDrawer)
+ * surfaces the affected clients and lets the admin reassign each one
+ * to a different bucket first; this function's own check mainly
+ * guards the race where a client gets assigned between page load and
+ * the delete click.
+ */
+export async function deleteBucketIfUnassigned(
+  admin: ReturnType<typeof createAdminClient>,
+  bucketId: string
+): Promise<{ success: true } | { success: false; error: string }> {
+  const { count, error: countError } = await admin
+    .from("client_bucket_assignments")
+    .select("id", { count: "exact", head: true })
+    .eq("bucket_id", bucketId);
+  if (countError) return { success: false, error: countError.message };
+  if ((count ?? 0) > 0) {
+    return {
+      success: false,
+      error: `${count} client${count === 1 ? " is" : "s are"} still assigned to this bucket -- reassign ${count === 1 ? "it" : "them"} first`,
+    };
+  }
+
+  const { error } = await admin.from("standard_buckets").delete().eq("id", bucketId);
+  if (error) return { success: false, error: error.message };
+
+  return { success: true };
+}
+
+/**
  * Inserts `quantity` new client_areas rows for one area template,
  * labeled "<template name> <startIndex>", "<template name>
  * <startIndex + 1>", ... and sort-ordered starting at `startSortOrder`
