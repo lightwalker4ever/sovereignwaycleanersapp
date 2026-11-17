@@ -17,10 +17,12 @@ export function StandardListDetailPanel({
   bucket,
   selectedAreaTemplateId,
   allClients,
+  autoFocusAddArea,
 }: {
   bucket: BucketDetail;
   selectedAreaTemplateId: string | null;
   allClients: { id: string; fullName: string | null }[];
+  autoFocusAddArea?: boolean;
 }) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
@@ -204,7 +206,7 @@ export function StandardListDetailPanel({
       </ol>
 
       <div className="p-6 pt-4">
-        <CreateAreaTemplateForm bucketId={bucket.id} />
+        <CreateAreaTemplateForm bucketId={bucket.id} autoFocus={autoFocusAddArea} />
       </div>
     </section>
   );

@@ -108,21 +108,25 @@ export async function getBucket(bucketId: string): Promise<BucketDetail | null> 
   };
 }
 
-export type BucketFormState = { success: boolean; error?: string } | null;
-
-export async function createBucket(prevState: BucketFormState, formData: FormData): Promise<BucketFormState> {
+/** Returns the new bucket's id, so the caller can navigate straight
+ *  into it (and prompt for its first area) instead of landing back on
+ *  a static list. */
+export async function createBucket(name: string, description: string | null): Promise<string> {
   await assertIsRole(["admin"]);
 
-  const name = (formData.get("name") as string)?.trim();
-  const description = ((formData.get("description") as string) || "").trim() || null;
-  if (!name) return { success: false, error: "Name is required" };
+  const trimmedName = name.trim();
+  if (!trimmedName) throw new Error("Name is required");
 
   const admin = createAdminClient();
-  const { data, error } = await admin.from("standard_buckets").insert({ name, description }).select("id").single();
-  if (error || !data) return { success: false, error: error?.message ?? "Failed to create bucket" };
+  const { data, error } = await admin
+    .from("standard_buckets")
+    .insert({ name: trimmedName, description: description?.trim() || null })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "Failed to create bucket");
 
   revalidatePath("/dashboard/admin/standards");
-  return { success: true };
+  return data.id;
 }
 
 export async function updateBucketField(bucketId: string, field: "name" | "description", value: string) {
@@ -293,18 +297,15 @@ export async function getAreaTemplate(areaTemplateId: string): Promise<AreaTempl
   };
 }
 
-export type AreaTemplateFormState = { success: boolean; error?: string } | null;
-
-export async function createAreaTemplate(
-  prevState: AreaTemplateFormState,
-  formData: FormData
-): Promise<AreaTemplateFormState> {
+/** Returns the new area template's id, so the caller can navigate
+ *  straight into it (and prompt for its first standard) instead of
+ *  landing back on the bucket's area list. */
+export async function createAreaTemplate(bucketId: string, name: string): Promise<string> {
   await assertIsRole(["admin"]);
 
-  const bucketId = formData.get("bucketId") as string;
-  const name = (formData.get("name") as string)?.trim();
-  if (!bucketId) return { success: false, error: "Missing bucket" };
-  if (!name) return { success: false, error: "Name is required" };
+  const trimmedName = name.trim();
+  if (!bucketId) throw new Error("Missing bucket");
+  if (!trimmedName) throw new Error("Name is required");
 
   const admin = createAdminClient();
   const { data: existing } = await admin
@@ -315,11 +316,15 @@ export async function createAreaTemplate(
     .limit(1);
   const nextOrder = (existing?.[0]?.sort_order ?? -1) + 1;
 
-  const { error } = await admin.from("area_templates").insert({ bucket_id: bucketId, name, sort_order: nextOrder });
-  if (error) return { success: false, error: error.message };
+  const { data, error } = await admin
+    .from("area_templates")
+    .insert({ bucket_id: bucketId, name: trimmedName, sort_order: nextOrder })
+    .select("id")
+    .single();
+  if (error || !data) throw new Error(error?.message ?? "Failed to create area");
 
   revalidatePath("/dashboard/admin/standards");
-  return { success: true };
+  return data.id;
 }
 
 export async function updateAreaTemplateField(

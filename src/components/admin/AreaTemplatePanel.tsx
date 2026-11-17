@@ -14,7 +14,13 @@ import {
   type AreaTemplateDetail,
 } from "@/app/(dashboard)/dashboard/admin/standards/actions";
 
-export function AreaTemplatePanel({ areaTemplate }: { areaTemplate: AreaTemplateDetail }) {
+export function AreaTemplatePanel({
+  areaTemplate,
+  autoFocusStandardPicker,
+}: {
+  areaTemplate: AreaTemplateDetail;
+  autoFocusStandardPicker?: boolean;
+}) {
   const router = useRouter();
   const [renaming, setRenaming] = useState(false);
   const [name, setName] = useState(areaTemplate.name);
@@ -149,7 +155,7 @@ export function AreaTemplatePanel({ areaTemplate }: { areaTemplate: AreaTemplate
       </ol>
 
       <div className="p-6 pt-4">
-        <StandardPicker areaTemplateId={areaTemplate.id} />
+        <StandardPicker areaTemplateId={areaTemplate.id} autoFocus={autoFocusStandardPicker} />
       </div>
 
       <div className="mx-6 mb-6 rounded-[10px] bg-dash-bg px-3.5 py-3 text-[13px] text-dash-ink-2">

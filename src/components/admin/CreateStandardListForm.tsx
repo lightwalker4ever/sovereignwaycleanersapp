@@ -1,38 +1,34 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useState, useTransition } from "react";
 import { Loader2 } from "lucide-react";
-import {
-  createBucket,
-  type BucketFormState,
-} from "@/app/(dashboard)/dashboard/admin/standards/actions";
+import { createBucket } from "@/app/(dashboard)/dashboard/admin/standards/actions";
 
 const emptyValues = { name: "", description: "" };
 const fieldClassName =
   "h-11 w-full rounded-[10px] border border-dash-input-border px-3 text-sm text-dash-ink outline-none focus:border-dash-brand-700";
 
-export function CreateStandardListForm({ onSuccess }: { onSuccess?: () => void }) {
-  const [state, formAction, isPending] = useActionState<BucketFormState, FormData>(createBucket, null);
+export function CreateStandardListForm({ onCreated }: { onCreated?: (bucketId: string) => void }) {
   const [values, setValues] = useState(emptyValues);
+  const [error, setError] = useState<string | null>(null);
+  const [isPending, startTransition] = useTransition();
 
-  // Resetting this component's own fields is a pure state sync, safe to
-  // do during render. Calling the parent's onSuccess (closes the
-  // drawer) is a genuine side effect -- React doesn't allow updating a
-  // *different* component's state during this component's render, so
-  // it needs a real effect.
-  const [handledState, setHandledState] = useState(state);
-  if (state !== handledState) {
-    setHandledState(state);
-    if (state?.success) {
-      setValues(emptyValues);
-    }
+  function submit(e: React.FormEvent) {
+    e.preventDefault();
+    setError(null);
+    startTransition(async () => {
+      try {
+        const bucketId = await createBucket(values.name, values.description || null);
+        setValues(emptyValues);
+        onCreated?.(bucketId);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to create bucket");
+      }
+    });
   }
-  useEffect(() => {
-    if (state?.success) onSuccess?.();
-  }, [state, onSuccess]);
 
   return (
-    <form action={formAction} className="flex flex-col gap-4">
+    <form onSubmit={submit} className="flex flex-col gap-4">
       <div className="space-y-1.5">
         <label className="text-sm font-semibold text-dash-ink" htmlFor="list-name">
           Name
@@ -60,7 +56,7 @@ export function CreateStandardListForm({ onSuccess }: { onSuccess?: () => void }
           className={fieldClassName}
         />
       </div>
-      {state?.error && <p className="text-sm text-dash-danger">{state.error}</p>}
+      {error && <p className="text-sm text-dash-danger">{error}</p>}
       <button
         type="submit"
         disabled={isPending}
