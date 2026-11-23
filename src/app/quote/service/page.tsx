@@ -9,7 +9,8 @@ import { useQuoteState } from "@/lib/quote-state";
 import { services } from "@/components/Services";
 import type { TailoredServiceSlug } from "@/lib/quote-config";
 import type { QuoteServiceKey } from "@/lib/quote-calculations";
-import { getQuoteRateCard, checkPostcodeCoverage } from "@/actions/quote";
+import { getQuoteRateCard, checkPostcodeCoverage, getMyAccountForQuote, type MyQuoteAccount } from "@/actions/quote";
+import { checkEmailExists } from "@/app/(auth)/login/actions";
 import { fromPriceFor } from "@/lib/quote-from-price";
 import { emailSchema, schemaFieldError } from "@/lib/validation";
 import type { RateCard } from "@/lib/rate-card";
@@ -48,6 +49,15 @@ function QuoteServicePageInner() {
   const [emailInput, setEmailInput] = useState("");
   const [emailTouched, setEmailTouched] = useState(false);
   const emailError = schemaFieldError(emailSchema, emailInput);
+  // Whether this email already belongs to a registered account -- moved
+  // up to this first screen (from /quote/details, which still carries
+  // its own copy of this check as a safety net in case the email is
+  // edited again later) so a returning customer is pointed at sign-in
+  // before filling in the rest of the flow, not after.
+  const [emailIsRegistered, setEmailIsRegistered] = useState(false);
+  // Set if the browser already has an active client session -- suppresses
+  // the "already registered" banner, same as /quote/details.
+  const [myAccount, setMyAccount] = useState<MyQuoteAccount | null>(null);
 
   // Seed from ?service=&postcode= once, after hydration -- a deep link
   // takes priority over whatever sessionStorage already had.
@@ -94,6 +104,22 @@ function QuoteServicePageInner() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated]);
 
+  useEffect(() => {
+    // Reads state.contact.email directly rather than emailInput -- same
+    // hydration-timing reason as /quote/details' identical effect: the
+    // sibling effect above that seeds emailInput from state.contact.email
+    // hasn't flushed yet when this one's closure is created.
+    if (!hydrated) return;
+    getMyAccountForQuote().then((account) => {
+      if (!account) {
+        if (state.contact.email.trim()) checkEmailExists(state.contact.email.trim()).then(setEmailIsRegistered);
+        return;
+      }
+      setMyAccount(account);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated]);
+
   // Avoids re-checking the same value twice -- e.g. Enter immediately
   // followed by the field's own blur, or tabbing back through an
   // already-checked field.
@@ -122,6 +148,9 @@ function QuoteServicePageInner() {
     const trimmed = emailInput.trim();
     if (trimmed && !schemaFieldError(emailSchema, trimmed)) {
       update((prev) => ({ contact: { ...prev.contact, email: trimmed } }));
+      if (!myAccount) checkEmailExists(trimmed).then(setEmailIsRegistered);
+    } else {
+      setEmailIsRegistered(false);
     }
   }
 
@@ -137,7 +166,8 @@ function QuoteServicePageInner() {
   const hasSelection = Boolean(selectedInstant || selectedTailored);
   const hasValidEmail = Boolean(emailInput.trim()) && !schemaFieldError(emailSchema, emailInput.trim());
   const readyToPickService = Boolean(state.coverage?.valid) && hasValidEmail;
-  const canContinue = hasSelection && readyToPickService;
+  const loginGated = !myAccount && emailIsRegistered;
+  const canContinue = hasSelection && readyToPickService && !loginGated;
 
   function handleContinue() {
     if (!canContinue) return;
@@ -227,6 +257,20 @@ function QuoteServicePageInner() {
               <p className="text-[13px] text-dash-muted">
                 So we can save your quote and email it to you if you&apos;re not ready to book today.
               </p>
+              {loginGated && (
+                <div className="flex flex-col gap-2 rounded-xl border border-dash-brand-700 bg-dash-brand-100 p-3.5 text-sm">
+                  <p className="m-0 font-semibold text-dash-ink">You already have an account with this email.</p>
+                  <p className="m-0 text-dash-ink-2">
+                    Sign in so we can fill in your details and keep this quote with your account.
+                  </p>
+                  <a
+                    href={`/login?redirectTo=/quote/service&email=${encodeURIComponent(emailInput.trim())}&registered=1`}
+                    className="flex h-11 items-center justify-center rounded-xl bg-dash-brand-700 text-sm font-bold text-white"
+                  >
+                    Sign in to continue
+                  </a>
+                </div>
+              )}
             </div>
           </section>
 
@@ -347,7 +391,9 @@ function QuoteServicePageInner() {
                   ? "Enter a valid postcode to continue."
                   : !hasValidEmail
                     ? "Add your email to continue."
-                    : selectedInstant
+                    : loginGated
+                      ? "Sign in above to continue with this email, or use a different one."
+                      : selectedInstant
                       ? "Next, tell us about the property. Your price updates as you go, and we won't ask for contact details until the end."
                       : selectedTailored
                         ? "Next, a few quick questions about the job. We'll email your tailored price within 24 hours."
