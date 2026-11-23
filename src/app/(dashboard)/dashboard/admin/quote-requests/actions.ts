@@ -148,10 +148,10 @@ export async function sendTailoredDraftReminder(id: string): Promise<QuoteReques
   const { data: client } = await admin.from("clients").select("email").eq("id", request.client_id).single();
   if (!client?.email) return { success: false, error: "No email on file for this client" };
 
-  const resumeUrl = `https://sovereignwaycleaners.co.uk/quote/resume?token=${request.resume_token}`;
+  const resumeUrl = `https://testswc.co.uk/quote/resume?token=${request.resume_token}`;
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: client.email,
       subject: `Still interested? Your ${SERVICE_TITLE[request.service] ?? request.service} request is waiting (${request.reference})`,
       html: `
@@ -203,10 +203,10 @@ export async function sendQuoteForRequest(id: string, price: number): Promise<Qu
 
   const { data: client } = await admin.from("clients").select("full_name, email").eq("id", request.client_id).single();
   if (client?.email) {
-    const responseUrl = `https://sovereignwaycleaners.co.uk/quote/response?token=${resumeToken}`;
+    const responseUrl = `https://testswc.co.uk/quote/response?token=${resumeToken}`;
     try {
       await resend.emails.send({
-        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
         to: client.email,
         subject: `Your tailored price from Sovereign Way Cleaners (${request.reference})`,
         html: `
@@ -250,7 +250,7 @@ export async function declineQuoteRequest(id: string, reason: string): Promise<Q
   if (client?.email) {
     try {
       await resend.emails.send({
-        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
         to: client.email,
         subject: "About your quote request",
         html: `

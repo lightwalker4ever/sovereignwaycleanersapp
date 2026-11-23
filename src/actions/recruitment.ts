@@ -370,7 +370,7 @@ export async function markContractorEvidenceSubmitted(token: string, phone: stri
     const resend = new Resend(process.env.RESEND_API_KEY);
     const notifyEmail = await getSalesNotificationEmail();
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: notifyEmail,
       subject: `Evidence submitted for contractor application (${app.reference})`,
       html: `<p>${app.fullName} has uploaded the requested evidence for their contractor application. Please review it in Recruitment.</p>`,
