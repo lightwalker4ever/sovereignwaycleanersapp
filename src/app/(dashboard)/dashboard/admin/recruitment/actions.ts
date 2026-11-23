@@ -11,7 +11,7 @@ import { createStaffAccount } from "@/lib/staff";
 import type { RecruitmentPeriodKey } from "@/lib/recruitment-config";
 
 const resend = new Resend(process.env.RESEND_API_KEY);
-const SITE_URL = "https://sovereignwaycleaners.co.uk";
+const SITE_URL = "https://testswc.co.uk";
 
 export interface ContractorApplicationRow {
   id: string;
@@ -153,7 +153,7 @@ export async function requestContractorEvidence(id: string, note: string): Promi
   const link = `${SITE_URL}/careers/evidence?token=${app.resume_token}`;
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: app.email,
       subject: `Next steps for your application (${app.reference})`,
       html: `
@@ -214,7 +214,7 @@ export async function approveContractorApplication(id: string): Promise<Recruitm
 
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: app.email,
       subject: `Your application has been approved! (${app.reference})`,
       html: `
@@ -262,7 +262,7 @@ export async function rejectContractorApplication(id: string, reason: string): P
 
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: app.email,
       subject: `Your application (${app.reference})`,
       html: `

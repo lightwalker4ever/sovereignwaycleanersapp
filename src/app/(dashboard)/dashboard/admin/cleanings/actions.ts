@@ -563,11 +563,11 @@ export async function sendQuoteReminder(cleaningId: string): Promise<SendReminde
 
   const breakdown = cleaning.price_breakdown as { totalIncVat?: number } | null;
   const serviceTitle = SERVICE_TITLE[cleaning.service ?? ""] ?? "cleaning";
-  const resumeUrl = `https://sovereignwaycleaners.co.uk/quote/resume?token=${cleaning.resume_token}`;
+  const resumeUrl = `https://testswc.co.uk/quote/resume?token=${cleaning.resume_token}`;
 
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: client.email,
       subject: `Still interested? Your ${serviceTitle} quote is waiting (${cleaning.reference})`,
       html: `
@@ -657,7 +657,7 @@ export async function confirmCleaningRequest(input: {
     const timeLabel = scheduledAt.toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
     try {
       await resend.emails.send({
-        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
         to: client.email,
         subject: "Your cleaning is confirmed",
         html: `
@@ -721,7 +721,7 @@ export async function proposeAnotherDate(input: {
     const dateLabel = new Date(`${input.date}T00:00:00`).toLocaleDateString("en-GB", { weekday: "long", day: "numeric", month: "long" });
     try {
       await resend.emails.send({
-        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
         to: client.email,
         subject: "A different date for your cleaning?",
         html: `
@@ -817,7 +817,7 @@ export async function declineCleaningRequest(input: {
   if (client?.email) {
     try {
       await resend.emails.send({
-        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
         to: client.email,
         subject: "About your booking request",
         html: `

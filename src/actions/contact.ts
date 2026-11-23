@@ -61,7 +61,7 @@ export async function submitContactForm(
 
   try {
     await resend.emails.send({
-      from: "Website <onboarding@resend.dev>",
+      from: "Website <notifications@testswc.co.uk>",
       to: notificationEmail,
       subject: `New enquiry from ${name}`,
       html: `
@@ -83,7 +83,7 @@ export async function submitContactForm(
 
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: email,
       subject: "We've received your quote request",
       html: `

@@ -176,7 +176,7 @@ export async function emailQuoteToSelf(
 
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: parsed.data,
       subject: `Your ${SERVICE_TITLE[service]} quote from Sovereign Way Cleaners`,
       html: `
@@ -188,7 +188,7 @@ export async function emailQuoteToSelf(
           <tr><td style="color:#55615A">VAT (20%)</td><td style="text-align:right">£${breakdown.vatAmount.toFixed(2)}</td></tr>
           <tr><td style="padding-top:8px;font-weight:bold">Total (inc. VAT)</td><td style="padding-top:8px;text-align:right;font-weight:bold">£${breakdown.totalIncVat.toFixed(2)}</td></tr>
         </table>
-        <p>When you're ready, you can pick up where you left off any time at <a href="https://sovereignwaycleaners.co.uk/quote">sovereignwaycleaners.co.uk/quote</a>.</p>
+        <p>When you're ready, you can pick up where you left off any time at <a href="https://testswc.co.uk/quote">testswc.co.uk/quote</a>.</p>
         <p>Kind regards,<br><strong>Sovereign Way Cleaners</strong></p>
       `,
     });
@@ -275,7 +275,7 @@ function computeInstantBreakdown(
   return calculateOfficeCleaning(selectedInputs as OfficeCleaningInput, rateCard, location.multiplier, location.label);
 }
 
-const SITE_URL = "https://sovereignwaycleaners.co.uk";
+const SITE_URL = "https://testswc.co.uk";
 
 /**
  * Phase C's "here's your quote" email -- sent exactly once, when a
@@ -297,7 +297,7 @@ async function sendDraftSavedEmail(input: {
   const resumeUrl = `${SITE_URL}/quote/resume?token=${input.resumeToken}`;
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: input.email,
       subject: input.subject,
       html: `
@@ -964,7 +964,7 @@ export async function submitInstantQuoteRequest(input: {
 
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: parsedContact.data.email,
       subject: `We've received your booking request (${reference})`,
       html: `
@@ -977,8 +977,8 @@ export async function submitInstantQuoteRequest(input: {
         ${
           input.trackOnline
             ? emailAlreadyRegistered
-              ? `<p>Want to track this clean online? <a href="https://sovereignwaycleaners.co.uk/login">Sign in</a> with this email address to follow progress, photos and results.</p>`
-              : `<p>Want to track this clean online? <a href="https://sovereignwaycleaners.co.uk/login">Set a password</a> using this email address to follow progress, photos and results.</p>`
+              ? `<p>Want to track this clean online? <a href="https://testswc.co.uk/login">Sign in</a> with this email address to follow progress, photos and results.</p>`
+              : `<p>Want to track this clean online? <a href="https://testswc.co.uk/login">Set a password</a> using this email address to follow progress, photos and results.</p>`
             : ""
         }
         <p>If you need to reach us in the meantime, you can call us on <strong>01732 711856</strong> or WhatsApp us on <strong>07445 109813</strong>.</p>
@@ -1211,7 +1211,7 @@ export async function submitTailoredQuoteRequest(input: {
 
   try {
     await resend.emails.send({
-      from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+      from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
       to: parsedContact.data.email,
       subject: `We've received your ${TAILORED_SERVICE_TITLE[input.service]} request (${reference})`,
       html: `
@@ -1422,7 +1422,7 @@ export async function acceptQuoteRequest(input: {
   if (client?.email) {
     try {
       await resend.emails.send({
-        from: "Sovereign Way Cleaners <onboarding@resend.dev>",
+        from: "Sovereign Way Cleaners <notifications@testswc.co.uk>",
         to: client.email,
         subject: `You're booked in! (${cleaning.reference})`,
         html: `
