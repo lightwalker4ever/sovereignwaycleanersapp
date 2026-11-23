@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import { Loader2, Pencil } from "lucide-react";
 import { EditableTextCell } from "@/components/admin/EditableTextCell";
 import { StandardRowActions } from "@/components/admin/StandardRowActions";
@@ -26,6 +26,20 @@ export function AreaTemplatePanel({
   const [name, setName] = useState(areaTemplate.name);
   const [isSavingName, startSavingName] = useTransition();
   const [isDuplicating, startDuplicating] = useTransition();
+  const sectionRef = useRef<HTMLElement>(null);
+
+  // Picking an area from the list to its left is a real navigation
+  // (new ?area= query param), which Next.js's <Link> would otherwise
+  // scroll to the top of the page for -- harmless on desktop's 3-column
+  // layout, but on a stacked mobile layout this panel is the third
+  // section down, so that default left the admin looking at the bucket
+  // list instead of the standards they just asked for. The link itself
+  // passes scroll={false}; this effect scrolls the panel into view
+  // instead, remounting (via the parent's `key`) each time a different
+  // area is picked. A no-op on desktop, where it's already in view.
+  useEffect(() => {
+    sectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, []);
 
   function saveName() {
     const trimmed = name.trim();
@@ -48,6 +62,7 @@ export function AreaTemplatePanel({
 
   return (
     <section
+      ref={sectionRef}
       aria-label={areaTemplate.name}
       className="min-w-0 flex-[2_1_420px] overflow-hidden rounded-2xl border border-dash-border bg-dash-surface"
     >
@@ -112,9 +127,6 @@ export function AreaTemplatePanel({
               isFirst={index === 0}
               isLast={index === areaTemplate.standards.length - 1}
             />
-            <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-dash-brand-100 text-[13px] font-extrabold text-[#155B33]">
-              {index + 1}
-            </span>
             <div className="min-w-0 flex-1 basis-60">
               <EditableTextCell
                 value={standard.title}

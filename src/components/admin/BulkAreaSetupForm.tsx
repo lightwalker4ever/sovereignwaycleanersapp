@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { ChevronDown, ChevronUp, Loader2 } from "lucide-react";
+import { ChevronDown, ChevronUp, Loader2, Minus, Plus } from "lucide-react";
 import { setClientAreaCounts } from "@/app/(dashboard)/dashboard/admin/clients/actions";
 
 export interface BulkAreaSetupRow {
@@ -27,6 +27,17 @@ export function BulkAreaSetupForm({ clientId, rows }: { clientId: string; rows: 
   );
   const [error, setError] = useState<string | null>(null);
   const [isPending, startTransition] = useTransition();
+
+  // The visible +/- buttons below are the only reliable way to change
+  // this on mobile -- the desktop "up/down arrows" admins are used to
+  // are just the browser's native number-input spinner, which touch
+  // browsers hide with no built-in fallback.
+  function step(areaTemplateId: string, currentCount: number, delta: number) {
+    setTargets((t) => {
+      const next = (t[areaTemplateId] ?? currentCount) + delta;
+      return { ...t, [areaTemplateId]: Math.min(50, Math.max(currentCount, next)) };
+    });
+  }
 
   function submit() {
     setError(null);
@@ -65,20 +76,38 @@ export function BulkAreaSetupForm({ clientId, rows }: { clientId: string; rows: 
             {rows.map((r) => (
               <div key={r.areaTemplateId} className="flex items-center justify-between gap-3">
                 <span className="text-sm text-gray-900">{r.name}</span>
-                <input
-                  type="number"
-                  min={r.currentCount}
-                  max={50}
-                  value={targets[r.areaTemplateId] ?? r.currentCount}
-                  onChange={(e) =>
-                    setTargets((t) => ({
-                      ...t,
-                      [r.areaTemplateId]: Math.max(r.currentCount, Number(e.target.value) || r.currentCount),
-                    }))
-                  }
-                  disabled={isPending}
-                  className="h-9 w-20 rounded-lg border border-gray-300 px-2 text-sm text-gray-900"
-                />
+                <div className="flex items-center gap-1">
+                  <button
+                    type="button"
+                    onClick={() => step(r.areaTemplateId, r.currentCount, -1)}
+                    disabled={isPending || (targets[r.areaTemplateId] ?? r.currentCount) <= r.currentCount}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-700 disabled:opacity-40"
+                  >
+                    <Minus className="h-4 w-4" />
+                  </button>
+                  <input
+                    type="number"
+                    min={r.currentCount}
+                    max={50}
+                    value={targets[r.areaTemplateId] ?? r.currentCount}
+                    onChange={(e) =>
+                      setTargets((t) => ({
+                        ...t,
+                        [r.areaTemplateId]: Math.min(50, Math.max(r.currentCount, Number(e.target.value) || r.currentCount)),
+                      }))
+                    }
+                    disabled={isPending}
+                    className="h-9 w-14 rounded-lg border border-gray-300 px-2 text-center text-sm text-gray-900"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => step(r.areaTemplateId, r.currentCount, 1)}
+                    disabled={isPending || (targets[r.areaTemplateId] ?? r.currentCount) >= 50}
+                    className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-gray-300 text-gray-700 disabled:opacity-40"
+                  >
+                    <Plus className="h-4 w-4" />
+                  </button>
+                </div>
               </div>
             ))}
           </div>

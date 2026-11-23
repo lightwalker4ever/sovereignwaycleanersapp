@@ -189,6 +189,7 @@ export function StandardListDetailPanel({
               <Link
                 href={`/dashboard/admin/standards?bucket=${bucket.id}&area=${area.id}`}
                 prefetch
+                scroll={false}
                 className="min-w-0 flex-1"
               >
                 <span className="block truncate text-sm font-bold text-dash-ink">{area.name}</span>
