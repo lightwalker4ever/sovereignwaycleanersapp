@@ -3,7 +3,7 @@ name: Integration tests
 on:
   pull_request:
   push:
-    branches: [main, net/early-account-check]
+    branches: [main]
 
 jobs:
   integration:
