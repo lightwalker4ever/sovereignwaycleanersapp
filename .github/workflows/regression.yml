@@ -3,7 +3,7 @@ name: Regression tests
 on:
   pull_request:
   push:
-    branches: [main, net/test-domain-email]
+    branches: [main]
 
 jobs:
   regression:
