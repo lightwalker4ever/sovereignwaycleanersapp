@@ -2,6 +2,7 @@
 
 import { Suspense, useEffect, useMemo, useState, useTransition } from "react";
 import { useSearchParams } from "next/navigation";
+import Link from "next/link";
 import { Loader2, AlertCircle, CheckCircle2, User, Shuffle } from "lucide-react";
 import { QuoteCalendar, toIso } from "@/components/quote-flow/QuoteCalendar";
 import { Textarea } from "@/components/ui/textarea";
@@ -34,6 +35,14 @@ type Step =
   | "decline"
   | "done-accept"
   | "done-decline";
+
+function BackHome() {
+  return (
+    <Link href="/" className="mt-2 text-center text-sm font-semibold text-dash-brand-700">
+      Back to the home page
+    </Link>
+  );
+}
 
 function QuoteResponsePageInner() {
   const searchParams = useSearchParams();
@@ -251,6 +260,7 @@ function QuoteResponsePageInner() {
         <p className="text-[15px] text-dash-muted">
           We&apos;ll confirm your exact date and time within 24 hours. No payment is needed now.
         </p>
+        <BackHome />
       </div>
     );
   }
@@ -260,6 +270,7 @@ function QuoteResponsePageInner() {
       <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col items-center justify-center gap-4 p-4 py-10 text-center sm:p-8">
         <h1 className="m-0 text-[24px] font-extrabold tracking-tight">No problem</h1>
         <p className="text-[15px] text-dash-muted">Thanks for letting us know. Get in touch any time if that changes.</p>
+        <BackHome />
       </div>
     );
   }
@@ -277,6 +288,7 @@ function QuoteResponsePageInner() {
       <div className="mx-auto flex w-full max-w-[420px] flex-1 flex-col items-center justify-center gap-4 p-4 py-10 text-center sm:p-8">
         <h1 className="m-0 text-[24px] font-extrabold tracking-tight">{detail.reference}</h1>
         <p className="text-[15px] text-dash-muted">{message}</p>
+        <BackHome />
       </div>
     );
   }
