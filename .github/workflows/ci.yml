@@ -3,7 +3,7 @@ name: CI
 on:
   pull_request:
   push:
-    branches: [main]
+    branches: [main, net/quote-response-back-link]
 
 jobs:
   checks:
